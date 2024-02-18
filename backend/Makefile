@@ -75,8 +75,8 @@ test:
 .PHONY: data
 data:
 	cd data && \
-	curl https://arkhamdb.com/api/public/cards/?encounter=1 > cards.json && \
-	curl https://arkhamdb.com/api/public/packs/ | jq ".[].code" | xargs sh -c 'for arg do mkdir $$arg; curl https://arkhamdb.com/api/public/cards/$$arg > $$arg/cards.json; done' \
+	curl https://zh.arkhamdb.com/api/public/cards/?encounter=1 > cards.json && \
+	curl https://zh.arkhamdb.com/api/public/packs/ | jq ".[].code" | xargs sh -c 'for arg do mkdir $$arg; curl https://zh.arkhamdb.com/api/public/cards/$$arg > $$arg/cards.json; done' \
 	for f in `find ./ -name *json`; do echo $f ; python -mjson.tool $f > /tmp/1 && cp /tmp/1 $f ; done \
 
 .PHONY: eventlog

@@ -23,22 +23,23 @@ const updateLanguage = () => {
 
 <template>
   <div class="settings">
-    <h1>Settings</h1>
+    <h1>设置</h1>
 
     <fieldset>
-      <legend>Language</legend>
-      <p>This will change the language of the cards and app, but will default to English if a card or text is not available in the selected language.</p>
+      <legend>语言</legend>
+      <p>这将更改卡牌和应用程序的语言，但如果卡牌或文本不支持所选语言，则默认为英语。</p>
       <select v-model="language" @change="updateLanguage">
         <option value="en">English</option>
         <option value="it">Italian</option>
+        <option value="zh">Chinese</option>
       </select>
     </fieldset>
 
     <fieldset>
-      <legend>Enroll in beta</legend>
-      <p>Beta features are likely very broken and games may be unrecoverable, please only enable this if you are willing to provide feedback.</p>
-      <label>On <input type="radio" name="beta" value="On" v-model="beta" @change="betaUpdate" /></label>
-      <label>Off <input type="radio" name="beta" value="Off" v-model="beta" @change="betaUpdate" /></label>
+      <legend>报名测试版</legend>
+      <p>测试版功能可能会非常残缺，游戏可能无法恢复，请仅在愿意提供反馈的情况下启用此功能。</p>
+      <label>开启 <input type="radio" name="beta" value="On" v-model="beta" @change="betaUpdate" /></label>
+      <label>关闭 <input type="radio" name="beta" value="Off" v-model="beta" @change="betaUpdate" /></label>
     </fieldset>
   </div>
 </template>
