@@ -12,11 +12,11 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./setup.sql:/docker-entrypoint-initdb.d/create_tables.sql
   web:
-    image: "halogenandtoast/arkham-horror:latest"
+    image: "klingeling/arkham-horror:latest"
     build:
       context: .
       args:
-        - GHC_VERSION=9.6.2
+        - GHC_VERSION=9.6.4
     environment:
       - DATABASE_URL=postgres://postgres:postgres@db:5432/arkham-horror-backend
     ports:
