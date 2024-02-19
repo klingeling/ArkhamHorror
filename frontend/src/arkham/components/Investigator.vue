@@ -143,7 +143,7 @@ const portraitImage = computed(() => {
 
 
 const cardsUnderneath = computed(() => props.investigator.cardsUnderneath)
-const cardsUnderneathLabel = computed(() => `Underneath (${cardsUnderneath.value.length})`)
+const cardsUnderneathLabel = computed(() => `下面 (${cardsUnderneath.value.length})`)
 
 const showCardsUnderneath = (e: Event) => emit('showCards', e, cardsUnderneath, "Cards Underneath", false)
 
@@ -214,10 +214,10 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
     <div class="player-area">
       <div class="player-card">
         <div class="stats">
-          <div class="willpower willpower-icon">{{willpower}}</div>
-          <div class="intellect intellect-icon">{{intellect}}</div>
-          <div class="combat combat-icon">{{combat}}</div>
-          <div class="agility agility-icon">{{agility}}</div>
+          <div v-tooltip="'意志'" class="willpower willpower-icon">{{willpower}}</div>
+          <div v-tooltip="'智慧'" class="intellect intellect-icon">{{intellect}}</div>
+          <div v-tooltip="'战斗'" class="combat combat-icon">{{combat}}</div>
+          <div v-tooltip="'敏捷'" class="agility agility-icon">{{agility}}</div>
         </div>
         <img
           :class="{ 'investigator--can-interact': investigatorAction !== -1 }"
@@ -249,7 +249,7 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
         <button
           :disabled="endTurnAction == -1"
           @click="$emit('choose', endTurnAction)"
-        >End turn</button>
+        >结束回合</button>
 
         <button v-if="cardsUnderneath.length > 0" class="view-discard-button" @click="showCardsUnderneath">{{cardsUnderneathLabel}}</button>
       </div>
@@ -264,6 +264,7 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
       </template>
       <PoolItem
         type="resource"
+        v-tooltip="'资源'"
         :amount="resources"
         :class="{ 'resource--can-take': takeResourceAction !== -1 }"
         @choose="$emit('choose', takeResourceAction)"
@@ -273,6 +274,7 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
       </template>
       <PoolItem
         type="clue"
+        v-tooltip="'线索'"
         :amount="clues"
         :class="{ 'resource--can-spend': spendCluesAction !== -1 }"
         @choose="$emit('choose', spendCluesAction)"
@@ -285,6 +287,7 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
       </template>
       <PoolItem
         type="health"
+        v-tooltip="'生命'"
         :amount="damage"
         :class="{ 'health--can-interact': healthAction !== -1 }"
         @choose="$emit('choose', healthAction)"
@@ -297,6 +300,7 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
       </template>
       <PoolItem
         type="sanity"
+        v-tooltip="'神智'"
         :amount="horror"
         :class="{ 'sanity--can-interact': sanityAction !== -1 }"
         @choose="$emit('choose', sanityAction)"

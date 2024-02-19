@@ -195,6 +195,26 @@ const classObject = computed(() => {
     'objective-button': isObjective.value,
   }
 })
+
+const abilityLabel_zh = {
+  'Evade': '躲避',
+  'Fight': '战斗',
+  'Engage': '交战',
+  'Forced': '强制',
+  'Objective': '目标',
+  'Haunted': '闹鬼',
+  'Investigate': '调查',
+  'Resign': '投降',
+  'Ability': '能力',
+  'Draw': '抽牌',
+  'Move': '移动',
+  'Parley': '谈判',
+  'Play': '打出',
+  'Resource': '资源',
+  'Explore': '探险',
+  'Circle': '轮回',
+  'Action': '行动'
+}
 </script>
 
 <template>
@@ -204,7 +224,7 @@ const classObject = computed(() => {
     :class="classObject"
     @click="$emit('choose', ability)"
     v-tooltip="tooltip"
-    >{{abilityLabel}}</button>
+    >{{abilityLabel_zh[abilityLabel] ? abilityLabel_zh[abilityLabel] : abilityLabel}}</button>
 </template>
 
 <style lang="scss" scoped>
@@ -214,6 +234,7 @@ const classObject = computed(() => {
   cursor: pointer;
   border-radius: 4px;
   background-color: #555;
+  white-space: nowrap;
 }
 
 .objective-button {

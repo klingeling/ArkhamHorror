@@ -109,7 +109,7 @@ const playTopOfDeckAction = computed(() => {
 })
 
 const viewingDiscard = ref(false)
-const viewDiscardLabel = computed(() => viewingDiscard.value ? "Close" : pluralize('Card', discards.value.length))
+const viewDiscardLabel = computed(() => viewingDiscard.value ? "关闭" : pluralize('张卡牌', discards.value.length))
 
 const id = computed(() => props.investigator.id)
 const choices = computed(() => ArkhamGame.choices(props.game, props.playerId))
@@ -395,7 +395,7 @@ function onLeave(el: Element, done: () => void) {
         </div>
 
         <div v-if="committedCards.length > 0" class="committed-skills" key="committed-skills">
-          <h2>Committed Skills</h2>
+          <h2>投入的技能</h2>
           <CommittedSkills
             :game="game"
             :cards="committedCards"

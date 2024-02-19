@@ -48,7 +48,7 @@ watch(truncatedGameLog, async () => {
     </ul>
     <div>
       <input type="text">
-      <button @click="emit('undo')">Undo</button>
+      <button @click="emit('undo')">撤消</button>
     </div>
   </div>
 </template>

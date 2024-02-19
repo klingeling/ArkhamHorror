@@ -32,7 +32,7 @@ const error = computed(() => {
   })
 
   if (alreadyTaken) {
-    return 'This investigator is already taken'
+    return '该调查员已被选择'
   }
 
   return null
@@ -80,7 +80,7 @@ const needsReply = computed(() => {
 <template>
   <div class="container">
     <div class="investigators">
-      <h2>Chosen Players</h2>
+      <h2>选择玩家</h2>
       <div class="portraits">
         <img
           v-for="investigator in investigators"
@@ -98,13 +98,13 @@ const needsReply = computed(() => {
       </div>
     </div>
     <form id="choose-deck" @submit.prevent="choose" v-if="needsReply">
-      <p>Choose a Deck</p>
+      <p>选择一套牌组</p>
       <select v-model="deckId">
-        <option disabled :value="null">-- Select a Deck--</option>
+        <option disabled :value="null">-- 选择一套牌组 --</option>
         <option v-for="deck in decks" :key="deck.id" :value="deck.id">{{deck.name}}</option>
       </select>
       <p class="error" v-if="error">{{error}}</p>
-      <button type="submit" :disabled="disabled">Choose</button>
+      <button type="submit" :disabled="disabled">选择</button>
     </form>
   </div>
 </template>
