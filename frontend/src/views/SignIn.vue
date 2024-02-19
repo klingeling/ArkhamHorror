@@ -24,7 +24,7 @@ async function authenticate() {
       router.push({ path: '/' })
     }
   } catch {
-    signInError.value = "Invalid email or password"
+    signInError.value = "错误的邮箱或密码"
   }
 }
 </script>
@@ -38,18 +38,18 @@ async function authenticate() {
         <input
           v-model="credentials.email"
           type="email"
-          placeholder="Email"
+          placeholder="邮箱"
         />
       </div>
       <div>
         <input
           v-model="credentials.password"
           type="password"
-          placeholder="Password"
+          placeholder="密码"
         />
       </div>
       <div>
-        <button>Log in</button>
+        <button>登录</button>
       </div>
     </section>
   </form>

@@ -264,15 +264,15 @@ provide('solo', solo)
   <div id="game" v-if="ready && game && playerId">
     <CardOverlay />
     <div v-if="socketError" class="socketWarning">
-       <p>Your game is out of sync, trying to reconnect...</p>
+       <p>你的游戏未同步，尝试重新连接...</p>
     </div>
     <div v-if="game.gameState.tag === 'IsPending'" class="invite-container">
       <header>
-        <h2>Waiting for more players</h2>
+        <h2>等待更多玩家</h2>
       </header>
       <GameDetails :game="game" id="invite">
         <div v-if="playerId == game.activePlayerId" class="full-width">
-          <p>Invite them with this url:</p>
+          <p>使用此网址邀请他们：</p>
           <div class="invite-link">
             <input type="text" :value="source"><button @click="copy()"><font-awesome-icon icon="copy" /></button>
           </div>
@@ -344,13 +344,13 @@ provide('solo', solo)
           <GameLog :game="game" :gameLog="gameLog" @undo="undo" />
           <router-link class="button-link" :to="`/games/${game.id}/log`" v-slot="{href, navigate}"
   >
-            <button :href="href" @click="navigate">View Log</button>
+            <button :href="href" @click="navigate">查看日志</button>
           </router-link>
-          <button @click="debug.toggle">Toggle Debug</button>
-          <button @click="debugExport">Debug Export</button>
+          <button @click="debug.toggle">切换调试模式</button>
+          <button @click="debugExport">调试导出</button>
         </div>
         <div class="game-over" v-if="gameOver">
-          <p>Game over</p>
+          <p>游戏结束</p>
           <CampaignLog v-if="game !== null" :game="game" :cards="cards" />
         </div>
         <div v-if="!game.scenario">

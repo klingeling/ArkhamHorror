@@ -25,7 +25,7 @@ async function register() {
       router.push({ path: '/' })
     }
   } catch {
-    signUpError.value = "Username or Email already taken"
+    signUpError.value = "用户名或邮箱已经存在"
   }
 }
 </script>
@@ -38,25 +38,25 @@ async function register() {
         <input
           v-model="registration.username"
           type="text"
-          placeholder="Username"
+          placeholder="用户名"
         />
       </div>
       <div>
         <input
           v-model="registration.email"
           type="email"
-          placeholder="Email"
+          placeholder="邮箱"
         />
       </div>
       <div>
         <input
           v-model="registration.password"
           type="password"
-          placeholder="Password"
+          placeholder="密码"
         />
       </div>
       <div>
-        <button>Register</button>
+        <button>注册</button>
       </div>
     </section>
   </form>

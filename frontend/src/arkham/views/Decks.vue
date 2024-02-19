@@ -39,11 +39,11 @@ async function sync(deck: Arkham.Deck) {
 }
 
 const deckUrlToPage = (url: string): string => {
-  // converts https://arkhamdb.com/api/public/decklist/25027
-  // to https://arkhamdb.com/decklist/view/25027
+  // converts https://zh.arkhamdb.com/api/public/decklist/25027
+  // to https://zh.arkhamdb.com/decklist/view/25027
   // OR
-  // converts https://arkhamdb.com/api/public/deck/25027
-  // to https://arkhamdb.com/deck/view/25027
+  // converts https://zh.arkhamdb.com/api/public/deck/25027
+  // to https://zh.arkhamdb.com/deck/view/25027
   return url.replace("/api/public/decklist", "/decklist/view").replace("/api/public/deck", "/deck/view")
 }
 </script>
@@ -51,10 +51,10 @@ const deckUrlToPage = (url: string): string => {
 <template>
   <div id="decks">
     <div>
-      <h2>New Deck</h2>
+      <h2>新牌组</h2>
       <NewDeck @new-deck="addDeck"/>
     </div>
-    <h2>Existing Decks</h2>
+    <h2>现有牌组</h2>
     <transition-group name="deck">
       <div v-for="deck in decks" :key="deck.id" class="deck">
         <img class="portrait--decklist" :src="imgsrc(`cards/${deck.list.investigator_code.replace('c', '')}.jpg`)" />
@@ -73,7 +73,7 @@ const deckUrlToPage = (url: string): string => {
 
     <Prompt
       v-if="deleteId"
-      prompt="Are you sure you want to delete this deck?"
+      prompt="你确定要删除这个牌组吗？"
       :yes="deleteDeckEvent"
       :no="() => deleteId = null"
     />

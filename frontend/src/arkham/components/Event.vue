@@ -75,7 +75,7 @@ const abilities = computed(() => {
 })
 
 const cardsUnderneath = computed(() => props.event.cardsUnderneath)
-const cardsUnderneathLabel = computed(() => `Underneath (${cardsUnderneath.value.length})`)
+const cardsUnderneathLabel = computed(() => `下面 (${cardsUnderneath.value.length})`)
 
 const showCardsUnderneath = (e: Event) => emits('showCards', e, cardsUnderneath, "Cards Underneath", false)
 

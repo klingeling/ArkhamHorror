@@ -19,7 +19,7 @@ const reset = reactive<UpdatePassword>({
 
 async function updatePassword() {
   await api.put(`password-reset/${props.resetId}`, { password : reset.password })
-  toast.success("Password Updated Successfully", { timeout: 3000 })
+  toast.success("密码更新成功", { timeout: 3000 })
 }
 
 const toast = useToast()
@@ -33,11 +33,11 @@ const toast = useToast()
         <input
           v-model="reset.password"
           type="password"
-          placeholder="New Password"
+          placeholder="新密码"
         />
       </div>
       <div>
-        <button>Update Password</button>
+        <button>更新密码</button>
       </div>
     </section>
   </form>

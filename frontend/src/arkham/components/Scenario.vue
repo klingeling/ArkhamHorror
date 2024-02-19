@@ -135,16 +135,16 @@ const doShowCards = (cards: ComputedRef<Card[]>, title: string, isDiscards: bool
   viewingDiscard.value = isDiscards
 }
 
-const showOutOfPlay = () => doShowCards(outOfPlay, 'Out of Play', true)
-const showRemovedFromPlay = () => doShowCards(removedFromPlay, 'Removed from Play', true)
-const showDiscards = () => doShowCards(discards, 'Discards', true)
+const showOutOfPlay = () => doShowCards(outOfPlay, '场外', true)
+const showRemovedFromPlay = () => doShowCards(removedFromPlay, '已从游戏中移除', true)
+const showDiscards = () => doShowCards(discards, '弃牌堆', true)
 const hideCards = () => showCards.ref = noCards
 
-const showCardsUnderScenarioReference = () => doShowCards(cardsUnderScenarioReference, 'Cards Under Scenario Reference', false)
+const showCardsUnderScenarioReference = () => doShowCards(cardsUnderScenarioReference, '冒险辅助卡下的卡牌', false)
 
-const viewUnderScenarioReference = computed(() => `${cardsUnderScenarioReference.value.length} Cards Underneath`)
+const viewUnderScenarioReference = computed(() => `${cardsUnderScenarioReference.value.length}张卡牌在下面`)
 
-const viewDiscardLabel = computed(() => pluralize('Card', discards.value.length))
+const viewDiscardLabel = computed(() => pluralize('张卡牌', discards.value.length))
 const topOfEncounterDiscard = computed(() => {
   if (!props.scenario.discard[0]) return null
 
@@ -396,7 +396,7 @@ const gameOver = computed(() => props.game.gameState.tag === "IsOver")
 
         <button v-if="removedFromPlay.length > 0" class="view-removed-from-play-button" @click="showRemovedFromPlay"><font-awesome-icon icon="eye" /> Removed from Play</button>
 
-        <button v-if="outOfPlay.length > 0" class="view-out-of-play-button" @click="showOutOfPlay"><font-awesome-icon icon="eye" /> Out of Play</button>
+        <button v-if="outOfPlay.length > 0" class="view-out-of-play-button" @click="showOutOfPlay"><font-awesome-icon icon="eye" /> 场外</button>
       </div>
 
       <Connections :game="game" :playerId="playerId" />
@@ -451,49 +451,49 @@ const gameOver = computed(() => props.game.gameState.tag === "IsOver")
     <div class="phases">
       <div class="phase" :class="{ 'active-phase': phase == 'MythosPhase' }">
         <div class="subphases">
-          <div v-tooltip="'Round begins. Mythos phase begins.'" :class="{'current': phaseStep?.contents === 'MythosPhaseBeginsStep' }">1.1</div>
-          <div v-tooltip="'Place 1 doom on the current agenda.'" :class="{'current': phaseStep?.contents === 'PlaceDoomOnAgendaStep'}">1.2</div>
-          <div v-tooltip="'Check doom threshold.'" :class="{'current': phaseStep?.contents === 'CheckDoomThresholdStep'}">1.3</div>
-          <div v-tooltip="'Each investigator draws 1 encounter card.'" :class="{'current': phaseStep?.contents === 'EachInvestigatorDrawsEncounterCardStep'}">1.4</div>
-          <div v-tooltip="'PLAYER WINDOW'" :class="{'current': phaseStep?.contents === 'MythosPhaseWindow'}"><i class="fast-icon" /></div>
-          <div v-tooltip="'Mythos phase ends.'" :class="{'current': phaseStep?.contents === 'MythosPhaseEndsStep'}">1.5</div>
+          <div v-tooltip="'一轮开始。神话阶段开始。'" :class="{'current': phaseStep?.contents === 'MythosPhaseBeginsStep' }">1.1</div>
+          <div v-tooltip="'在当前密谋上放置1个毁灭标记。'" :class="{'current': phaseStep?.contents === 'PlaceDoomOnAgendaStep'}">1.2</div>
+          <div v-tooltip="'检查毁灭阈值。'" :class="{'current': phaseStep?.contents === 'CheckDoomThresholdStep'}">1.3</div>
+          <div v-tooltip="'每位调查员抽取1张遭遇卡牌。'" :class="{'current': phaseStep?.contents === 'EachInvestigatorDrawsEncounterCardStep'}">1.4</div>
+          <div v-tooltip="'玩家时间段'" :class="{'current': phaseStep?.contents === 'MythosPhaseWindow'}"><i class="fast-icon" /></div>
+          <div v-tooltip="'神话阶段结束。'" :class="{'current': phaseStep?.contents === 'MythosPhaseEndsStep'}">1.5</div>
         </div>
-        <div>Mythos</div>
+        <div>神话阶段</div>
       </div>
       <div class="phase" :class="{ 'active-phase': phase == 'InvestigationPhase' }">
         <div class="subphases">
-          <div v-tooltip="'Investigation phase begins.'" :class="{'current': phaseStep?.contents === 'InvestigationPhaseBeginsStep'}">2.1</div>
-          <div v-tooltip="'PLAYER WINDOW'" :class="{'current': phaseStep?.contents === 'InvestigationPhaseBeginsWindow'}"><i class="fast-icon" /></div>
-          <div v-tooltip="'Next investigator\'s turn begins.'" :class="{'current': phaseStep?.contents === 'NextInvestigatorsTurnBeginsStep'}">2.2</div>
-          <div v-tooltip="'PLAYER WINDOW'" :class="{'current': phaseStep?.contents === 'NextInvestigatorsTurnBeginsWindow'}"><i class="fast-icon" /></div>
-          <div v-tooltip="'Active investigator may take an action, if able. If an action was taken, return to previous player window. If no action was taken, proceed to 2.2.2.'" :class="{'current': phaseStep?.contents === 'InvestigatorTakesActionStep'}">2.2.1</div>
-          <div v-tooltip="'Investigator\'s turn ends. If an investigator has not yet taken a turn this phase, return to 2.2. If each investigator has taken a turn this phase, proceed to 2.3.'" :class="{'current': phaseStep?.contents === 'InvestigatorsTurnEndsStep'}">2.2.2</div>
-          <div v-tooltip="'Investigation phase ends.'" :class="{'current': phaseStep?.contents === 'InvestigationPhaseEndsStep'}">2.3</div>
+          <div v-tooltip="'调查阶段开始。'" :class="{'current': phaseStep?.contents === 'InvestigationPhaseBeginsStep'}">2.1</div>
+          <div v-tooltip="'玩家时间段'" :class="{'current': phaseStep?.contents === 'InvestigationPhaseBeginsWindow'}"><i class="fast-icon" /></div>
+          <div v-tooltip="'下一位调查员的回合开始。'" :class="{'current': phaseStep?.contents === 'NextInvestigatorsTurnBeginsStep'}">2.2</div>
+          <div v-tooltip="'玩家时间段'" :class="{'current': phaseStep?.contents === 'NextInvestigatorsTurnBeginsWindow'}"><i class="fast-icon" /></div>
+          <div v-tooltip="'如可能，当前调查员进行一个行动。如果进行了行动，返回上一个玩家时间段。如果不进行行动，进入2.2.2。'" :class="{'current': phaseStep?.contents === 'InvestigatorTakesActionStep'}">2.2.1</div>
+          <div v-tooltip="'调查员回合结束。如果有调查员本阶段未进行回合，返回2.2。如果每位调查员本阶段都已进行过回合，进入2.3。'" :class="{'current': phaseStep?.contents === 'InvestigatorsTurnEndsStep'}">2.2.2</div>
+          <div v-tooltip="'调查阶段结束。'" :class="{'current': phaseStep?.contents === 'InvestigationPhaseEndsStep'}">2.3</div>
         </div>
-        <div>Investigation</div>
+        <div>调查阶段</div>
       </div>
       <div class="phase" :class="{ 'active-phase': phase == 'EnemyPhase' }">
         <div class="subphases">
-          <div v-tooltip="'Enemy phase begins.'" :class="{'current': phaseStep?.contents === 'EnemyPhaseBeginsStep'}">3.1</div>
-          <div v-tooltip="'Hunter enemies move.'" :class="{'current': phaseStep?.contents === 'HunterEnemiesMoveStep'}">3.2</div>
-          <div v-tooltip="'PLAYER WINDOW'" :class="{'current': phaseStep?.contents === 'ResolveAttacksWindow'}"><i class="fast-icon" /></div>
-          <div v-tooltip="'Next investigator resolves engaged enemy attacks. If an investigator has not yet resolved enemy attacks this phase, return to previous player window. After final investigator resolves engaged enemy attacks, proceed to next player window.'" :class="{'current': phaseStep?.contents === 'ResolveAttacksStep'}">3.3</div>
-          <div v-tooltip="'PLAYER WINDOW'" :class="{'current': phaseStep?.contents === 'AfterResolveAttacksWindow'}"><i class="fast-icon" /></div>
-          <div v-tooltip="'Enemy phase ends.'" :class="{'current': phaseStep?.contents === 'EnemyPhaseEndsStep'}">3.4</div>
+          <div v-tooltip="'敌军阶段开始。'" :class="{'current': phaseStep?.contents === 'EnemyPhaseBeginsStep'}">3.1</div>
+          <div v-tooltip="'猎手敌人移动。'" :class="{'current': phaseStep?.contents === 'HunterEnemiesMoveStep'}">3.2</div>
+          <div v-tooltip="'玩家时间段'" :class="{'current': phaseStep?.contents === 'ResolveAttacksWindow'}"><i class="fast-icon" /></div>
+          <div v-tooltip="'下一位调查员结算交战的敌人攻击。如果有调查员本阶段未结算过敌人攻击，返回上一个玩家时间段。最后一位调查员结算了交战的敌人攻击后， 进入下一个玩家时间段。'" :class="{'current': phaseStep?.contents === 'ResolveAttacksStep'}">3.3</div>
+          <div v-tooltip="'玩家时间段'" :class="{'current': phaseStep?.contents === 'AfterResolveAttacksWindow'}"><i class="fast-icon" /></div>
+          <div v-tooltip="'敌军阶段结束。'" :class="{'current': phaseStep?.contents === 'EnemyPhaseEndsStep'}">3.4</div>
         </div>
-        <div>Enemy</div>
+        <div>敌军阶段</div>
       </div>
       <div class="phase" :class="{ 'active-phase': phase == 'UpkeepPhase' }">
         <div class="subphases">
-          <div v-tooltip="'Upkeep phase begins.'" :class="{'current': phaseStep?.contents === 'UpkeepPhaseBeginsStep'}">4.1</div>
-          <div v-tooltip="'PLAYER WINDOW'" :class="{'current': phaseStep?.contents === 'UpkeepPhaseBeginsWindow'}"><i class="fast-icon" /></div>
-          <div v-tooltip="'Reset actions.'" :class="{'current': phaseStep?.contents === 'ResetActionsStep'}">4.2</div>
-          <div v-tooltip="'Ready each exhausted card.'" :class="{'current': phaseStep?.contents === 'ReadyExhaustedStep'}">4.3</div>
-          <div v-tooltip="'Each investigator draws 1 card and gains 1 resource.'" :class="{'current': phaseStep?.contents === 'DrawCardAndGainResourceStep'}">4.4</div>
-          <div v-tooltip="'Each investigator checks hand size.'" :class="{'current': phaseStep?.contents === 'CheckHandSizeStep'}">4.5</div>
-          <div v-tooltip="'Upkeep phase ends. Round ends.'" :class="{'current': phaseStep?.contents === 'UpkeepPhaseEndsStep'}">4.6</div>
+          <div v-tooltip="'补给阶段开始。'" :class="{'current': phaseStep?.contents === 'UpkeepPhaseBeginsStep'}">4.1</div>
+          <div v-tooltip="'玩家时间段'" :class="{'current': phaseStep?.contents === 'UpkeepPhaseBeginsWindow'}"><i class="fast-icon" /></div>
+          <div v-tooltip="'重置行动数。'" :class="{'current': phaseStep?.contents === 'ResetActionsStep'}">4.2</div>
+          <div v-tooltip="'重整所有横置的卡牌。'" :class="{'current': phaseStep?.contents === 'ReadyExhaustedStep'}">4.3</div>
+          <div v-tooltip="'每位调查员抽取1张卡牌并获得1资源。'" :class="{'current': phaseStep?.contents === 'DrawCardAndGainResourceStep'}">4.4</div>
+          <div v-tooltip="'每位调查员检查手牌上限。'" :class="{'current': phaseStep?.contents === 'CheckHandSizeStep'}">4.5</div>
+          <div v-tooltip="'补给阶段结束。一轮结束。'" :class="{'current': phaseStep?.contents === 'UpkeepPhaseEndsStep'}">4.6</div>
         </div>
-        <div>Upkeep</div>
+        <div>补给阶段</div>
       </div>
     </div>
   </div>

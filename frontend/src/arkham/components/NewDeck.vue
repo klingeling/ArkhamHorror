@@ -76,7 +76,7 @@ function loadDeck() {
 
   const matches = deck.value.match(/\/(deck(list)?)(\/view)?\/([^/]+)/)
   if (matches) {
-    deckUrl.value = `https://arkhamdb.com/api/public/${matches[1]}/${matches[4]}`
+    deckUrl.value = `https://zh.arkhamdb.com/api/public/${matches[1]}/${matches[4]}`
     fetch(deckUrl.value)
       .then((response) => response.json(), () => {
         investigator.value = null
@@ -166,18 +166,18 @@ async function createDeck() {
           v-model="deck"
           @change="loadDeck"
           @paste.prevent="pasteDeck($event)"
-          placeholder="ArkhamDB deck url"
+          placeholder="ArkhamDB 牌组网址"
         />
         <input type="file" @change="loadDeckFromFile" />
         <input v-if="investigator" v-model="deckName" />
-        <button :disabled="!valid" @click.prevent="createDeck">Create</button>
+        <button :disabled="!valid" @click.prevent="createDeck">创建</button>
       </div>
     </div>
     <div class="errors" v-if="investigatorError">
       {{investigatorError}}
     </div>
     <div class="errors" v-if="errors.length > 0">
-      <p>Could not create deck, the following cards are unimplemented:</p>
+      <p>无法创建卡组，以下卡牌未实现:</p>
       <ul>
         <li class="error" v-for="(error, idx) in errors" :key="idx">
           {{error}}
@@ -197,6 +197,7 @@ async function createDeck() {
     width: 100%;
     box-sizing: border-box;
     margin-bottom: 10px;
+    color: black;
   }
   .portrait {
     margin-right: 10px;

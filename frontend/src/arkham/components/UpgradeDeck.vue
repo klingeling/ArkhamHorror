@@ -33,7 +33,7 @@ function loadDeck() {
   const matches = deck.value.match(/\/(deck(list)?)(\/view)?\/([^/]+)/);
 
   if (matches) {
-    deckUrl.value = `https://arkhamdb.com/api/public/${matches[1]}/${matches[4]}`
+    deckUrl.value = `https://zh.arkhamdb.com/api/public/${matches[1]}/${matches[4]}`
     fetch(deckUrl.value)
       .then((response) => response.json(), () => {
         deckUrl.value = null;
@@ -76,7 +76,7 @@ async function skip() {
 <template>
   <div id="upgrade-deck">
     <div>
-      <h2>Upgrade Deck ({{xp}} xp)</h2>
+      <h2>升级牌组 ({{xp}} 点经验)</h2>
       <div v-if="!waiting" class="upgrade-deck">
         <img v-if="investigatorId" class="portrait" :src="imgsrc(`portraits/${investigatorId.replace('c', '')}.jpg`)" />
         <div class="fields">
@@ -85,21 +85,21 @@ async function skip() {
             v-model="deck"
             @change="loadDeck"
             @paste.prevent="pasteDeck($event)"
-            placeholder="ArkhamDB deck url"
+            placeholder="ArkhamDB 牌组网址"
           />
-          <button @click.prevent="upgrade">Upgrade</button>
-          <button @click.prevent="skipping = true">Do not Upgrade</button>
+          <button @click.prevent="upgrade">升级</button>
+          <button @click.prevent="skipping = true">不升级</button>
         </div>
       </div>
       <div v-else class="upgrade-deck">
-        Waiting for other players to upgrade deck.
+        等待其他玩家升级牌组。
       </div>
     </div>
   </div>
 
   <Prompt
     v-if="skipping"
-    prompt="Are you sure you want to skip upgrading this deck?"
+    prompt="你确定要跳过升级这套牌组吗？"
     :yes="skip"
     :no="() => skipping = false"
   />

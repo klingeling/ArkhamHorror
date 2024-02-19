@@ -27,13 +27,13 @@ const deckImage = computed(() => {
 const deckLabel = computed(() => {
   switch(props.deck[0]) {
     case 'CultistDeck':
-      return "Cultists"
+      return "邪教徒"
     case 'LunaticsDeck':
-      return "Lunatics"
+      return "疯子"
     case 'MonstersDeck':
-      return "Monsters"
+      return "怪物"
     case 'LeadsDeck':
-      return "Leads"
+      return "线索"
     default:
       return null
   }
@@ -72,6 +72,7 @@ const deckLabel = computed(() => {
   padding: 0 2px;
   transform: translateX(-50%) translateY(50%);
   background: rgba(255,255,255,0.8);
+  white-space: nowrap;
 }
 
 .deck-size {

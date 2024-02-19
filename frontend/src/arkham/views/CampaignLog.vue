@@ -23,7 +23,7 @@ fetchGame(props.gameId, false).then(({ game: newGame }) => {
 
 <template>
   <div>
-    <router-link :to="{ name: 'Game', params: { gameId }}" class="link">Back</router-link>
+    <router-link :to="{ name: 'Game', params: { gameId }}" class="link">返回</router-link>
     <CampaignLog v-if="game !== null" :game="game" :cards="cards" />
   </div>
 </template>

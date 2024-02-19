@@ -57,7 +57,7 @@ const toggleNewGame = () => {
 <template>
   <div class="home">
     <div v-if="currentUser" class="new-game">
-      <button @click="toggleNewGame" :class="{ 'new-game-button': !newGame, 'cancel-new-game-button': newGame }">{{ newGame ? 'Cancel' : '+ New Game' }}</button>
+      <button @click="toggleNewGame" :class="{ 'new-game-button': !newGame, 'cancel-new-game-button': newGame }">{{ newGame ? '取消' : '+ 新游戏' }}</button>
 
       <transition name="slide">
         <NewGame v-if="newGame"/>
@@ -66,24 +66,24 @@ const toggleNewGame = () => {
 
     <transition name="slide">
       <div v-if="!newGame">
-        <h2>Active Games</h2>
+        <h2>活跃中的游戏</h2>
         <GameRow v-for="game in activeGames" :key="game.id" :game="game" @delete="deleteId = game.id" />
 
-        <h2 v-if="finishedGames.length > 0">Finished Games</h2>
+        <h2 v-if="finishedGames.length > 0">已完成的游戏</h2>
         <GameRow v-for="game in finishedGames" :key="game.id" :game="game" @delete="deleteId = game.id" />
 
         <Prompt
           v-if="deleteId"
-          prompt="Are you sure you want to delete this game?"
+          prompt="你确定要删除这场游戏吗？"
           :yes="deleteGameEvent"
           :no="() => deleteId = null"
         />
 
         <template v-if="currentUser && currentUser.beta === true">
-          <h2>Debug Game</h2>
+          <h2>调试游戏</h2>
           <form enctype="multipart/form-data" method=POST>
             <input type="file" name="debugFile" accept="application/json" class="input-file" ref="debugFile" />
-            <button @click="submitDebugUpload">Debug Game</button>
+            <button @click="submitDebugUpload">调试游戏</button>
           </form>
         </template>
       </div>

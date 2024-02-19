@@ -27,9 +27,9 @@ async function logout() {
 <template>
   <div id="nav">
     <span class="main-links">
-      <router-link to="/" class="home-link">Home</router-link>{{' '}}
-      <router-link v-if="currentUser" to="/decks">My Decks</router-link>
-      <router-link v-if="currentUser" to="/cards">Cards</router-link>
+      <router-link to="/" class="home-link">主页</router-link>{{' '}}
+      <router-link v-if="currentUser" to="/decks">我的牌组</router-link>
+      <router-link v-if="currentUser" to="/cards">卡牌</router-link>
     </span>
 
     <input type="checkbox" id="dropdown-toggle" />
@@ -41,13 +41,14 @@ async function logout() {
           <font-awesome-icon icon="angle-down" class="user-links--dropdown-icon" />
         </label>
         <div class="user-links--dropdown">
-          <router-link to="/settings">Settings</router-link>{{' '}}
-          <a href="#" @click="logout">Logout</a>
+          <router-link to="/settings">设置</router-link>{{' '}}
+          <br>
+          <a href="#" @click="logout">登出</a>
         </div>
       </template>
       <template v-else>
-        <router-link to="/sign-in">Login</router-link>{{' '}}
-        <router-link to="/sign-up">Register</router-link>
+        <router-link to="/sign-in">登录</router-link>{{' '}}
+        <router-link to="/sign-up">注册</router-link>
       </template>
     </span>
   </div>

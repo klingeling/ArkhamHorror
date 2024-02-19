@@ -166,18 +166,18 @@ async function deleteDeckEvent() {
 async function sync() {
   if (deck.value) {
     syncDeck(deck.value.id).then((newData) => {
-      toast.success("Deck synced successfully", { timeout: 3000 })
+      toast.success("牌组同步成功", { timeout: 3000 })
       deck.value = newData
     })
   }
 }
 
 const deckUrlToPage = (url: string): string => {
-  // converts https://arkhamdb.com/api/public/decklist/25027
-  // to https://arkhamdb.com/decklist/view/25027
+  // converts https://zh.arkhamdb.com/api/public/decklist/25027
+  // to https://zh.arkhamdb.com/decklist/view/25027
   // OR
-  // converts https://arkhamdb.com/api/public/deck/25027
-  // to https://arkhamdb.com/deck/view/25027
+  // converts https://zh.arkhamdb.com/api/public/deck/25027
+  // to https://zh.arkhamdb.com/deck/view/25027
   return url.replace("/api/public/decklist", "/decklist/view").replace("/api/public/deck", "/deck/view")
 }
 </script>
@@ -219,7 +219,7 @@ const deckUrlToPage = (url: string): string => {
       </div>
       <table class="list" v-if="view == View.List">
         <thead>
-          <tr><th>Name</th><th>Class</th><th>Cost</th><th>Type</th><th>Icons</th><th>Traits</th><th>Set</th></tr>
+          <tr><th>名称</th><th>职阶</th><th>费用</th><th>类型</th><th>图标</th><th>特性</th><th>组别</th></tr>
         </thead>
         <tbody>
           <tr v-for="(card, idx) in cards" :key="idx">
@@ -238,7 +238,7 @@ const deckUrlToPage = (url: string): string => {
     </div>
     <Prompt
       v-if="deleting"
-      prompt="Are you sure you want to delete this deck?"
+      prompt="你确定要删除这个牌组吗？"
       :yes="deleteDeckEvent"
       :no="() => deleting = false"
     />
@@ -349,6 +349,7 @@ i {
 
 thead tr th {
   background-color: #BBB;
+  white-space: nowrap;
 
   &:nth-child(1) {
     border-top-left-radius: 10px;

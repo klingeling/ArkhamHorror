@@ -95,7 +95,7 @@ const activeSettings = computed(() => {
 
 <template>
   <div class="container">
-    <p>Standalone Settings</p>
+    <p>单场冒险设置</p>
     <div v-for="setting in activeSettings" :key="setting.key">
       <div v-if="setting.type === 'ChooseRecord'" class="options">
         <fieldset>
@@ -170,7 +170,7 @@ const activeSettings = computed(() => {
         </div>
       </div>
     </div>
-    <button @click="submit">Begin</button>
+    <button @click="submit">开始</button>
   </div>
 </template>
 

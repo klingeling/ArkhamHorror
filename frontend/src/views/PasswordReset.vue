@@ -31,7 +31,7 @@ const toast = useToast()
         />
       </div>
       <div>
-        <button>Reset Password</button>
+        <button>重置密码</button>
       </div>
     </section>
   </form>

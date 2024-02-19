@@ -25,12 +25,12 @@ async function join() {
   <div class="container">
     <div>
       <header>
-        <h2>Join Game</h2>
+        <h2>加入游戏</h2>
       </header>
 
       <GameDetails v-if="game" :game="game">
         <form id="join-game" @submit.prevent="join">
-          <button type="submit">Join</button>
+          <button type="submit">加入</button>
         </form>
       </GameDetails>
     </div>

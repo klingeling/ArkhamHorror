@@ -143,11 +143,23 @@ const label = function(body: string) {
   return replaceIcons(body).replace(/_([^_]*)_/g, '<b>$1</b>').replace(/\*([^*]*)\*/g, '<i>$1</i>')
 }
 
+
+const label_zh = {
+  'Choose': '选择',
+  'Results': '结果',
+  'Continue': '继续',
+  'Done With Mulligan': '完成调度'
+}
+
+const label_tr = function(body: string) {
+  return label_zh[label(body)] ? label_zh[label(body)] : label(body)
+}
+
 </script>
 
 <template>
   <Draggable v-if="title" class="modal" :class="{ hide }">
-    <template #handle><h2 v-html="label(title)"></h2></template>
+    <template #handle><h2 v-html="label_tr(title)"></h2></template>
     <section class="status-bar">
       <div v-if="skillTestResults" class="skill-test-results">
         <CommittedSkills
@@ -158,21 +170,21 @@ const label = function(body: string) {
           @choose="choose"
         />
         <dl>
-          <dt>Modified Skill Value (skill value + icon value - tokens):</dt>
+          <dt>修正后的技能值(技能值 + 图标值 - 标记):</dt>
           <dd>
             {{skillTestResults.skillTestResultsSkillValue}}
             + {{skillTestResults.skillTestResultsIconValue}}
             {{tokenOperator}}
             {{Math.abs(skillTestResults.skillTestResultsChaosTokensValue)}}
           </dd>
-          <dt>Modified Difficulty:</dt>
+          <dt>修正后的难度:</dt>
           <dd>{{skillTestResults.skillTestResultsDifficulty}}</dd>
-          <dt>Result:</dt>
+          <dt>结果:</dt>
           <dd v-if="skillTestResults.skillTestResultsSuccess">
-            Succeed by {{testResult}}
+            结果为 {{testResult}} 而成功
           </dd>
           <dd v-else-if="testResult">
-            Fail by {{testResult - (skillTestResults.skillTestResultsResultModifiers || 0)}}
+            结果为 {{testResult - (skillTestResults.skillTestResultsResultModifiers || 0)}} 而失败
           </dd>
         </dl>
       </div>
@@ -224,18 +236,18 @@ const label = function(body: string) {
           <button v-if="choice.tag === MessageType.DONE" @click="choose(index)">{{label(choice.label)}}</button>
           <div v-if="choice.tag === MessageType.LABEL" class="message-label">
             <button v-if="choice.label == 'Choose {skull}'" @click="choose(index)">
-              Choose <i class="iconSkull"></i>
+              选择 <i class="iconSkull"></i>
             </button>
             <button v-else-if="choice.label == 'Choose {cultist}'" @click="choose(index)">
-              Choose <i class="iconCultist"></i>
+              选择 <i class="iconCultist"></i>
             </button>
             <button v-else-if="choice.label == 'Choose {tablet}'" @click="choose(index)">
-              Choose <i class="iconTablet"></i>
+              选择 <i class="iconTablet"></i>
             </button>
             <button v-else-if="choice.label == 'Choose {elderThing}'" @click="choose(index)">
-              Choose <i class="iconElderThing"></i>
+              选择 <i class="iconElderThing"></i>
             </button>
-            <button v-else @click="choose(index)" v-html="label(choice.label)"></button>
+            <button v-else @click="choose(index)" v-html="label_tr(choice.label)"></button>
           </div>
 
           <a
@@ -243,14 +255,14 @@ const label = function(body: string) {
             class="button"
             @click="choose(index)"
           >
-            Use <i :class="`icon${choice.skillType}`"></i>
+            使用 <i :class="`icon${choice.skillType}`"></i>
           </a>
 
           <button
             class="apply-results"
             v-if="applyResultsAction !== -1"
             @click="choose(applyResultsAction)"
-          >Apply Results</button>
+          >应用结果</button>
         </template>
       </div>
     </section>

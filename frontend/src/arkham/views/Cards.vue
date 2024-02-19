@@ -6,6 +6,7 @@ import * as Arkham from '@/arkham/types/CardDef';
 
 import sets from '@/arkham/data/sets.json'
 import cycles from '@/arkham/data/cycles.json'
+import CardOverlay from '@/arkham/components/CardOverlay.vue'
 
 const allCards = ref<Arkham.CardDef[]>([])
 const ready = ref(false)
@@ -276,14 +277,31 @@ const setSet = (set: CardSet) => {
   query.value = `e:${set.code}`
   filter.value = { cardType: null, text: null, level: null, cycle: null, set: set.code, classes: [] }
 }
+const cyclename_zh = {
+  'Core': '基础游戏',
+  'The Dunwich Legacy': '敦威治遗产',
+  'The Path to Carcosa': '卡尔克萨之路',
+  'The Forgotten Age': '失落的时代',
+  'The Circle Undone': '万象无终',
+  'The Dream-Eaters': '食梦者',
+  'The Innsmouth Conspiracy': '印斯茅斯暗潮',
+  'The Edge of the Earth': '地球边缘',
+  'The Scarlet Keys': '腥红钥匙',
+  'Return to...': '重返...',
+  'Investigator Starter Decks': '调查员起始牌组',
+  'Side Stories': '独立扩充包',
+  'Promotional': '推广',
+  'Parallel': '平行调查员',
+}
 </script>
 
 <template>
   <div class="container">
+    <CardOverlay />
     <div class="cycles">
       <ol>
         <li v-for="cycle in cycles" :key="cycle.code">
-          <a href="#" @click.prevent="setCycle(cycle)">{{cycle.name}}</a>{{cycleCountText(cycle)}}
+          <a href="#" @click.prevent="setCycle(cycle)">{{cyclename_zh[cycle.name]}}</a>{{cycleCountText(cycle)}}
           <ol>
             <li v-for="set in cycleSets(cycle)" :key="set.code">
               <a href="#" @click.prevent="setSet(set)">{{set.name}}</a>{{setCountText(set)}}
@@ -303,22 +321,22 @@ const setSet = (set: CardSet) => {
         <div>
           <label for="include-encounter">
             <input type="checkbox" v-model="includeEncounter" id="include-encounter" />
-            Include Encounter
+            包含遭遇卡牌
           </label>
         </div>
       </header>
       <div class="cards" v-if="view == View.Image">
-        <a v-for="card in cards" :key="card.art" target="_blank" :href="`https://arkhamdb.com/card/${card.art}`">
+        <a v-for="card in cards" :key="card.art" target="_blank" :href="`https://zh.arkhamdb.com/card/${card.art}`">
           <img class="card" :src="image(card)" />
         </a>
       </div>
       <table class="list" v-if="view == View.List">
         <thead>
-          <tr><th>Name</th><th>Class</th><th>Cost</th><th>Type</th><th>Icons</th><th>Traits</th><th>Set</th></tr>
+          <tr><th>名称</th><th>职阶</th><th>费用</th><th>类别</th><th>图标</th><th>特性</th><th>组别</th></tr>
         </thead>
         <tbody>
           <tr v-for="card in cards" :key="card.art">
-            <td><a target="_blank" :href="`https://arkhamdb.com/card/${card.art}`">{{cardName(card)}}{{levelText(card)}}</a></td>
+            <td><a :data-image-id="card.art" target="_blank" :href="`https://zh.arkhamdb.com/card/${card.art}`">{{cardName(card)}}{{levelText(card)}}</a></td>
             <td>{{card.classSymbols.join(', ')}}</td>
             <td>{{cardCost(card)}}</td>
             <td>{{cardType(card)}}</td>
@@ -448,6 +466,7 @@ i {
 thead tr th {
   background-color: #111;
   color: #aaa;
+  white-space: nowrap;
 
   &:nth-child(1) {
     border-top-left-radius: 10px;
