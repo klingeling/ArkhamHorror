@@ -43,16 +43,25 @@ const getPosition = (el: HTMLElement) => {
 
   const rotated = getRotated(el)
 
-  const height = 300 / ratio
+  const height = 420
   const top = rect.top + window.scrollY - 40;
 
   const bottom = top + height
+
+  const width = 420
+  const left = rect.right + window.scrollX + 10;
+
+  const right = left + width
 
   const newTop = Math.max(0, bottom > window.innerHeight ?
     (rotated ? rect.bottom - height + rect.height : rect.bottom - height) + window.scrollY - 40 :
     top)
 
-  return { top: newTop, left: rect.left + window.scrollX + rect.width + 10 }
+    const newLeft = Math.max(0, right > window.innerWidth ?
+    (rotated ? rect.left - width : rect.left - width) + window.scrollX - 10 :
+    left)
+
+  return { top: newTop, left: newLeft }
 }
 
 const getImage = (el: HTMLElement): string | null => {
@@ -144,6 +153,20 @@ document.addEventListener('mouseover', (event) => {
   <div class="card-overlay" ref="cardOverlay">
     <img v-if="card" :src="card" :class="{ reversed }" />
   </div>
+  <!-- Magic for border radius -->
+  <svg style="visibility: hidden" width="0" height="0">
+    <defs>
+      <filter id="filter-radius">
+        <!-- Create a blur of 4px radius from the original image -->
+        <!-- (Transparent pixels are ignored, thus the blur radius starts at the corner of the image) -->
+        <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+        <!-- Filter out the pixels where alpha values that are too low, in this case the blurred corners are filtered out -->
+        <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 100 -50" result="mask" />
+        <!-- As the final result is now blurred, we need to use the mask we obtained from previous step to cut from the original source -->
+        <feComposite in="SourceGraphic" in2="mask" operator="atop" />
+      </filter>
+    </defs>
+  </svg>
 </template>
 
 <style lang="scss">
@@ -154,13 +177,14 @@ document.addEventListener('mouseover', (event) => {
   max-height: 420px;
   height: fit-content;
   display: flex;
+  filter: url('#filter-radius');
   img {
     object-fit: contain;
-    border-radius: 15px;
     width: auto;
     height: auto;
     max-width: 100%;
     max-height: 100%;
+    filter: url('#filter-radius');
   }
 }
 

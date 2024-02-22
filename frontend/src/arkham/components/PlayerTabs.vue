@@ -25,6 +25,9 @@ const switchInvestigator = inject<((i: string) => void)>('switchInvestigator')
 const hasChoices = (iid: string) => ArkhamGame.choices(props.game, iid).length > 0
 const investigators = computed(() => props.playerOrder.map(iid => props.players[iid]))
 const lead = computed(() => `url('${imgsrc(`lead-investigator.png`)}')`)
+let timer = ref(null) as any;
+const isPressing = ref(false)
+const longPressTimeout = ref()
 
 function tabClass(investigator: Investigator) {
   const pid = investigator.playerId
@@ -54,6 +57,24 @@ function tarotCardsFor(i: string) {
   return props.tarotCards.filter(c => c.scope.tag === 'InvestigatorTarot' && c.scope.contents === i)
 }
 
+function handleMouseDown() {
+  longPressTimeout.value = setTimeout(() => {
+    isPressing.value = false;
+    if (isPressing.value == false) {
+      isPressing.value = true;
+    }
+  }, 500);
+}
+
+function handleMouseUp(i: string) {
+  clearTimeout(longPressTimeout.value);
+  if (isPressing.value == true) {
+    selectTabExtended(i);
+  } else if(isPressing.value == false) {
+    selectTab(i);
+  }
+  isPressing.value = false;
+}
 
 watchEffect(() => selectedTab.value = props.playerId)
 </script>
@@ -63,7 +84,8 @@ watchEffect(() => selectedTab.value = props.playerId)
     <ul class='tabs__header'>
       <li v-for='investigator in investigators'
         :key='investigator.name.title'
-        @click.exact='selectTab(investigator.playerId)'
+        @mousedown.exact='handleMouseDown()'
+        @mouseup.exact='handleMouseUp(investigator.playerId)'
         @click.shift='selectTabExtended(investigator.playerId)'
         :class='tabClass(investigator)'
       >
