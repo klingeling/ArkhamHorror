@@ -1,4 +1,5 @@
 import ita from '@/digests/ita.json'
+import chn from '@/digests/chn.json'
 
 export function toCapitalizedWords(name: string) {
   const words = name.match(/[A-Za-z][a-z']*/g) || [];
