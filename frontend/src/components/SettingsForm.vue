@@ -23,15 +23,14 @@ const updateLanguage = () => {
 
 <template>
   <div class="settings">
-    <h1>设置</h1>
+    <h1>{{$t('settings')}}</h1>
 
     <fieldset>
-      <legend>语言</legend>
-      <p>这将更改卡牌和应用程序的语言，但如果卡牌或文本不支持所选语言，则默认为英语。</p>
-      <select v-model="language" @change="updateLanguage">
+      <legend>{{$t('language')}}</legend>
+      <p>This will change the language of the cards and app, but will default to English if a card or text is not available in the selected language.</p>
+      <select v-model="$i18n.locale" @change="updateLanguage">
         <option value="en">English</option>
-        <option value="it">Italian</option>
-        <option value="zh">Chinese</option>
+        <option value="it">Italiano</option>
       </select>
     </fieldset>
 

@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { reactive } from 'vue'
 import { useToast } from "vue-toastification";
+import { useI18n } from 'vue-i18n';
 import api from '@/api';
 
 export interface Props {
@@ -17,9 +18,11 @@ const reset = reactive<UpdatePassword>({
   password: '',
 })
 
+const { t } = useI18n()
+
 async function updatePassword() {
   await api.put(`password-reset/${props.resetId}`, { password : reset.password })
-  toast.success("密码更新成功", { timeout: 3000 })
+  toast.success(t("passwordUpdatedSuccessfully"), { timeout: 3000 })
 }
 
 const toast = useToast()
@@ -33,11 +36,11 @@ const toast = useToast()
         <input
           v-model="reset.password"
           type="password"
-          placeholder="新密码"
+          :placeholder="$t('newPassword')"
         />
       </div>
       <div>
-        <button>更新密码</button>
+        <button>{{$t('updatePassword')}}</button>
       </div>
     </section>
   </form>

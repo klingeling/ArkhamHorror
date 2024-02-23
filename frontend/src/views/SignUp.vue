@@ -3,6 +3,7 @@ import { ref, reactive } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useRoute, useRouter } from 'vue-router'
 import type { Registration } from '@/types'
+import { useI18n } from 'vue-i18n'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,6 +14,8 @@ const registration = reactive<Registration>({
   password: '',
 })
 const signUpError = ref<string|null>(null)
+
+const { t } = useI18n()
 
 async function register() {
   signUpError.value = null
@@ -25,7 +28,7 @@ async function register() {
       router.push({ path: '/' })
     }
   } catch {
-    signUpError.value = "用户名或邮箱已经存在"
+    signUpError.value = t("usernameOrEmailAlreadyTaken")
   }
 }
 </script>
@@ -38,25 +41,25 @@ async function register() {
         <input
           v-model="registration.username"
           type="text"
-          placeholder="用户名"
+          :placeholder="$t('username')"
         />
       </div>
       <div>
         <input
           v-model="registration.email"
           type="email"
-          placeholder="邮箱"
+          :placeholder="$t('email')"
         />
       </div>
       <div>
         <input
           v-model="registration.password"
           type="password"
-          placeholder="密码"
+          :placeholder="$t('password')"
         />
       </div>
       <div>
-        <button>注册</button>
+        <button>{{$t('register')}}</button>
       </div>
     </section>
   </form>

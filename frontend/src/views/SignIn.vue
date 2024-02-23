@@ -3,7 +3,9 @@ import { useUserStore } from '@/stores/user'
 import { useRoute, useRouter } from 'vue-router'
 import { ref, reactive } from 'vue'
 import { Credentials } from '../types'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const store = useUserStore()
 const route = useRoute()
 const router = useRouter()
@@ -24,7 +26,7 @@ async function authenticate() {
       router.push({ path: '/' })
     }
   } catch {
-    signInError.value = "错误的邮箱或密码"
+    signInError.value = t("invalidEmailOrPassword")
   }
 }
 </script>
@@ -38,18 +40,18 @@ async function authenticate() {
         <input
           v-model="credentials.email"
           type="email"
-          placeholder="邮箱"
+          :placeholder="$t('email')"
         />
       </div>
       <div>
         <input
           v-model="credentials.password"
           type="password"
-          placeholder="密码"
+          :placeholder="$t('password')"
         />
       </div>
       <div>
-        <button>登录</button>
+        <button>{{$t('logIn')}}</button>
       </div>
     </section>
   </form>

@@ -73,6 +73,10 @@ allStoryCards =
       , theLikenessOfOld
       , whatRemainsOfTyrrhia
       , adviceOfTheKing
+      , timelessBeauty
+      , unattainableDesires
+      , theCityInside
+      , theBalefulStar
       ]
 
 victory :: Int -> CardDef -> CardDef
@@ -234,3 +238,15 @@ whatRemainsOfTyrrhia = story "06138b" "What Remains of Tyrrhia" TheSearchForKada
 
 adviceOfTheKing :: CardDef
 adviceOfTheKing = story "06139b" "Advice of the King" TheSearchForKadath
+
+timelessBeauty :: CardDef
+timelessBeauty = story "06140b" "Timeless Beauty" TheSearchForKadath
+
+unattainableDesires :: CardDef
+unattainableDesires = story "06141b" "Unattainable Desires" TheSearchForKadath
+
+theCityInside :: CardDef
+theCityInside = story "06142b" "The City Inside" TheSearchForKadath
+
+theBalefulStar :: CardDef
+theBalefulStar = story "06143b" "The Baleful Star" TheSearchForKadath
