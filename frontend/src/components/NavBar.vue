@@ -49,12 +49,12 @@ async function logout() {
         </label>
         <div class="user-links--dropdown">
           <router-link @click="close" to="/settings">{{$t('settings')}}</router-link>{{' '}}
-          <a href="#" @click="logout">Logout</a>
+          <a href="#" @click="logout">{{$t('logout')}}</a>
         </div>
       </template>
       <template v-else>
-        <router-link to="/sign-in">登录</router-link>{{' '}}
-        <router-link to="/sign-up">注册</router-link>
+        <router-link to="/sign-in">{{$t('login')}}</router-link>{{' '}}
+        <router-link to="/sign-up">{{$t('register')}}</router-link>
       </template>
     </span>
   </div>

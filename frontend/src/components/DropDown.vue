@@ -22,6 +22,6 @@ const submit = function() {
     <select v-model="choice">
       <option v-for="(option, idx) in options" :value="idx" :key="idx">{{option}}</option>
     </select>
-    <button type="submit">选择</button>
+    <button type="submit">{{$t('choose')}}</button>
   </form>
 </template>

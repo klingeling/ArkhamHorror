@@ -22,5 +22,16 @@
   "settings": "Settings",
   "updatePassword": "Update Password",
   "username": "Username",
-  "usernameOrEmailAlreadyTaken": "Username or Email already taken"
+  "usernameOrEmailAlreadyTaken": "Username or Email already taken",
+  "thisWillChangeTheLanguage": "This will change the language of the cards and app, but will default to English if a card or text is not available in the selected language.",
+  "enrollInBeta":"Enroll in beta",
+  "betaFeatures": "Beta features are likely very broken and games may be unrecoverable, please only enable this if you are willing to provide feedback.",
+  "on": "on",
+  "off": "off",
+  "close": "Close",
+  "yes": "Yes",
+  "no": "No",
+  "logout": "Logout",
+  "login": "Login",
+  "choose": "Choose"
 }
