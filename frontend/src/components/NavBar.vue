@@ -49,6 +49,7 @@ async function logout() {
         </label>
         <div class="user-links--dropdown">
           <router-link @click="close" to="/settings">{{$t('settings')}}</router-link>{{' '}}
+          <br>
           <a href="#" @click="logout">{{$t('logout')}}</a>
         </div>
       </template>

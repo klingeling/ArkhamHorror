@@ -2,7 +2,7 @@
 service: arkham-horror
 
 # Name of the container image.
-image: halogenandtoast/arkham-horror
+image: klingeling/arkham-horror
 
 # Deploy to these servers.
 servers:

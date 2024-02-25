@@ -21,15 +21,14 @@ export function imgsrc(src: string) {
   const path = src.replace(/^\//, '')
   switch (language) {
     case 'it': {
+      console.log(ita, path)
       const exists = ita.includes(path)
       return exists ? `${baseUrl}/img/arkham/ita/${src.replace(/^\//, '')}` : `${baseUrl}/img/arkham/${src.replace(/^\//, '')}`
-      break;
     }
     case 'zh': {
       console.log(chn, path)
       const exists = chn.includes(path)
       return exists ? `${baseUrl}/img/arkham/chn/${src.replace(/^\//, '')}` : `${baseUrl}/img/arkham/${src.replace(/^\//, '')}`
-      break;
     }
     default: return `${baseUrl}/img/arkham/${src.replace(/^\//, '')}`
   }
