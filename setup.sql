@@ -195,8 +195,7 @@ CREATE TABLE public.users (
     username character varying NOT NULL,
     email character varying NOT NULL,
     password_digest character varying NOT NULL,
-    beta boolean DEFAULT false NOT NULL,
-    language character DEFAULT 'en' NOT NULL
+    beta boolean DEFAULT false NOT NULL
 );
 
 

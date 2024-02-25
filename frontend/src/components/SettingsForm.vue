@@ -28,7 +28,7 @@ const updateLanguage = () => {
     <fieldset>
       <legend>{{$t('language')}}</legend>
       <p>{{$t('thisWillChangeTheLanguage')}}</p>
-      <select v-model="$i18n.locale" @change="updateLanguage">
+      <select v-model="language" @change="updateLanguage">
         <option value="en">English</option>
         <option value="it">Italiano</option>
         <option value="zh">中文</option>
