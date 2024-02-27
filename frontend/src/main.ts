@@ -16,7 +16,7 @@ import * as VueI18n from 'vue-i18n'
 import messages from '@/locales/messages'
 
 const i18n = VueI18n.createI18n({
-  locale: 'en', // set locale
+  locale: localStorage.getItem('language') || 'en', // set locale
   fallbackLocale: 'en', // set fallback locale
   legacy: false,
   warnHtmlMessage: false,
