@@ -1,6 +1,9 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
 import type { User } from '@/types';
+import { useI18n } from 'vue-i18n';
+
+const { locale } = useI18n()
 
 export interface Props {
   user: User
@@ -18,7 +21,7 @@ const language = ref(currentLanguage)
 
 const updateLanguage = () => {
   localStorage.setItem('language', language.value)
-  $i18n.locale.value = language.value
+  locale.value = language.value
 }
 </script>
 
