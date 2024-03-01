@@ -158,7 +158,7 @@ const label_zh = {
 }
 
 const label_tr = function(body: string) {
-  return label_zh[label(body)] ? label_zh[label(body)] : label(body)
+  return label_zh[label(body)] ?? label(body)
 }
 
 </script>

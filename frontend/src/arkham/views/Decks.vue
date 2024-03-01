@@ -34,7 +34,7 @@ fetchDecks().then(async (response) => {
 
 async function sync(deck: Arkham.Deck) {
   syncDeck(deck.id).then(() => {
-    toast.success("Deck synced successfully", { timeout: 3000 })
+    toast.success("$t('deckSyncedSuccessfully')", { timeout: 3000 })
   })
 }
 
@@ -51,16 +51,16 @@ const deckUrlToPage = (url: string): string => {
 <template>
   <div id="decks">
     <div>
-      <h2>新牌组</h2>
+      <h2>{{$t('newDeck')}}</h2>
       <NewDeck @new-deck="addDeck"/>
     </div>
-    <h2>现有牌组</h2>
+    <h2>{{$t('existingDecks')}}</h2>
     <transition-group name="deck">
       <div v-for="deck in decks" :key="deck.id" class="deck">
         <img class="portrait--decklist" :src="imgsrc(`cards/${deck.list.investigator_code.replace('c', '')}.jpg`)" />
         <span class="deck-title"><router-link :to="{ name: 'Deck', params: { deckId: deck.id }}">{{deck.name}}</router-link></span>
         <div class="open-deck">
-          <a v-if="deck.url" :href="deckUrlToPage(deck.url)" target="_blank" rel="noreferrer noopener"><font-awesome-icon alt="View Deck in ArkhamDB" icon="external-link" /></a>
+          <a v-if="deck.url" :href="deckUrlToPage(deck.url)" target="_blank" rel="noreferrer noopener"><font-awesome-icon alt="$t('viewDeckInArkhamdb')" icon="external-link" /></a>
         </div>
         <div v-if="deck.url" class="sync-deck">
           <a href="#" @click.prevent="sync(deck)"><font-awesome-icon icon="refresh" /></a>
@@ -73,7 +73,7 @@ const deckUrlToPage = (url: string): string => {
 
     <Prompt
       v-if="deleteId"
-      prompt="你确定要删除这个牌组吗？"
+      prompt="$t('doDeleteDesk')"
       :yes="deleteDeckEvent"
       :no="() => deleteId = null"
     />

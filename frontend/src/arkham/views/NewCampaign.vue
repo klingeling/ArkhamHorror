@@ -56,7 +56,7 @@ const difficulties = computed<Difficulty[]>(() => {
   return ['Easy', 'Standard', 'Hard', 'Expert']
 })
 
-const difficulties_zh = {'Easy': '简单', 'Standard': '普通', 'Hard': '困难', 'Expert': '专家'}
+const difficulties_zh = {'Easy': $t('easy'), 'Standard': $t('standard'), 'Hard': $t('hard'), 'Expert': $t('expert')}
 
 const router = useRouter()
 const decks = ref<Arkham.Deck[]>([])
@@ -188,7 +188,7 @@ async function start() {
     <transition-group name="slide">
       <div v-if="decks.length == 0">
         <header>
-          <h2>没有牌组，请先添加一个：</h2>
+          <h2>{{$t('noDecks')}}</h2>
         </header>
         <NewDeck @new-deck="addDeck" />
       </div>
@@ -197,7 +197,7 @@ async function start() {
           <h2>{{$t('newGame')}}</h2>
         </header>
         <form id="new-campaign" @submit.prevent="start">
-          <p>玩家人数</p>
+          <p>{{ $t('numberOfPlayers') }}</p>
           <div class="options">
             <input type="radio" v-model="playerCount" :value="1" id="player1" /><label for="player1">1</label>
             <input type="radio" v-model="playerCount" :value="2" id="player2" /><label for="player2">2</label>
@@ -206,15 +206,15 @@ async function start() {
           </div>
           <transition name="slide">
             <div v-if="playerCount > 1" class="options">
-              <input type="radio" v-model="multiplayerVariant" value="WithFriends" id="friends" /><label for="friends">与朋友一起</label>
-              <input type="radio" v-model="multiplayerVariant" value="Solo" id="solo" /><label for="solo">同屏联机</label>
+              <input type="radio" v-model="multiplayerVariant" value="WithFriends" id="friends" /><label for="friends">{{$t('withFriends')}}</label>
+              <input type="radio" v-model="multiplayerVariant" value="Solo" id="solo" /><label for="solo">{{$t('multi-handedSolo')}}</label>
             </div>
           </transition>
 
           <div class="options">
-            <input type="radio" v-model="gameMode" :value="'Campaign'" id="campaign"> <label for="campaign">剧本模式</label>
-            <input type="radio" v-model="gameMode" :value="'Standalone'" id="standalone"> <label for="standalone">单场冒险</label>
-            <input type="radio" v-model="gameMode" :value="'SideStory'" id="sideStory"> <label for="sideStory">独立扩充</label>
+            <input type="radio" v-model="gameMode" :value="'Campaign'" id="campaign"> <label for="campaign">{{$t('campaign')}}</label>
+            <input type="radio" v-model="gameMode" :value="'Standalone'" id="standalone"> <label for="standalone">{{$t('standalone')}}</label>
+            <input type="radio" v-model="gameMode" :value="'SideStory'" id="sideStory"> <label for="sideStory">{{$t('sideStory')}}</label>
           </div>
 
           <template v-if="gameMode === 'SideStory'">
@@ -235,13 +235,13 @@ async function start() {
           </template>
 
           <div v-if="gameMode === 'Campaign' && selectedCampaign && selectedCampaignReturnToId" class="options">
-            <input type="radio" v-model="returnTo" :value="false" id="normal"> <label for="normal">常规</label>
-            <input type="radio" v-model="returnTo" :value="true" id="returnTo"> <label for="returnTo">重返...</label>
+            <input type="radio" v-model="returnTo" :value="false" id="normal"> <label for="normal">{{$t('normal')}}</label>
+            <input type="radio" v-model="returnTo" :value="true" id="returnTo"> <label for="returnTo">{{$t('returnTo')}}</label>
           </div>
 
           <div v-if="gameMode === 'Campaign' && campaign && campaign.settings" class="options">
-            <input type="radio" v-model="fullCampaign" :value="true" id="full"> <label for="full">完整剧本</label>
-            <input type="radio" v-model="fullCampaign" :value="false" id="partial"> <label for="partial">部分剧本</label>
+            <input type="radio" v-model="fullCampaign" :value="true" id="full"> <label for="full">{{$t('fullCampaign')}}</label>
+            <input type="radio" v-model="fullCampaign" :value="false" id="partial"> <label for="partial">{{$t('partialCampaign')}}</label>
           </div>
 
           <template v-if="(gameMode === 'Standalone' || (gameMode !== 'SideStory' && !fullCampaign)) && selectedCampaign">
@@ -252,7 +252,7 @@ async function start() {
             </div>
           </template>
 
-          <p>难度</p>
+          <p>{{$t('difficulty')}}</p>
           <div class="options">
             <template v-for="difficulty in difficulties" :key="difficulty">
               <input
@@ -266,7 +266,7 @@ async function start() {
             </template>
           </div>
 
-          <p>包括塔罗牌占卜</p>
+          <p>{{$t('includeTarotReadings')}}</p>
           <div class="options">
             <input
               type="radio"
@@ -275,7 +275,7 @@ async function start() {
               :checked="!includeTarotReadings"
               id="tarotNo"
             />
-            <label for="tarotNo">否</label>
+            <label for="tarotNo">{{$t('no')}}</label>
             <input
               type="radio"
               v-model="includeTarotReadings"
@@ -283,15 +283,15 @@ async function start() {
               :checked="includeTarotReadings"
               id="tarotYes"
             />
-            <label for="tarotYes">是</label>
+            <label for="tarotYes">{{$t('yes')}}</label>
           </div>
 
           <div>
-            <p>游戏名称</p>
+            <p>{{ $t('gameName') }}</p>
             <input type="text" v-model="campaignName" :placeholder="currentCampaignName" />
           </div>
 
-          <button type="submit" :disabled="disabled">创建</button>
+          <button type="submit" :disabled="disabled">{{$t('create')}}</button>
         </form>
       </div>
     </transition-group>

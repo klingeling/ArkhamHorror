@@ -278,20 +278,20 @@ const setSet = (set: CardSet) => {
   filter.value = { cardType: null, text: null, level: null, cycle: null, set: set.code, classes: [] }
 }
 const cyclename_zh = {
-  'Core': '基础游戏',
-  'The Dunwich Legacy': '敦威治遗产',
-  'The Path to Carcosa': '卡尔克萨之路',
-  'The Forgotten Age': '失落的时代',
-  'The Circle Undone': '万象无终',
-  'The Dream-Eaters': '食梦者',
-  'The Innsmouth Conspiracy': '印斯茅斯暗潮',
-  'The Edge of the Earth': '地球边缘',
-  'The Scarlet Keys': '腥红钥匙',
-  'Return to...': '重返...',
-  'Investigator Starter Decks': '调查员起始牌组',
-  'Side Stories': '独立扩充包',
-  'Promotional': '推广',
-  'Parallel': '平行调查员',
+  "Core": $t('Core'),
+  "The Dunwich Legacy": $t('theDunwichLegacy'),
+  "The Path to Carcosa": $t('ThePathtoCarcosa'),
+  "The Forgotten Age": $t('theForgottenAge'),
+  "The Circle Undone": $t('theCircleUndone'),
+  "The Dream-Eaters": $t('theDream-Eaters'),
+  "The Innsmouth Conspiracy": $t('theInnsmouthConspiracy'),
+  "The Edge of the Earth": $t('theEdgeOfTheEarth'),
+  "The Scarlet Keys": $t('theScarletKeys'),
+  "Return to...": $t('returnTo'),
+  "Investigator Starter Decks": $t('investigatorStarterDecks'),
+  "Side Stories": $t('sideStories'),
+  "Promotional": $t('Promotional'),
+  "Parallel": $t('parallel'),
 }
 </script>
 
@@ -301,7 +301,7 @@ const cyclename_zh = {
     <div class="cycles">
       <ol>
         <li v-for="cycle in cycles" :key="cycle.code">
-          <a href="#" @click.prevent="setCycle(cycle)">{{cyclename_zh[cycle.name]}}</a>{{cycleCountText(cycle)}}
+          <a href="#" @click.prevent="setCycle(cycle)">{{cyclename_zh[cycle.name] ?? cycle.name}}</a>{{cycleCountText(cycle)}}
           <ol>
             <li v-for="set in cycleSets(cycle)" :key="set.code">
               <a href="#" @click.prevent="setSet(set)">{{set.name}}</a>{{setCountText(set)}}
@@ -321,7 +321,7 @@ const cyclename_zh = {
         <div>
           <label for="include-encounter">
             <input type="checkbox" v-model="includeEncounter" id="include-encounter" />
-            包含遭遇卡牌
+            {{$t('includeEncounter')}}
           </label>
         </div>
       </header>
@@ -332,7 +332,7 @@ const cyclename_zh = {
       </div>
       <table class="list" v-if="view == View.List">
         <thead>
-          <tr><th>名称</th><th>职阶</th><th>费用</th><th>类别</th><th>图标</th><th>特性</th><th>组别</th></tr>
+          <tr><th>{{$t('Name')}}</th><th>{{$t('Class')}}</th><th>{{$t('Cost')}}</th><th>{{$t('Type')}}</th><th>{{$t('Icons')}}</th><th>{{$t('Traits')}}</th><th>{{$t('Set')}}</th></tr>
         </thead>
         <tbody>
           <tr v-for="card in cards" :key="card.art">

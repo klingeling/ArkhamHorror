@@ -55,12 +55,12 @@ watch(step, currentStep => {
       <div class="sidebar">
         <CardOverlay />
         <GameLog :game="game" :gameLog="gameLog" />
-        <button @click="step = 0">开始</button>
-        <button @click="step -= 1">上一个</button>
-        <button @click="step += 1">下一个</button>
+        <button @click="step = 0">{{$t('start')}}</button>
+        <button @click="step -= 1">{{$t('previous')}}</button>
+        <button @click="step += 1">{{$t('next')}}</button>
       </div>
       <div v-if="gameOver">
-        <p>游戏结束</p>
+        <p>{{$t('gameOver')}}</p>
 
         <div v-for="entry in recorded" :key="entry">
           {{entry}}

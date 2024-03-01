@@ -264,15 +264,15 @@ provide('solo', solo)
   <div id="game" v-if="ready && game && playerId">
     <CardOverlay />
     <div v-if="socketError" class="socketWarning">
-       <p>你的游戏未同步，尝试重新连接...</p>
+       <p>{{$t('yourGameIsOutOfSync')}}</p>
     </div>
     <div v-if="game.gameState.tag === 'IsPending'" class="invite-container">
       <header>
-        <h2>等待更多玩家</h2>
+        <h2>{{$t('waitingForMorePlayers')}}</h2>
       </header>
       <GameDetails :game="game" id="invite">
         <div v-if="playerId == game.activePlayerId" class="full-width">
-          <p>使用此网址邀请他们：</p>
+          <p>{{$t('inviteThemWithThisUrl')}}</p>
           <div class="invite-link">
             <input type="text" :value="source"><button @click="copy()"><font-awesome-icon icon="copy" /></button>
           </div>
@@ -290,7 +290,7 @@ provide('solo', solo)
                 <img v-if="gameCard.card.tag === 'PlayerCard'" :src="imgsrc('player_back.jpg')" class="card back" />
                 <img v-else :src="imgsrc('back.png')" class="card back" />
               </div>
-              <button @click="continueUI">OK</button>
+              <button @click="continueUI">{{$t('ok')}}</button>
             </div>
           </div>
         </div>
@@ -309,7 +309,7 @@ provide('solo', solo)
                   <img :src="imgsrc('tarot/back.jpg')" class="card back" />
                 </div>
               </div>
-              <button @click="continueUI">OK</button>
+              <button @click="continueUI">{{$t('ok')}}</button>
             </div>
           </div>
         </div>
@@ -344,13 +344,13 @@ provide('solo', solo)
           <GameLog :game="game" :gameLog="gameLog" @undo="undo" />
           <router-link class="button-link" :to="`/games/${game.id}/log`" v-slot="{href, navigate}"
   >
-            <button :href="href" @click="navigate">查看日志</button>
+            <button :href="href" @click="navigate">{{$t('viewLog')}}</button>
           </router-link>
-          <button @click="debug.toggle">切换调试模式</button>
-          <button @click="debugExport">调试导出</button>
+          <button @click="debug.toggle">{{$t('toggleDebug')}}</button>
+          <button @click="debugExport">{{$t('debugExport')}}</button>
         </div>
         <div class="game-over" v-if="gameOver">
-          <p>游戏结束</p>
+          <p>{{$t('gameOver')}}</p>
           <CampaignLog v-if="game !== null" :game="game" :cards="cards" />
         </div>
         <div v-if="!game.scenario">

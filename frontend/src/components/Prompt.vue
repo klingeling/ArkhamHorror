@@ -17,7 +17,7 @@ const cancelFun = computed(() => typeof props.cancel === 'function' ? props.canc
     <div class="cd-popup-container">
       <p>{{prompt}}</p>
       <ul class="cd-buttons">
-         <li><a @click.prevent="yes" href="#yes">{{$t('yse')}}</a></li>
+         <li><a @click.prevent="yes" href="#yes">{{$t('yes')}}</a></li>
          <li><a @click.prevent="no" href="#no">{{$t('no')}}</a></li>
       </ul>
       <a

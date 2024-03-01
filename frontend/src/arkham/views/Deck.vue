@@ -166,7 +166,7 @@ async function deleteDeckEvent() {
 async function sync() {
   if (deck.value) {
     syncDeck(deck.value.id).then((newData) => {
-      toast.success("牌组同步成功", { timeout: 3000 })
+      toast.success("$t('deckSyncedSuccessfully')", { timeout: 3000 })
       deck.value = newData
     })
   }
@@ -201,7 +201,7 @@ const deckUrlToPage = (url: string): string => {
               </div>
               <div class="deck--non-view-options">
                 <div class="open-deck">
-                  <a v-if="deck.url" :href="deckUrlToPage(deck.url)" target="_blank" rel="noreferrer noopener"><font-awesome-icon alt="View Deck in ArkhamDB" icon="external-link" /></a>
+                  <a v-if="deck.url" :href="deckUrlToPage(deck.url)" target="_blank" rel="noreferrer noopener"><font-awesome-icon alt="$t('viewDeckInArkhamdb')" icon="external-link" /></a>
                 </div>
                 <div v-if="deck.url" class="sync-deck">
                   <a href="#" @click.prevent="sync"><font-awesome-icon icon="refresh" /></a>
@@ -219,7 +219,7 @@ const deckUrlToPage = (url: string): string => {
       </div>
       <table class="list" v-if="view == View.List">
         <thead>
-          <tr><th>名称</th><th>职阶</th><th>费用</th><th>类型</th><th>图标</th><th>特性</th><th>组别</th></tr>
+          <tr><th>{{$t('Name')}}</th><th>{{$t('Class')}}</th><th>{{$t('Cost')}}</th><th>{{$t('Type')}}</th><th>{{$t('Icons')}}</th><th>{{$t('Traits')}}</th><th>{{$t('Set')}}</th></tr>
         </thead>
         <tbody>
           <tr v-for="(card, idx) in cards" :key="idx">
@@ -238,7 +238,7 @@ const deckUrlToPage = (url: string): string => {
     </div>
     <Prompt
       v-if="deleting"
-      prompt="你确定要删除这个牌组吗？"
+      prompt="$t('doDeleteDesk')"
       :yes="deleteDeckEvent"
       :no="() => deleting = false"
     />

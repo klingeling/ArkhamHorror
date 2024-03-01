@@ -224,7 +224,7 @@ const abilityLabel_zh = {
     :class="classObject"
     @click="$emit('choose', ability)"
     v-tooltip="tooltip"
-    >{{abilityLabel_zh[abilityLabel] ? abilityLabel_zh[abilityLabel] : abilityLabel}}</button>
+    >{{abilityLabel_zh[abilityLabel] ?? abilityLabel}}</button>
 </template>
 
 <style lang="scss" scoped>
