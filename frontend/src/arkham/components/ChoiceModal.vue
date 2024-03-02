@@ -331,7 +331,7 @@ const replaceIcons = function(body: string) {
               />
             </div>
           </template>
-          <button :disabled="unmetAmountRequirements">Submit</button>
+          <button :disabled="unmetAmountRequirements">{{$t('submit')}}</button>
         </form>
       </div>
     </div>
@@ -344,7 +344,7 @@ const replaceIcons = function(body: string) {
               {{paymentChoice.label}} <input type="number" :min="paymentChoice.minBound" :max="paymentChoice.maxBound" v-model.number="amountSelections[paymentChoice.label]" onclick="this.select()" />
             </div>
           </template>
-          <button :disabled="unmetAmountRequirements">Submit</button>
+          <button :disabled="unmetAmountRequirements">{{$t('submit')}}</button>
         </form>
       </div>
     </div>

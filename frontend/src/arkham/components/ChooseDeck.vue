@@ -104,7 +104,7 @@ const needsReply = computed(() => {
         <option v-for="deck in decks" :key="deck.id" :value="deck.id">{{deck.name}}</option>
       </select>
       <p class="error" v-if="error">{{error}}</p>
-      <button type="submit" :disabled="disabled">选择</button>
+      <button type="submit" :disabled="disabled">{{$t('choose')}}</button>
     </form>
   </div>
 </template>

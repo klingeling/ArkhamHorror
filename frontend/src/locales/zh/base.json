@@ -118,5 +118,20 @@
   "resource": "资源",
   "explore": "探险",
   "circle": "轮回",
-  "action": "行动"
+  "action": "行动",
+  "notYetImplemented": "{0} 尚未实施, 请使用一套不同的牌组",
+  "arkhamDBDeckUrl": "ArkhamDB 牌组网址",
+  "couldNotCreateDeck": "无法创建卡组，以下卡牌未实现:",
+  "unknownCard": "未知卡牌",
+  "discard": "弃牌",
+  "takeControl": "获得控制",
+  "underneath": "下面 ({0})",
+  "cardsUnderneath": "下方卡牌",
+  "supplies": "供应品",
+  "theMaskedHunter": "蒙面猎人",
+  "campaignLogGameName": "战役日志: {0}",
+  "campaignSettings": "战役设置",
+  "begin": "开始",
+  "vengeance1": "复仇1",
+  "submit": "提交"
 }

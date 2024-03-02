@@ -16,7 +16,9 @@ import Story from '@/arkham/components/Story.vue';
 import Token from '@/arkham/components/Token.vue';
 import * as Arkham from '@/arkham/types/Asset';
 import { Card } from '../types/Card';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 const props = defineProps<{
   game: Game
   asset: Arkham.Asset
@@ -108,9 +110,9 @@ const abilities = computed(() => {
 })
 
 const cardsUnderneath = computed(() => props.asset.cardsUnderneath)
-const cardsUnderneathLabel = computed(() => `下面 (${cardsUnderneath.value.length})`)
+const cardsUnderneathLabel = computed(() => t('underneath', [cardsUnderneath.value.length]))
 
-const showCardsUnderneath = (e: Event) => emits('showCards', e, cardsUnderneath, "Cards Underneath", false)
+const showCardsUnderneath = (e: Event) => emits('showCards', e, cardsUnderneath, t('cardsUnderneath'), false)
 
 const keys = computed(() => props.asset.keys)
 
@@ -231,8 +233,8 @@ const assetStory = computed(() => {
       />
       <button v-if="cardsUnderneath.length > 0" class="view-discard-button" @click="showCardsUnderneath">{{cardsUnderneathLabel}}</button>
       <template v-if="debug.active">
-        <button v-if="!asset.owner" @click="debug.send(game.id, {tag: 'TakeControlOfAsset', contents: [investigatorId, id]})">Take control</button>
-        <button v-if="asset.owner" @click="debug.send(game.id, {tag: 'Discard', contents: [null, { tag: 'GameSource' }, { tag: 'AssetTarget', contents: id}]})">弃牌</button>
+        <button v-if="!asset.owner" @click="debug.send(game.id, {tag: 'TakeControlOfAsset', contents: [investigatorId, id]})">{{$t('takeControl')}}</button>
+        <button v-if="asset.owner" @click="debug.send(game.id, {tag: 'Discard', contents: [null, { tag: 'GameSource' }, { tag: 'AssetTarget', contents: id}]})">{{$t('discard')}}</button>
       </template>
       <Asset
         v-for="assetId in asset.assets"

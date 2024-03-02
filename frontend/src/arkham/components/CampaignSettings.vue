@@ -383,7 +383,7 @@ const submit = () => updateCampaignSettings(props.game.id, campaignLog.value)
 
 <template>
   <div class="container">
-    <p>Campaign Settings</p>
+    <p>{{$t('campaignSettings')}}</p>
     <CampaignScenarioSetting
       v-for="setting in activeSettings"
       :step="setting"
@@ -399,7 +399,7 @@ const submit = () => updateCampaignSettings(props.game.id, campaignLog.value)
       @toggle:record="toggleRecordable"
       @set:option="setOption"
     />
-    <button @click="submit" :disabled="!completedCampaignSettings">Begin</button>
+    <button @click="submit" :disabled="!completedCampaignSettings">{{$t('begin')}}</button>
   </div>
 </template>
 

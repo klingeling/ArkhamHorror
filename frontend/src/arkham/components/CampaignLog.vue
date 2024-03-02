@@ -5,7 +5,9 @@ import type { CardDef } from '@/arkham/types/CardDef'
 import type { Name } from '@/arkham/types/Name'
 import Supplies from '@/arkham/components/Supplies.vue';
 import { toCapitalizedWords } from '@/arkham/helpers';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 export interface Props {
   game: Arkham.Game
   cards: CardDef[]
@@ -38,7 +40,7 @@ const cardCodeToTitle = (cardCode: string): string => {
   }
 
   if(cardCode == "c01121b") {
-    return "The Masked Hunter"
+    return t('theMaskedHunter')
   }
 
   return "unknown"
@@ -58,9 +60,9 @@ const fullName = (name: Name): string => {
 
 <template>
   <div class="campaign-log">
-    <h1>Campaign Log: {{game.name}}</h1>
+    <h1>{{$t('campaignLogGameName', [game.name])}}</h1>
     <div v-if="hasSupplies">
-      <h2>Supplies</h2>
+      <h2>{{ $t('supplies') }}</h2>
       <Supplies v-for="i in game.investigators" :key="i.id" :player="i">
         <template #heading>
           <h3>{{i.name.title}}</h3>

@@ -113,7 +113,7 @@ const hasPool = computed(() => {
       :src="image"
       @click="emit('choose', cardAction)"
     />
-    <span class="vengeance" v-if="card.tag === 'VengeanceCard'">Vengeance 1</span>
+    <span class="vengeance" v-if="card.tag === 'VengeanceCard'">{{$t('vengeance1')}}</span>
     <div class="pool" v-if="hasPool">
       <PoolItem v-if="damage" type="doom" :amount="damage" />
       <PoolItem v-if="horror" type="horror" :amount="horror" />

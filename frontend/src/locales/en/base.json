@@ -118,5 +118,20 @@
   "resource": "Resource",
   "explore": "Explore",
   "circle": "Circle",
-  "action": "Action"
+  "action": "Action",
+  "notYetImplemented": "{0} is not yet implemented, please use a different deck",
+  "arkhamDBDeckUrl": "ArkhamDB deck url",
+  "couldNotCreateDeck": "Could not create deck, the following cards are unimplemented:",
+  "unknownCard": "Unknown card",
+  "discard": "Discard",
+  "takeControl": "Take control",
+  "underneath": "Underneath ({0})",
+  "cardsUnderneath": "Cards Underneath",
+  "supplies": "Supplies",
+  "theMaskedHunter": "The Masked Hunter",
+  "campaignLogGameName": "Campaign Log: {0}",
+  "campaignSettings": "Campaign Settings",
+  "begin": "Begin",
+  "vengeance1": "Vengeance 1",
+  "submit": "Submit"
 }

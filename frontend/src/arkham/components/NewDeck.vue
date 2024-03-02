@@ -3,7 +3,9 @@ import { ref } from 'vue'
 import {imgsrc} from '@/arkham/helpers';
 import { fetchInvestigators, newDeck, validateDeck } from '@/arkham/api'
 import { CardDef } from '@/arkham/types/CardDef';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 const ready = ref(false)
 const emit = defineEmits(['newDeck'])
 
@@ -57,7 +59,7 @@ function loadDeckFromFile(e: Event) {
           investigator.value = data.investigator_code
         }
       } else {
-        investigatorError.value = `${data.investigator_name} is not yet implemented, please use a different deck`
+        investigatorError.value = t('notYetImplemented', [data.investigator_name])
       }
       deckId.value = data.id.toString()
       deckName.value = data.name
@@ -95,7 +97,7 @@ function loadDeck() {
             investigator.value = data.investigator_code
           }
         } else {
-          investigatorError.value = `${data.investigator_name} is not yet implemented, please use a different deck`
+          investigatorError.value = t('notYetImplemented', [data.investigator_name])
         }
         deckId.value = matches[4]
         deckName.value = data.name
@@ -120,7 +122,7 @@ function runValidations() {
         const { name, xp } = match
         return xp ? `${name} (${xp})` : name
       }
-      return "Unknown card"
+      return t('unknownCard')
     })
   })
 }
@@ -149,7 +151,7 @@ async function createDeck() {
           const { name, xp } = match
           return xp ? `${name} (${xp})` : name
         }
-        return "Unknown card"
+        return t('unknownCard')
       })
     })
   }
@@ -166,18 +168,18 @@ async function createDeck() {
           v-model="deck"
           @change="loadDeck"
           @paste.prevent="pasteDeck($event)"
-          placeholder="ArkhamDB 牌组网址"
+          placeholder="$t('arkhamDBDeckUrl')"
         />
         <input type="file" @change="loadDeckFromFile" />
         <input v-if="investigator" v-model="deckName" />
-        <button :disabled="!valid" @click.prevent="createDeck">创建</button>
+        <button :disabled="!valid" @click.prevent="createDeck">{{$t('create')}}</button>
       </div>
     </div>
     <div class="errors" v-if="investigatorError">
       {{investigatorError}}
     </div>
     <div class="errors" v-if="errors.length > 0">
-      <p>无法创建卡组，以下卡牌未实现:</p>
+      <p>{{$t('couldNotCreateDeck')}}</p>
       <ul>
         <li class="error" v-for="(error, idx) in errors" :key="idx">
           {{error}}

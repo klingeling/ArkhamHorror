@@ -23,7 +23,7 @@ withDefaults(defineProps<{
         <Card :game="game" :card="card" :playerId="playerId" @choose="$emit('choose', $event)" />
       </div>
     </div>
-    <button class="close" @click="$emit('close')">关闭</button>
+    <button class="close" @click="$emit('close')">{{$t('close')}}</button>
   </Draggable>
 </template>
 
