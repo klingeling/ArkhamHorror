@@ -5,7 +5,9 @@ import type { AbilityLabel, FightLabel, EvadeLabel, EngageLabel } from '@/arkham
 import type { Ability } from '@/arkham/types/Ability';
 import type { Action } from '@/arkham/types/Action';
 import { MessageType } from '@/arkham/types/Message';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 const props = defineProps<{
  ability: AbilityLabel | FightLabel | EvadeLabel | EngageLabel
 }>()
@@ -197,23 +199,23 @@ const classObject = computed(() => {
 })
 
 const abilityLabel_zh = {
-  'Evade': '躲避',
-  'Fight': '战斗',
-  'Engage': '交战',
-  'Forced': '强制',
-  'Objective': '目标',
-  'Haunted': '闹鬼',
-  'Investigate': '调查',
-  'Resign': '投降',
-  'Ability': '能力',
-  'Draw': '抽牌',
-  'Move': '移动',
-  'Parley': '谈判',
-  'Play': '打出',
-  'Resource': '资源',
-  'Explore': '探险',
-  'Circle': '轮回',
-  'Action': '行动'
+  'Evade': t('evade'),
+  'Fight': t('fight'),
+  'Engage': t('engage'),
+  'Forced': t('forced'),
+  'Objective': t('objective'),
+  'Haunted': t('haunted'),
+  'Investigate': t('investigate'),
+  'Resign': t('resign'),
+  'Ability': t('ability'),
+  'Draw': t('draw'),
+  'Move': t('move'),
+  'Parley': t('parley'),
+  'Play': t('play'),
+  'Resource': t('resource'),
+  'Explore': t('explore'),
+  'Circle': t('circle'),
+  'Action': t('action')
 }
 </script>
 

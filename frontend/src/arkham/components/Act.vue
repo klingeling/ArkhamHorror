@@ -11,7 +11,9 @@ import { AbilityLabel, AbilityMessage, type Message } from '@/arkham/types/Messa
 import { MessageType } from '@/arkham/types/Message'
 import { imgsrc } from '@/arkham/helpers'
 import * as Arkham from '@/arkham/types/Act'
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 const props = defineProps<{
   act: Arkham.Act
   game: Game

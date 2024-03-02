@@ -9,7 +9,9 @@ import Prompt from '@/components/Prompt.vue'
 import { useToast } from "vue-toastification";
 
 import sets from '@/arkham/data/sets.json'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 export interface Props {
   deckId: string
 }
@@ -166,7 +168,7 @@ async function deleteDeckEvent() {
 async function sync() {
   if (deck.value) {
     syncDeck(deck.value.id).then((newData) => {
-      toast.success("$t('deckSyncedSuccessfully')", { timeout: 3000 })
+      toast.success(t('deckSyncedSuccessfully'), { timeout: 3000 })
       deck.value = newData
     })
   }

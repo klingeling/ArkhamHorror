@@ -6,7 +6,9 @@ import { fetchDecks, deleteDeck, syncDeck } from '@/arkham/api'
 import NewDeck from '@/arkham/components/NewDeck.vue';
 import {imgsrc} from '@/arkham/helpers';
 import { useToast } from "vue-toastification";
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const ready = ref(false)
 const decks = ref<Arkham.Deck[]>([])
 const deleteId = ref<string | null>(null)
@@ -34,7 +36,7 @@ fetchDecks().then(async (response) => {
 
 async function sync(deck: Arkham.Deck) {
   syncDeck(deck.id).then(() => {
-    toast.success("$t('deckSyncedSuccessfully')", { timeout: 3000 })
+    toast.success(t('deckSyncedSuccessfully'), { timeout: 3000 })
   })
 }
 

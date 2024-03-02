@@ -5,7 +5,9 @@ import type { Difficulty } from '@/arkham/types/Difficulty';
 import type { Campaign } from '@/arkham/types/Campaign';
 import type { Scenario } from '@/arkham/types/Scenario';
 import { imgsrc } from '@/arkham/helpers';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 export interface Props {
   game: Game
 }
@@ -39,7 +41,7 @@ const box = computed(() => {
 })
 
 const toCssName = (s: string): string => s.charAt(0).toLowerCase() + s.substring(1)
-const difficulties_zh = {'Easy': $t('easy'), 'Standard': $t('standard'), 'Hard': $t('hard'), 'Expert': $t('expert')}
+const difficulties_zh = {'Easy': t('easy'), 'Standard': t('standard'), 'Hard': t('hard'), 'Expert': t('expert')}
 </script>
 
 <template>

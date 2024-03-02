@@ -7,7 +7,9 @@ import * as Arkham from '@/arkham/types/CardDef';
 import sets from '@/arkham/data/sets.json'
 import cycles from '@/arkham/data/cycles.json'
 import CardOverlay from '@/arkham/components/CardOverlay.vue'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const allCards = ref<Arkham.CardDef[]>([])
 const ready = ref(false)
 const includeEncounter = ref(false)
@@ -278,20 +280,20 @@ const setSet = (set: CardSet) => {
   filter.value = { cardType: null, text: null, level: null, cycle: null, set: set.code, classes: [] }
 }
 const cyclename_zh = {
-  "Core": $t('Core'),
-  "The Dunwich Legacy": $t('theDunwichLegacy'),
-  "The Path to Carcosa": $t('ThePathtoCarcosa'),
-  "The Forgotten Age": $t('theForgottenAge'),
-  "The Circle Undone": $t('theCircleUndone'),
-  "The Dream-Eaters": $t('theDream-Eaters'),
-  "The Innsmouth Conspiracy": $t('theInnsmouthConspiracy'),
-  "The Edge of the Earth": $t('theEdgeOfTheEarth'),
-  "The Scarlet Keys": $t('theScarletKeys'),
-  "Return to...": $t('returnTo'),
-  "Investigator Starter Decks": $t('investigatorStarterDecks'),
-  "Side Stories": $t('sideStories'),
-  "Promotional": $t('Promotional'),
-  "Parallel": $t('parallel'),
+  "Core": t('Core'),
+  "The Dunwich Legacy": t('theDunwichLegacy'),
+  "The Path to Carcosa": t('ThePathtoCarcosa'),
+  "The Forgotten Age": t('theForgottenAge'),
+  "The Circle Undone": t('theCircleUndone'),
+  "The Dream-Eaters": t('theDream-Eaters'),
+  "The Innsmouth Conspiracy": t('theInnsmouthConspiracy'),
+  "The Edge of the Earth": t('theEdgeOfTheEarth'),
+  "The Scarlet Keys": t('theScarletKeys'),
+  "Return to...": t('returnTo'),
+  "Investigator Starter Decks": t('investigatorStarterDecks'),
+  "Side Stories": t('sideStories'),
+  "Promotional": t('Promotional'),
+  "Parallel": t('parallel'),
 }
 </script>
 

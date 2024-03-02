@@ -8,7 +8,9 @@ import { fetchDecks, newGame } from '@/arkham/api'
 import { imgsrc } from '@/arkham/helpers'
 import type { Difficulty } from '@/arkham/types/Difficulty'
 import NewDeck from '@/arkham/components/NewDeck.vue'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 import campaignJSON from '@/arkham/data/campaigns.json'
 import scenarioJSON from '@/arkham/data/scenarios.json'
 import sideStoriesJSON from '@/arkham/data/side-stories.json'
@@ -56,7 +58,7 @@ const difficulties = computed<Difficulty[]>(() => {
   return ['Easy', 'Standard', 'Hard', 'Expert']
 })
 
-const difficulties_zh = {'Easy': $t('easy'), 'Standard': $t('standard'), 'Hard': $t('hard'), 'Expert': $t('expert')}
+const difficulties_zh = {'Easy': t('easy'), 'Standard': t('standard'), 'Hard': t('hard'), 'Expert': t('expert')}
 
 const router = useRouter()
 const decks = ref<Arkham.Deck[]>([])
