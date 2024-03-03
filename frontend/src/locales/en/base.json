@@ -166,5 +166,6 @@
   "chooseTokenToCancel": "Choose {0} to cancel",
   "chooseTokenToIgnore": "Choose {0} to ignore",
   "chooseTokenToResolve": "Choose {0} to resolve",
-  "tokenChoiceWasUnhandled": "Token choice was unhandled, please report with: {0}"
+  "tokenChoiceWasUnhandled": "Token choice was unhandled, please report with: {0}",
+  "undo": "Undo"
 }

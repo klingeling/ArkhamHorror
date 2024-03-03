@@ -59,7 +59,7 @@
   "expert": "专家",
   "joinGame": "加入游戏",
   "join": "加入",
-  "yourGameIsOutOfSync": "你的游戏未同步，尝试重新连接...",
+  "yourGameIsOutOfSync": "你的游戏失去同步，尝试重新连接...",
   "waitingForMorePlayers": "等待更多玩家",
   "inviteThemWithThisUrl": "使用此网址邀请他们：",
   "viewLog": "查看日志",
@@ -154,7 +154,7 @@
   "cultists": "邪教徒",
   "lunatics": "疯子",
   "monsters": "怪物",
-  "leads": "领导",
+  "leads": "引导",
   "endTurn": "结束回合",
   "defeat": "击败",
   "spectral": "幽灵",
@@ -166,5 +166,6 @@
   "chooseTokenToCancel": "选择 {0} 取消",
   "chooseTokenToIgnore": "选择 {0} 忽略",
   "chooseTokenToResolve": "选择 {0} 解决",
-  "tokenChoiceWasUnhandled": "标记选择未处理，请报告: {0}"
+  "tokenChoiceWasUnhandled": "标记选择未处理，请报告: {0}",
+  "undo": "撤销"
 }
