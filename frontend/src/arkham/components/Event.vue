@@ -9,7 +9,9 @@ import PoolItem from '@/arkham/components/PoolItem.vue';
 import AbilityButton from '@/arkham/components/AbilityButton.vue'
 import Token from '@/arkham/components/Token.vue';
 import * as Arkham from '@/arkham/types/Event';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 export interface Props {
   game: Game
   event: Arkham.Event
@@ -75,9 +77,9 @@ const abilities = computed(() => {
 })
 
 const cardsUnderneath = computed(() => props.event.cardsUnderneath)
-const cardsUnderneathLabel = computed(() => `下面 (${cardsUnderneath.value.length})`)
+const cardsUnderneathLabel = computed(() => t('underneath', [cardsUnderneath.value.length]))
 
-const showCardsUnderneath = (e: Event) => emits('showCards', e, cardsUnderneath, "Cards Underneath", false)
+const showCardsUnderneath = (e: Event) => emits('showCards', e, cardsUnderneath, t('cardsUnderneath'), false)
 
 const choose = (index: number) => emits('choose', index)
 </script>

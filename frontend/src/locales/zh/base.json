@@ -155,5 +155,16 @@
   "lunatics": "疯子",
   "monsters": "怪物",
   "leads": "领导",
-  "endTurn": "结束回合"
+  "endTurn": "结束回合",
+  "defeat": "击败",
+  "spectral": "幽灵",
+  "thisInvestigatorIsAlreadyTaken": "该调查员已被选择",
+  "chosenPlayers": "选择玩家",
+  "chooseADeck": "选择一套牌组",
+  "selectADeck": "-- 选择一套牌组 --",
+  "story": "故事",
+  "chooseTokenToCancel": "选择 {0} 取消",
+  "chooseTokenToIgnore": "选择 {0} 忽略",
+  "chooseTokenToResolve": "选择 {0} 解决",
+  "tokenChoiceWasUnhandled": "标记选择未处理，请报告: {0}"
 }

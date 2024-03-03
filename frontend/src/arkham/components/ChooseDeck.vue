@@ -5,7 +5,9 @@ import { fetchDecks } from '@/arkham/api'
 import { imgsrc } from '@/arkham/helpers'
 import * as Arkham from '@/arkham/types/Deck'
 import type { Investigator } from '@/arkham/types/Investigator'
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 const decks = ref<Arkham.Deck[]>([])
 const ready = ref(false)
 const deckId = ref<string | null>(null)
@@ -32,7 +34,7 @@ const error = computed(() => {
   })
 
   if (alreadyTaken) {
-    return '该调查员已被选择'
+    return t('thisInvestigatorIsAlreadyTaken')
   }
 
   return null
@@ -80,7 +82,7 @@ const needsReply = computed(() => {
 <template>
   <div class="container">
     <div class="investigators">
-      <h2>选择玩家</h2>
+      <h2>{{$t('chosenPlayers')}}</h2>
       <div class="portraits">
         <img
           v-for="investigator in investigators"
@@ -98,9 +100,9 @@ const needsReply = computed(() => {
       </div>
     </div>
     <form id="choose-deck" @submit.prevent="choose" v-if="needsReply">
-      <p>选择一套牌组</p>
+      <p>{{$t('chooseADeck')}}</p>
       <select v-model="deckId">
-        <option disabled :value="null">-- 选择一套牌组 --</option>
+        <option disabled :value="null">{{$t('selectADeck')}}</option>
         <option v-for="deck in decks" :key="deck.id" :value="deck.id">{{deck.name}}</option>
       </select>
       <p class="error" v-if="error">{{error}}</p>

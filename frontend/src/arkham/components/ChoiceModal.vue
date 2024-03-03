@@ -7,7 +7,9 @@ import * as ArkhamGame from '@/arkham/types/Game';
 import { AmountChoice, QuestionType } from '@/arkham/types/Question';
 import Card from '@/arkham/components/Card.vue';
 import Draggable from '@/components/Draggable.vue';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 const props = defineProps<{
   game: Game
   playerId: string
@@ -253,11 +255,11 @@ const title = computed(() => {
   }
 
   if (skillTestResults.value) {
-    return "Results"
+    return t('results')
   }
 
   if (cardLabels.value.length > 0) {
-    return "Choose"
+    return t('choose')
   }
 
   if (question.value && question.value.tag === QuestionType.READ) {
@@ -265,7 +267,7 @@ const title = computed(() => {
       return question.value.flavorText.title
     }
 
-    return "Story"
+    return t('story')
   }
 
   if (amountsLabel.value) {
@@ -273,7 +275,7 @@ const title = computed(() => {
   }
 
   if (showChoices.value) {
-    return "Choose"
+    return t('choose')
   }
 
   return null

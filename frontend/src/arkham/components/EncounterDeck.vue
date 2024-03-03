@@ -5,7 +5,9 @@ import { imgsrc } from '@/arkham/helpers'
 import * as ArkhamGame from '@/arkham/types/Game'
 import { MessageType } from '@/arkham/types/Message'
 import { useDebug } from '@/arkham/debug'
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 export interface Props {
   game: Game
   playerId: string
@@ -54,7 +56,7 @@ const investigatorPortrait = computed(() => {
 
 const deckLabel = computed(() => {
   if (isSpectral.value) {
-    return "Spectral"
+    return t('spectral')
   }
   return null
 })
@@ -80,8 +82,8 @@ const debug = useDebug()
       :src="investigatorPortrait"
     />
     <template v-if="debug.active">
-      <button @click="debug.send(game.id, {tag: 'InvestigatorDrawEncounterCard', contents: investigatorId})">抽牌</button>
-      <button @click="debug.send(game.id, {tag: 'FindAndDrawEncounterCard', contents: [investigatorId, {'tag': 'AnyCard', contents: []}, 'ExcludeDiscard']})">选择抽牌</button>
+      <button @click="debug.send(game.id, {tag: 'InvestigatorDrawEncounterCard', contents: investigatorId})">{{$t('draw')}}</button>
+      <button @click="debug.send(game.id, {tag: 'FindAndDrawEncounterCard', contents: [investigatorId, {'tag': 'AnyCard', contents: []}, 'ExcludeDiscard']})">{{$t('selectDraw')}}</button>
     </template>
   </div>
 </template>

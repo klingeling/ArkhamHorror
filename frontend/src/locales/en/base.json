@@ -155,5 +155,16 @@
   "lunatics": "Lunatics",
   "monsters": "Monsters",
   "leads": "Leads",
-  "endTurn": "End turn"
+  "endTurn": "End turn",
+  "defeat": "Defeat",
+  "spectral": "Spectral",
+  "thisInvestigatorIsAlreadyTaken": "This investigator is already taken",
+  "chosenPlayers": "Chosen Players",
+  "chooseADeck": "Choose a Deck",
+  "selectADeck": "-- Select a Deck--",
+  "story": "Story",
+  "chooseTokenToCancel": "Choose {0} to cancel",
+  "chooseTokenToIgnore": "Choose {0} to ignore",
+  "chooseTokenToResolve": "Choose {0} to resolve",
+  "tokenChoiceWasUnhandled": "Token choice was unhandled, please report with: {0}"
 }
