@@ -110,7 +110,7 @@ const cardAction = computed(() => choices.value.findIndex(canInteract))
     </div>
 
     <template v-if="debug.active">
-      <button @click="debug.send(game.id, {tag: 'Discard', contents: [null, { tag: 'GameSource' }, { tag: 'TreacheryTarget', contents: id}]})">弃牌</button>
+      <button @click="debug.send(game.id, {tag: 'Discard', contents: [null, { tag: 'GameSource' }, { tag: 'TreacheryTarget', contents: id}]})">{{$t('discard')}}</button>
     </template>
   </div>
 </template>

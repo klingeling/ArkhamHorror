@@ -76,7 +76,7 @@ async function skip() {
 <template>
   <div id="upgrade-deck">
     <div>
-      <h2>升级牌组 ({{xp}} 点经验)</h2>
+      <h2>{{$t('upgradeDeckXP', [xp])}}</h2>
       <div v-if="!waiting" class="upgrade-deck">
         <img v-if="investigatorId" class="portrait" :src="imgsrc(`portraits/${investigatorId.replace('c', '')}.jpg`)" />
         <div class="fields">
@@ -85,21 +85,21 @@ async function skip() {
             v-model="deck"
             @change="loadDeck"
             @paste.prevent="pasteDeck($event)"
-            placeholder="ArkhamDB 牌组网址"
+            :placeholder="$t('arkhamDBDeckUrl')"
           />
-          <button @click.prevent="upgrade">升级</button>
-          <button @click.prevent="skipping = true">不升级</button>
+          <button @click.prevent="upgrade">{{$t('upgrade')}}</button>
+          <button @click.prevent="skipping = true">{{$t('doNotUpgrade')}}</button>
         </div>
       </div>
       <div v-else class="upgrade-deck">
-        等待其他玩家升级牌组。
+        {{$t('waitingForOtherPlayersToUpgradeDeck')}}
       </div>
     </div>
   </div>
 
   <Prompt
     v-if="skipping"
-    prompt="你确定要跳过升级这套牌组吗？"
+    :prompt="$t('toSkipUpgrading')"
     :yes="skip"
     :no="() => skipping = false"
   />

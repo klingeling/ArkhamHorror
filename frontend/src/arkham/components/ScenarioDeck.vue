@@ -2,7 +2,9 @@
 import { computed } from 'vue';
 import type { Card } from '@/arkham/types/Card';
 import { imgsrc } from '@/arkham/helpers';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 export interface Props {
   deck: [string, Card[]]
 }
@@ -27,13 +29,13 @@ const deckImage = computed(() => {
 const deckLabel = computed(() => {
   switch(props.deck[0]) {
     case 'CultistDeck':
-      return "邪教徒"
+      return t('cultists')
     case 'LunaticsDeck':
-      return "疯子"
+      return t('lunatics')
     case 'MonstersDeck':
-      return "怪物"
+      return t('monsters')
     case 'LeadsDeck':
-      return "线索"
+      return t('leads')
     default:
       return null
   }

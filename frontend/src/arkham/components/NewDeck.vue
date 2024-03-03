@@ -168,7 +168,7 @@ async function createDeck() {
           v-model="deck"
           @change="loadDeck"
           @paste.prevent="pasteDeck($event)"
-          placeholder="$t('arkhamDBDeckUrl')"
+          :placeholder="$t('arkhamDBDeckUrl')"
         />
         <input type="file" @change="loadDeckFromFile" />
         <input v-if="investigator" v-model="deckName" />

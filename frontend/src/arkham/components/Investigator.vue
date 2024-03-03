@@ -12,7 +12,9 @@ import type { Modifier } from '@/arkham/types/Modifier'
 import PoolItem from '@/arkham/components/PoolItem.vue'
 import Key from '@/arkham/components/Key.vue';
 import AbilityButton from '@/arkham/components/AbilityButton.vue'
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 export interface Props {
   choices: Message[]
   investigator: Arkham.Investigator
@@ -142,10 +144,10 @@ const portraitImage = computed(() => {
 })
 
 
-const cardsUnderneath = computed(() => props.investigator.cardsUnderneath)
-const cardsUnderneathLabel = computed(() => `下面 (${cardsUnderneath.value.length})`)
+const cardsUnderneath = computed(() => props.investigator.cardsUnderneath)``
+const cardsUnderneathLabel = computed(() => t('underneath', [cardsUnderneath.value.length]))
 
-const showCardsUnderneath = (e: Event) => emit('showCards', e, cardsUnderneath, "Cards Underneath", false)
+const showCardsUnderneath = (e: Event) => emit('showCards', e, cardsUnderneath, t('cardsUnderneath'), false)
 
 const modifiers = computed(() => props.investigator.modifiers)
 
@@ -249,7 +251,7 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
         <button
           :disabled="endTurnAction == -1"
           @click="$emit('choose', endTurnAction)"
-        >结束回合</button>
+        >{{$t('endTurn')}}</button>
 
         <button v-if="cardsUnderneath.length > 0" class="view-discard-button" @click="showCardsUnderneath">{{cardsUnderneathLabel}}</button>
       </div>

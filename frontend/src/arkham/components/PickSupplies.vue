@@ -18,7 +18,7 @@ const chosenSupplies = computed(() => {
 </script>
 <template>
   <div class="pick-supplies">
-    <h2>Pick Supplies ({{pointsRemaining}} points remaining)</h2>
+    <h2>{{$t('pickSupplies', [pointsRemaining])}}</h2>
 
     <div class="supply-choices">
       <template v-for="(choice, index) in supplies" :key="index">
@@ -28,11 +28,11 @@ const chosenSupplies = computed(() => {
       </template>
     </div>
 
-    <button class="done-button" @click="choose(0)">Done</button>
+    <button class="done-button" @click="choose(0)">{{$t('done')}}</button>
   </div>
 
   <div class="pick-supplies" v-if="chosenSupplies.size > 0">
-    <h2>Chosen Supplies</h2>
+    <h2>{{$t('chosenSupplies')}}</h2>
 
     <ul>
       <template v-for="([supply, count], index) in chosenSupplies" :key="index">

@@ -27,7 +27,9 @@ import ScenarioDeck from '@/arkham/components/ScenarioDeck.vue';
 import Story from '@/arkham/components/Story.vue';
 import Location from '@/arkham/components/Location.vue';
 import * as ArkhamGame from '@/arkham/types/Game';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 export interface Props {
   game: Game
   scenario: Scenario
@@ -135,16 +137,16 @@ const doShowCards = (cards: ComputedRef<Card[]>, title: string, isDiscards: bool
   viewingDiscard.value = isDiscards
 }
 
-const showOutOfPlay = () => doShowCards(outOfPlay, '场外', true)
-const showRemovedFromPlay = () => doShowCards(removedFromPlay, '已从游戏中移除', true)
-const showDiscards = () => doShowCards(discards, '弃牌堆', true)
+const showOutOfPlay = () => doShowCards(outOfPlay, t('outOfPlay'), true)
+const showRemovedFromPlay = () => doShowCards(removedFromPlay, t('removedFromPlay'), true)
+const showDiscards = () => doShowCards(discards, t('discards'), true)
 const hideCards = () => showCards.ref = noCards
 
-const showCardsUnderScenarioReference = () => doShowCards(cardsUnderScenarioReference, '冒险辅助卡下的卡牌', false)
+const showCardsUnderScenarioReference = () => doShowCards(cardsUnderScenarioReference, t('cardsUnderScenarioReference'), false)
 
-const viewUnderScenarioReference = computed(() => `${cardsUnderScenarioReference.value.length}张卡牌在下面`)
+const viewUnderScenarioReference = computed(() => t('numcardsUnderneath', [cardsUnderScenarioReference.value.length]))
 
-const viewDiscardLabel = computed(() => pluralize('张卡牌', discards.value.length))
+const viewDiscardLabel = computed(() => pluralize(t('zcard'), discards.value.length))
 const topOfEncounterDiscard = computed(() => {
   if (!props.scenario.discard[0]) return null
 

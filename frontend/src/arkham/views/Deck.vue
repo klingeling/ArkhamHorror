@@ -240,7 +240,7 @@ const deckUrlToPage = (url: string): string => {
     </div>
     <Prompt
       v-if="deleting"
-      prompt="$t('doDeleteDesk')"
+      :prompt="$t('doDeleteDesk')"
       :yes="deleteDeckEvent"
       :no="() => deleting = false"
     />

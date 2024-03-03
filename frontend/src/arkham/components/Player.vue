@@ -22,7 +22,9 @@ import Investigator from '@/arkham/components/Investigator.vue';
 import ChoiceModal from '@/arkham/components/ChoiceModal.vue';
 import { TarotCard, tarotCardImage } from '@/arkham/types/TarotCard';
 import * as Arkham from '@/arkham/types/Investigator';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 interface RefWrapper<T> {
   ref: ComputedRef<T>
 }
@@ -109,7 +111,7 @@ const playTopOfDeckAction = computed(() => {
 })
 
 const viewingDiscard = ref(false)
-const viewDiscardLabel = computed(() => viewingDiscard.value ? "关闭" : pluralize('张卡牌', discards.value.length))
+const viewDiscardLabel = computed(() => viewingDiscard.value ? t('close') : pluralize(t('zcard'), discards.value.length))
 
 const id = computed(() => props.investigator.id)
 const choices = computed(() => ArkhamGame.choices(props.game, props.playerId))
@@ -157,7 +159,7 @@ const doShowCards = (event: Event, cards: ComputedRef<ArkhamCard.Card[]>, title:
   viewingDiscard.value = isDiscards
 }
 
-const showDiscards = (e: Event) => doShowCards(e, discards, 'Discards', true)
+const showDiscards = (e: Event) => doShowCards(e, discards, t('discards'), true)
 const hideCards = () => {
   showCards.ref = noCards
   viewingDiscard.value = false
@@ -395,7 +397,7 @@ function onLeave(el: Element, done: () => void) {
         </div>
 
         <div v-if="committedCards.length > 0" class="committed-skills" key="committed-skills">
-          <h2>投入的技能</h2>
+          <h2>{{$t('committedSkills')}}</h2>
           <CommittedSkills
             :game="game"
             :cards="committedCards"
@@ -455,10 +457,10 @@ function onLeave(el: Element, done: () => void) {
             @click="$emit('choose', drawCardsAction)"
           />
           <span class="deck-size">{{investigator.deckSize}}</span>
-          <button v-if="playTopOfDeckAction !== -1" @click="$emit('choose', playTopOfDeckAction)">Play</button>
+          <button v-if="playTopOfDeckAction !== -1" @click="$emit('choose', playTopOfDeckAction)">{{$t('play')}}</button>
         </div>
         <template v-if="debug.active">
-          <button @click="debug.send(game.id, {tag: 'Search', contents: ['Looking', investigatorId, {tag: 'GameSource', contents: []}, { tag: 'InvestigatorTarget', contents: investigatorId }, [[{tag: 'FromDeck', contents: []}, 'ShuffleBackIn']], {tag: 'AnyCard', contents: []}, { tag: 'DrawFound', contents: [investigatorId, 1]}]})">Select Draw</button>
+          <button @click="debug.send(game.id, {tag: 'Search', contents: ['Looking', investigatorId, {tag: 'GameSource', contents: []}, { tag: 'InvestigatorTarget', contents: investigatorId }, [[{tag: 'FromDeck', contents: []}, 'ShuffleBackIn']], {tag: 'AnyCard', contents: []}, { tag: 'DrawFound', contents: [investigatorId, 1]}]})">{{$t('selectDraw')}}</button>
         </template>
       </div>
       <transition-group tag="section" class="hand" @enter="onEnter" @leave="onLeave" @before-enter="onBeforeEnter">
