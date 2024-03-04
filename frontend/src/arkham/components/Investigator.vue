@@ -144,7 +144,7 @@ const portraitImage = computed(() => {
 })
 
 
-const cardsUnderneath = computed(() => props.investigator.cardsUnderneath)``
+const cardsUnderneath = computed(() => props.investigator.cardsUnderneath)
 const cardsUnderneathLabel = computed(() => t('underneath', [cardsUnderneath.value.length]))
 
 const showCardsUnderneath = (e: Event) => emit('showCards', e, cardsUnderneath, t('cardsUnderneath'), false)
