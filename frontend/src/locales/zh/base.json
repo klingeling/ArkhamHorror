@@ -192,5 +192,12 @@
   "readyEachExhaustedCard": "重整所有横置的卡牌。",
   "upkeepPhaseEnds": "补给阶段结束。一轮结束。",
   "eachInvestigatorChecksHandSize": "每位调查员检查手牌上限。",
-  "eachInvestigatorDraws1CardAndGains1Resource": "每位调查员抽取1张卡牌并获得1资源。"
+  "eachInvestigatorDraws1CardAndGains1Resource": "每位调查员抽取1张卡牌并获得1资源。",
+  "clue": "线索",
+  "health": "生命",
+  "sanity": "神智",
+  "combat": "战斗",
+  "agility": "敏捷",
+  "intellect": "智慧",
+  "willpower": "意志"
 }

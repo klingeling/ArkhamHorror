@@ -216,10 +216,10 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
     <div class="player-area">
       <div class="player-card">
         <div class="stats">
-          <div v-tooltip="'意志'" class="willpower willpower-icon">{{willpower}}</div>
-          <div v-tooltip="'智慧'" class="intellect intellect-icon">{{intellect}}</div>
-          <div v-tooltip="'战斗'" class="combat combat-icon">{{combat}}</div>
-          <div v-tooltip="'敏捷'" class="agility agility-icon">{{agility}}</div>
+          <div v-tooltip="$t('willpower')" class="willpower willpower-icon">{{willpower}}</div>
+          <div v-tooltip="$t('intellect')" class="intellect intellect-icon">{{intellect}}</div>
+          <div v-tooltip="$t('combat')" class="combat combat-icon">{{combat}}</div>
+          <div v-tooltip="$t('agility')" class="agility agility-icon">{{agility}}</div>
         </div>
         <img
           :class="{ 'investigator--can-interact': investigatorAction !== -1 }"
@@ -266,21 +266,19 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
       </template>
       <PoolItem
         type="resource"
-        v-tooltip="'资源'"
         :amount="resources"
         :class="{ 'resource--can-take': takeResourceAction !== -1 }"
         @choose="$emit('choose', takeResourceAction)"
-      />
+      ><div class="v-tooltip" v-tooltip="$t('resource')"></div></PoolItem>
       <template v-if="debug.active">
         <button class="plus-button" @click="debug.send(game.id, {tag: 'TakeResources', contents: [id, 1, {tag: 'GameSource' }, false]})">+</button>
       </template>
       <PoolItem
         type="clue"
-        v-tooltip="'线索'"
         :amount="clues"
         :class="{ 'resource--can-spend': spendCluesAction !== -1 }"
         @choose="$emit('choose', spendCluesAction)"
-      />
+      ><div class="v-tooltip" v-tooltip="$t('clue')"></div></PoolItem>
       <template v-if="debug.active">
         <button class="plus-button" @click="debug.send(game.id, {tag: 'GainClues', contents: [id, {tag: 'GameSource' }, 1]})">+</button>
       </template>
@@ -289,11 +287,10 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
       </template>
       <PoolItem
         type="health"
-        v-tooltip="'生命'"
         :amount="damage"
         :class="{ 'health--can-interact': healthAction !== -1 }"
         @choose="$emit('choose', healthAction)"
-      />
+      ><div class="v-tooltip" v-tooltip="$t('health')"></div></PoolItem>
       <template v-if="debug.active">
         <button class="plus-button" @click="debug.send(game.id, {tag: 'InvestigatorDirectDamage', contents: [id, {tag: 'TestSource', contents: []}, 1, 0]})">+</button>
       </template>
@@ -302,11 +299,10 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
       </template>
       <PoolItem
         type="sanity"
-        v-tooltip="'神智'"
         :amount="horror"
         :class="{ 'sanity--can-interact': sanityAction !== -1 }"
         @choose="$emit('choose', sanityAction)"
-      />
+      ><div class="v-tooltip" v-tooltip="$t('sanity')"></div></PoolItem>
       <template v-if="debug.active">
         <button class="plus-button" @click="debug.send(game.id, {tag: 'InvestigatorDirectDamage', contents: [id, {tag: 'TestSource', contents: []}, 0, 1]})">+</button>
       </template>
@@ -333,6 +329,10 @@ i.action {
     font-family: "Arkham";
     content: "\0049";
   }
+}
+
+.v-tooltip {
+  pointer-events: auto;
 }
 
 .resources {

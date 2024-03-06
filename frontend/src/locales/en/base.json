@@ -180,9 +180,9 @@
   "mythosPhaseEnds": "Mythos phase ends.",
   "investigationPhaseBegins": "Investigation phase begins.",
   "investigationPhaseEnds": "Investigation phase ends.",
-  "nextInvestigatorTurnBegins": "Next investigator\\'s turn begins.",
+  "nextInvestigatorTurnBegins": "Next investigator's turn begins.",
   "activeInvestigatorMayTakeAnAction": "Active investigator may take an action, if able. If an action was taken, return to previous player window. If no action was taken, proceed to 2.2.2.",
-  "investigatorTurnEnds": "Investigator\\'s turn ends. If an investigator has not yet taken a turn this phase, return to 2.2. If each investigator has taken a turn this phase, proceed to 2.3.",
+  "investigatorTurnEnds": "Investigator's turn ends. If an investigator has not yet taken a turn this phase, return to 2.2. If each investigator has taken a turn this phase, proceed to 2.3.",
   "enemyPhaseBegins": "Enemy phase begins.",
   "hunterEnemiesMove": "Hunter enemies move.",
   "nextInvestigatorResolvesEngagedEnemyAttacks": "Next investigator resolves engaged enemy attacks. If an investigator has not yet resolved enemy attacks this phase, return to previous player window. After final investigator resolves engaged enemy attacks, proceed to next player window.",
@@ -192,5 +192,12 @@
   "eachInvestigatorChecksHandSize": "Each investigator checks hand size.",
   "upkeepPhaseEnds": "Upkeep phase ends. Round ends.",
   "eachInvestigatorDraws1CardAndGains1Resource": "Each investigator draws 1 card and gains 1 resource.",
-  "readyEachExhaustedCard": "Ready each exhausted card."
+  "readyEachExhaustedCard": "Ready each exhausted card.",
+  "clue": "Clue",
+  "health": "Health",
+  "sanity": "Sanity",
+  "combat": "Combat",
+  "agility": "Agility",
+  "intellect": "Intellect",
+  "willpower": "Willpower"
 }
