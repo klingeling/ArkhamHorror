@@ -1,7 +1,9 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 import { imgsrc } from '@/arkham/helpers'
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 export interface Props {
   type: string
   amount: number
@@ -11,11 +13,25 @@ const props = defineProps<Props>()
 const image = computed(() => {
   return imgsrc(`${props.type}.png`)
 })
+
+const poolItemType = {
+  "clue": t('clue'),
+  "health": t('health'),
+  "sanity": t('sanity'),
+  "combat": t('combat'),
+  "agility": t('agility'),
+  "intellect": t('intellect'),
+  "willpower": t('willpower'),
+  "doom": t('doom'),
+  "resource": t('resource'),
+  "horror": t('horror'),
+  "card": t('card')
+}
 </script>
 
 <template>
   <div class="poolItem" :class="`poolItem-${type}`" @click="$emit('choose')">
-    <img :src="image" />
+    <img :src="image" v-tooltip="poolItemType[type] ?? type"/>
     <span>{{amount}}</span>
   </div>
 </template>
@@ -55,6 +71,7 @@ const image = computed(() => {
 
   img {
     width: 100%;
+    pointer-events: auto;
   }
 
   span {

@@ -199,5 +199,8 @@
   "combat": "战斗",
   "agility": "敏捷",
   "intellect": "智慧",
-  "willpower": "意志"
+  "willpower": "意志",
+  "doom": "毁灭",
+  "horror": "恐惧",
+  "card": "卡牌"
 }

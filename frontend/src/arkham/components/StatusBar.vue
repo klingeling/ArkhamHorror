@@ -269,7 +269,7 @@ const label_tr = function(body: string) {
             class="button"
             @click="choose(index)"
           >
-            Use <i :class="`icon${choice.skillType}`">: {{choice.label}}</i>
+          {{$t('use')}} <i :class="`icon${choice.skillType}`">: {{choice.label}}</i>
           </a>
 
           <button

@@ -199,5 +199,8 @@
   "combat": "Combat",
   "agility": "Agility",
   "intellect": "Intellect",
-  "willpower": "Willpower"
+  "willpower": "Willpower",
+  "doom": "Doom",
+  "horror": "Horror",
+  "card": "Card"
 }

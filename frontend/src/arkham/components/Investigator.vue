@@ -269,7 +269,7 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
         :amount="resources"
         :class="{ 'resource--can-take': takeResourceAction !== -1 }"
         @choose="$emit('choose', takeResourceAction)"
-      ><div class="v-tooltip" v-tooltip="$t('resource')"></div></PoolItem>
+      />
       <template v-if="debug.active">
         <button class="plus-button" @click="debug.send(game.id, {tag: 'TakeResources', contents: [id, 1, {tag: 'GameSource' }, false]})">+</button>
       </template>
@@ -278,7 +278,7 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
         :amount="clues"
         :class="{ 'resource--can-spend': spendCluesAction !== -1 }"
         @choose="$emit('choose', spendCluesAction)"
-      ><div class="v-tooltip" v-tooltip="$t('clue')"></div></PoolItem>
+      />
       <template v-if="debug.active">
         <button class="plus-button" @click="debug.send(game.id, {tag: 'GainClues', contents: [id, {tag: 'GameSource' }, 1]})">+</button>
       </template>
@@ -290,7 +290,7 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
         :amount="damage"
         :class="{ 'health--can-interact': healthAction !== -1 }"
         @choose="$emit('choose', healthAction)"
-      ><div class="v-tooltip" v-tooltip="$t('health')"></div></PoolItem>
+      />
       <template v-if="debug.active">
         <button class="plus-button" @click="debug.send(game.id, {tag: 'InvestigatorDirectDamage', contents: [id, {tag: 'TestSource', contents: []}, 1, 0]})">+</button>
       </template>
@@ -302,7 +302,7 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
         :amount="horror"
         :class="{ 'sanity--can-interact': sanityAction !== -1 }"
         @choose="$emit('choose', sanityAction)"
-      ><div class="v-tooltip" v-tooltip="$t('sanity')"></div></PoolItem>
+      />
       <template v-if="debug.active">
         <button class="plus-button" @click="debug.send(game.id, {tag: 'InvestigatorDirectDamage', contents: [id, {tag: 'TestSource', contents: []}, 0, 1]})">+</button>
       </template>
@@ -329,10 +329,6 @@ i.action {
     font-family: "Arkham";
     content: "\0049";
   }
-}
-
-.v-tooltip {
-  pointer-events: auto;
 }
 
 .resources {
