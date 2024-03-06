@@ -85,7 +85,7 @@ const focusedCards = computed(() => {
   return props.game.focusedCards
 })
 
-const showChoices = computed(() => focusedCards.value.length == 0 && choices.value.some((c) => { return c.tag === MessageType.DONE || c.tag === MessageType.LABEL || c.tag === MessageType.SKILL_LABEL || c.tag == MessageType.PORTRAIT_LABEL }) || (applyResultsAction.value !== -1))
+const showChoices = computed(() => focusedCards.value.length == 0 && choices.value.some((c) => { return c.tag === MessageType.DONE || c.tag === MessageType.LABEL || c.tag === MessageType.SKILL_LABEL || c.tag === MessageType.SKILL_LABEL_WITH_LABEL || c.tag == MessageType.PORTRAIT_LABEL }) || (applyResultsAction.value !== -1))
 
 const title = computed(() => {
   if (focusedCards.value.length > 0) {
@@ -262,6 +262,14 @@ const label_tr = function(body: string) {
             @click="choose(index)"
           >
             {{$t('use')}} <i :class="`icon${choice.skillType}`"></i>
+          </a>
+
+          <a
+            v-if="choice.tag === MessageType.SKILL_LABEL_WITH_LABEL"
+            class="button"
+            @click="choose(index)"
+          >
+            Use <i :class="`icon${choice.skillType}`">: {{choice.label}}</i>
           </a>
 
           <button
