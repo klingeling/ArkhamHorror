@@ -266,6 +266,7 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
       </template>
       <PoolItem
         type="resource"
+        v-tooltip="$t('resource')"
         :amount="resources"
         :class="{ 'resource--can-take': takeResourceAction !== -1 }"
         @choose="$emit('choose', takeResourceAction)"
@@ -275,6 +276,7 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
       </template>
       <PoolItem
         type="clue"
+        v-tooltip="$t('clue')"
         :amount="clues"
         :class="{ 'resource--can-spend': spendCluesAction !== -1 }"
         @choose="$emit('choose', spendCluesAction)"
@@ -287,6 +289,7 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
       </template>
       <PoolItem
         type="health"
+        v-tooltip="$t('health')"
         :amount="damage"
         :class="{ 'health--can-interact': healthAction !== -1 }"
         @choose="$emit('choose', healthAction)"
@@ -299,6 +302,7 @@ const damage = computed(() => (props.investigator.tokens[TokenType.Damage] || 0)
       </template>
       <PoolItem
         type="sanity"
+        v-tooltip="$t('sanity')"
         :amount="horror"
         :class="{ 'sanity--can-interact': sanityAction !== -1 }"
         @choose="$emit('choose', sanityAction)"
