@@ -56,7 +56,7 @@ const difficulties = computed<Difficulty[]>(() => {
   }
 
   return ['Easy', 'Standard', 'Hard', 'Expert']
-}
+})
 
 const router = useRouter()
 const decks = ref<Arkham.Deck[]>([])
