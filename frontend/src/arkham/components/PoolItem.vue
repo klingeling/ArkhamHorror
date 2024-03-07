@@ -13,25 +13,11 @@ const props = defineProps<Props>()
 const image = computed(() => {
   return imgsrc(`${props.type}.png`)
 })
-
-const poolItemType = {
-  "clue": t('clue'),
-  "health": t('health'),
-  "sanity": t('sanity'),
-  "combat": t('combat'),
-  "agility": t('agility'),
-  "intellect": t('intellect'),
-  "willpower": t('willpower'),
-  "doom": t('doom'),
-  "resource": t('resource'),
-  "horror": t('horror'),
-  "card": t('card')
-}
 </script>
 
 <template>
   <div class="poolItem" :class="`poolItem-${type}`" @click="$emit('choose')">
-    <img :src="image" v-tooltip="poolItemType[type] ?? type"/>
+    <img :src="image" v-tooltip="t(type)"/>
     <span>{{amount}}</span>
   </div>
 </template>

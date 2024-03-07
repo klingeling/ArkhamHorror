@@ -29,13 +29,13 @@ const deckImage = computed(() => {
 const deckLabel = computed(() => {
   switch(props.deck[0]) {
     case 'CultistDeck':
-      return t('cultists')
+      return "Cultists"
     case 'LunaticsDeck':
-      return t('lunatics')
+      return "Lunatics"
     case 'MonstersDeck':
-      return t('monsters')
+      return "Monsters"
     case 'LeadsDeck':
-      return t('leads')
+      return "Leads"
     default:
       return null
   }
@@ -48,7 +48,7 @@ const deckLabel = computed(() => {
       :src="deckImage"
       class="card"
     />
-    <span v-if="deckLabel" class="deck-label">{{deckLabel}}</span>
+    <span v-if="deckLabel" class="deck-label">{{$t(deckLabel)}}</span>
     <span class="deck-size">{{deck[1].length}}</span>
   </div>
 </template>

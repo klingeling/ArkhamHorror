@@ -260,7 +260,7 @@ const cardSetText = (card: Arkham.CardDef) => {
   const set = cardSet(card)
 
   if (set !== null && set !== undefined) {
-    return `${set.name} ${setNumber % 500}`
+    return `${t(set.name)} ${setNumber % 500}`
   }
 
   return "Unknown"
@@ -279,22 +279,6 @@ const setSet = (set: CardSet) => {
   query.value = `e:${set.code}`
   filter.value = { cardType: null, text: null, level: null, cycle: null, set: set.code, classes: [] }
 }
-const cyclename_zh = {
-  "Core": t('Core'),
-  "The Dunwich Legacy": t('theDunwichLegacy'),
-  "The Path to Carcosa": t('ThePathtoCarcosa'),
-  "The Forgotten Age": t('theForgottenAge'),
-  "The Circle Undone": t('theCircleUndone'),
-  "The Dream-Eaters": t('theDream-Eaters'),
-  "The Innsmouth Conspiracy": t('theInnsmouthConspiracy'),
-  "The Edge of the Earth": t('theEdgeOfTheEarth'),
-  "The Scarlet Keys": t('theScarletKeys'),
-  "Return to...": t('returnTo'),
-  "Investigator Starter Decks": t('investigatorStarterDecks'),
-  "Side Stories": t('sideStories'),
-  "Promotional": t('Promotional'),
-  "Parallel": t('parallel'),
-}
 </script>
 
 <template>
@@ -303,10 +287,10 @@ const cyclename_zh = {
     <div class="cycles">
       <ol>
         <li v-for="cycle in cycles" :key="cycle.code">
-          <a href="#" @click.prevent="setCycle(cycle)">{{cyclename_zh[cycle.name] ?? cycle.name}}</a>{{cycleCountText(cycle)}}
+          <a href="#" @click.prevent="setCycle(cycle)">{{$t(cycle.name)}}</a>{{cycleCountText(cycle)}}
           <ol>
             <li v-for="set in cycleSets(cycle)" :key="set.code">
-              <a href="#" @click.prevent="setSet(set)">{{set.name}}</a>{{setCountText(set)}}
+              <a href="#" @click.prevent="setSet(set)">{{$t(set.name)}}</a>{{setCountText(set)}}
             </li>
           </ol>
         </li>
@@ -339,9 +323,9 @@ const cyclename_zh = {
         <tbody>
           <tr v-for="card in cards" :key="card.art">
             <td><a :data-image-id="card.art" target="_blank" :href="`https://zh.arkhamdb.com/card/${card.art}`">{{cardName(card)}}{{levelText(card)}}</a></td>
-            <td>{{card.classSymbols.join(', ')}}</td>
+            <td>{{$t(card.classSymbols.join(', '))}}</td>
             <td>{{cardCost(card)}}</td>
-            <td>{{cardType(card)}}</td>
+            <td>{{$t(cardType(card))}}</td>
             <td>
               <i v-for="(icon, index) in cardIcons(card)" :key="index" :class="[icon, `${icon}-icon`]" ></i>
             </td>
