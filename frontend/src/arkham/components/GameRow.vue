@@ -41,7 +41,6 @@ const box = computed(() => {
 })
 
 const toCssName = (s: string): string => s.charAt(0).toLowerCase() + s.substring(1)
-const difficulties_zh = {'Easy': t('easy'), 'Standard': t('standard'), 'Hard': t('hard'), 'Expert': t('expert')}
 </script>
 
 <template>
@@ -87,7 +86,7 @@ const difficulties_zh = {'Easy': t('easy'), 'Standard': t('standard'), 'Hard': t
             </div>
           </div>
         </div>
-        <div class="game-difficulty">{{difficulties_zh[difficulty] ?? difficulty}}</div>
+        <div class="game-difficulty">{{$t(difficulty)}}</div>
       </div>
     </div>
   </div>

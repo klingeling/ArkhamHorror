@@ -39,7 +39,6 @@ const box = computed(() => {
 
   return null
 })
-const difficulties_zh = {'Easy': t('easy'), 'Standard': t('standard'), 'Hard': t('hard'), 'Expert': t('expert')}
 </script>
 
 <template>
@@ -57,7 +56,7 @@ const difficulties_zh = {'Easy': t('easy'), 'Standard': t('standard'), 'Hard': t
           <img class="scenario-icon" :src="imgsrc(`sets/${scenario.id.replace('c', '')}.png`)" />
           <span>{{scenario.name.title}}</span>
         </div>
-        <div class="game-difficulty">{{difficulties_zh[difficulty] ?? difficulty}}</div>
+        <div class="game-difficulty">{{$t(difficulty)}}</div>
       </div>
       <div class="game-subdetails">
         <slot></slot>

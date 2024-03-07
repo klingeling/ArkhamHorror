@@ -56,9 +56,7 @@ const difficulties = computed<Difficulty[]>(() => {
   }
 
   return ['Easy', 'Standard', 'Hard', 'Expert']
-})
-
-const difficulties_zh = {'Easy': t('easy'), 'Standard': t('standard'), 'Hard': t('hard'), 'Expert': t('expert')}
+}
 
 const router = useRouter()
 const decks = ref<Arkham.Deck[]>([])
@@ -264,7 +262,7 @@ async function start() {
                 :checked="difficulty === selectedDifficulty"
                 :id="`difficulty${difficulty}`"
               />
-              <label :for="`difficulty${difficulty}`">{{difficulties_zh[difficulty]}}</label>
+              <label :for="`difficulty${difficulty}`">{{$t(difficulty)}}</label>
             </template>
           </div>
 
