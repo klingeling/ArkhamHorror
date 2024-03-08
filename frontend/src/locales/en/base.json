@@ -196,6 +196,7 @@
   "upkeepPhaseEnds": "Upkeep phase ends. Round ends.",
   "eachInvestigatorDraws1CardAndGains1Resource": "Each investigator draws 1 card and gains 1 resource.",
   "readyEachExhaustedCard": "Ready each exhausted card.",
+  "resource": "Resource",
   "clue": "Clue",
   "health": "Health",
   "sanity": "Sanity",
@@ -277,5 +278,7 @@
   "Agnes Baker": "Agnes Baker",
   "The Waitress": "The Waitress",
   "Wendy Adams": "Wendy Adams",
-  "The Urchin": "The Urchin"
+  "The Urchin": "The Urchin",
+  "Random Basic Weakness": "Random Basic Weakness",
+  "Unknown": "Unknown"
 }

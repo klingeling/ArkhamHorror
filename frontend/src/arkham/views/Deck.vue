@@ -112,6 +112,10 @@ const cardType = (card: Arkham.CardDef) => {
 
 const cardTraits = (card: Arkham.CardDef) => {
   if (card.cardTraits.length === 0) { return '' }
+  else {
+    card.cardTraits.forEach((item, index) => {
+      card.cardTraits[index] = t(item)
+  })}
   return `${card.cardTraits.join('. ')}.`
 }
 
@@ -232,7 +236,7 @@ const deckUrlToPage = (url: string): string => {
             <td>
               <i v-for="(icon, index) in cardIcons(card)" :key="index" :class="[icon, `${icon}-icon`]" ></i>
             </td>
-            <td>{{$t(cardTraits(card))}}</td>
+            <td>{{cardTraits(card)}}</td>
             <td>{{cardSetText(card)}}</td>
           </tr>
         </tbody>
@@ -289,12 +293,21 @@ tr td:nth-child(1){
   padding-left: 20px;
 }
 
+tr td:nth-child(3) {
+  text-align: center;
+}
+
+tr td:nth-child(5) {
+  text-align: center;
+}
+
 tr th:nth-child(1){
   padding-left: 20px;
 }
 
 tbody td {
   border-top: 1px solid #999;
+  white-space: nowrap;
   padding: 2px 0;
 }
 
