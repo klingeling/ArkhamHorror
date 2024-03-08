@@ -148,24 +148,11 @@ const label = function(body: string) {
   }
   return replaceIcons(body).replace(/_([^_]*)_/g, '<b>$1</b>').replace(/\*([^*]*)\*/g, '<i>$1</i>')
 }
-
-
-const label_zh = {
-  'Choose': t('choose'),
-  'Results': t('results'),
-  'Continue': t('continue'),
-  'Done With Mulligan': t('doneWithMulligan')
-}
-
-const label_tr = function(body: string) {
-  return label_zh[label(body)] ?? label(body)
-}
-
 </script>
 
 <template>
   <Draggable v-if="title" class="modal" :class="{ hide }">
-    <template #handle><h2 v-html="label_tr(title)"></h2></template>
+    <template #handle><h2 v-html="t(label(title))"></h2></template>
     <section class="status-bar">
       <div v-if="skillTestResults" class="skill-test-results">
         <CommittedSkills
@@ -230,12 +217,12 @@ const label_tr = function(body: string) {
       <div v-if="showChoices" class="choices">
         <template v-for="(choice, index) in choices" :key="index">
           <template v-if="choice.tag === MessageType.TOOLTIP_LABEL">
-            <button @click="choose(index)" v-tooltip="choice.tooltip">{{choice.label}}</button>
+            <button @click="choose(index)" v-tooltip="choice.tooltip">{{$t(choice.label)}}</button>
           </template>
           <template v-if="choice.tag === 'PortraitLabel'">
             <img class="portrait card active" :src="portraitLabelImage(choice.investigatorId)" @click="choose(index)" />
           </template>
-          <button v-if="choice.tag === MessageType.DONE" @click="choose(index)">{{label(choice.label)}}</button>
+          <button v-if="choice.tag === MessageType.DONE" @click="choose(index)">{{$t(label(choice.label))}}</button>
           <div v-if="choice.tag === MessageType.LABEL" class="message-label">
             <button v-if="choice.label == 'Choose {skull}'" @click="choose(index)">
               {{$t('choose')}} <i class="iconSkull"></i>
@@ -249,7 +236,7 @@ const label_tr = function(body: string) {
             <button v-else-if="choice.label == 'Choose {elderThing}'" @click="choose(index)">
               {{$t('choose')}} <i class="iconElderThing"></i>
             </button>
-            <button v-else @click="choose(index)" v-html="label_tr(choice.label)"></button>
+            <button v-else @click="choose(index)" v-html="t(label(choice.label))"></button>
           </div>
 
           <a
@@ -265,7 +252,7 @@ const label_tr = function(body: string) {
             class="button"
             @click="choose(index)"
           >
-          {{$t('use')}} <i :class="`icon${choice.skillType}`">: {{choice.label}}</i>
+          {{$t('use')}} <i :class="`icon${choice.skillType}`">: {{$t(choice.label)}}</i>
           </a>
 
           <button

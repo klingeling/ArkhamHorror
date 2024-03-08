@@ -89,7 +89,7 @@ watchEffect(() => selectedTab.value = props.playerId)
         @click.shift='selectTabExtended(investigator.playerId)'
         :class='tabClass(investigator)'
       >
-        {{ investigator.name.title }}
+        {{ $t(investigator.name.title) }}
       </li>
     </ul>
     <Tab

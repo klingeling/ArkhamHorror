@@ -198,25 +198,6 @@ const classObject = computed(() => {
   }
 })
 
-const abilityLabel_zh = {
-  'Evade': t('evade'),
-  'Fight': t('fight'),
-  'Engage': t('engage'),
-  'Forced': t('forced'),
-  'Objective': t('objective'),
-  'Haunted': t('haunted'),
-  'Investigate': t('investigate'),
-  'Resign': t('resign'),
-  'Ability': t('ability'),
-  'Draw': t('draw'),
-  'Move': t('move'),
-  'Parley': t('parley'),
-  'Play': t('play'),
-  'Resource': t('resource'),
-  'Explore': t('explore'),
-  'Circle': t('circle'),
-  'Action': t('action')
-}
 </script>
 
 <template>
@@ -226,7 +207,7 @@ const abilityLabel_zh = {
     :class="classObject"
     @click="$emit('choose', ability)"
     v-tooltip="tooltip"
-    >{{abilityLabel_zh[abilityLabel] ?? abilityLabel}}</button>
+    >{{$t(abilityLabel)}}</button>
 </template>
 
 <style lang="scss" scoped>

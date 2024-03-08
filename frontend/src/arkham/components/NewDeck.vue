@@ -59,7 +59,7 @@ function loadDeckFromFile(e: Event) {
           investigator.value = data.investigator_code
         }
       } else {
-        investigatorError.value = t('notYetImplemented', [data.investigator_name])
+        investigatorError.value = t('notYetImplemented', [t(data.investigator_name)])
       }
       deckId.value = data.id.toString()
       deckName.value = data.name
@@ -97,7 +97,7 @@ function loadDeck() {
             investigator.value = data.investigator_code
           }
         } else {
-          investigatorError.value = t('notYetImplemented', [data.investigator_name])
+          investigatorError.value = t('notYetImplemented', [t(data.investigator_name)])
         }
         deckId.value = matches[4]
         deckName.value = data.name

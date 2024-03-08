@@ -78,9 +78,9 @@ const cards = computed(() => {
 })
 
 const cardName = (card: Arkham.CardDef) => {
-  const subtitle = card.name.subtitle === null ? "" : `: ${card.name.subtitle}`
+  const subtitle = card.name.subtitle === null ? "" : `: ${t(card.name.subtitle)}`
 
-  return `${card.name.title}${subtitle}`
+  return `${t(card.name.title)}${subtitle}`
 }
 
 const cardCost = (card: Arkham.CardDef) => {
@@ -151,7 +151,7 @@ const cardSetText = (card: Arkham.CardDef) => {
   const set = cardSet(card)
 
   if (set !== null && set !== undefined) {
-    return `${set.name} ${setNumber % 500}`
+    return `${t(set.name)} ${setNumber % 500}`
   }
 
   return "Unknown"
@@ -226,13 +226,13 @@ const deckUrlToPage = (url: string): string => {
         <tbody>
           <tr v-for="(card, idx) in cards" :key="idx">
             <td>{{cardName(card)}}{{levelText(card)}}</td>
-            <td>{{card.classSymbols.join(', ')}}</td>
+            <td>{{$t(card.classSymbols.join(', '))}}</td>
             <td>{{cardCost(card)}}</td>
-            <td>{{cardType(card)}}</td>
+            <td>{{$t(cardType(card))}}</td>
             <td>
               <i v-for="(icon, index) in cardIcons(card)" :key="index" :class="[icon, `${icon}-icon`]" ></i>
             </td>
-            <td>{{cardTraits(card)}}</td>
+            <td>{{$t(cardTraits(card))}}</td>
             <td>{{cardSetText(card)}}</td>
           </tr>
         </tbody>

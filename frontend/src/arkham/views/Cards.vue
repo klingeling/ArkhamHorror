@@ -187,9 +187,9 @@ const setFilter = () => {
 }
 
 const cardName = (card: Arkham.CardDef) => {
-  const subtitle = card.name.subtitle === null ? "" : `: ${card.name.subtitle}`
+  const subtitle = card.name.subtitle === null ? "" : `: ${t(card.name.subtitle)}`
 
-  return `${card.name.title}${subtitle}`
+  return `${t(card.name.title)}${subtitle}`
 }
 
 const cardCost = (card: Arkham.CardDef) => {
