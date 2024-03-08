@@ -13,7 +13,7 @@ import Arkham.Enemy.Cards qualified as Enemies
 import Arkham.Exception
 import Arkham.Location.Cards qualified as Locations
 import Arkham.Matcher hiding (RevealLocation)
-import Arkham.Message.Lifted
+import Arkham.Message.Lifted hiding (setActDeck, setAgendaDeck)
 import Arkham.Prelude
 import Arkham.Resolution
 import Arkham.Scenario.Helpers hiding (addCampaignCardToDeckChoice)
@@ -23,6 +23,7 @@ import Arkham.Scenario.Runner hiding (
   placeLocationCard,
   story,
  )
+import Arkham.Scenario.Setup
 import Arkham.Trait (Trait (Ghoul))
 
 newtype TheGathering = TheGathering ScenarioAttrs
@@ -55,19 +56,15 @@ instance RunMessage TheGathering where
     PreScenarioSetup -> do
       story $ i18nWithTitle "nightOfTheZealot.theGathering.intro"
       pure s
-    Setup -> do
-      encounterDeck <-
-        buildEncounterDeckExcluding
-          [Enemies.ghoulPriest]
-          [ Set.TheGathering
-          , Set.Rats
-          , Set.Ghouls
-          , Set.StrikingFear
-          , Set.AncientEvils
-          , Set.ChillingCold
-          ]
+    Setup -> runScenarioSetup TheGathering attrs do
+      gather Set.TheGathering
+      gather Set.Rats
+      gather Set.Ghouls
+      gather Set.StrikingFear
+      gather Set.AncientEvils
+      gather Set.ChillingCold
 
-      setAsideCards
+      setAside
         [ Enemies.ghoulPriest
         , Assets.litaChantler
         , Locations.hallway
@@ -76,16 +73,11 @@ instance RunMessage TheGathering where
         , Locations.parlor
         ]
 
-      setEncounterDeck encounterDeck
       setAgendaDeck theGatheringAgendaDeck
-
       setActDeck [Acts.trapped, Acts.theBarrier, Acts.whatHaveYouDone]
 
-      study <- placeLocationCard Locations.study
-      reveal study
-      moveAllTo attrs study
-
-      TheGathering <$> lift (runMessage msg attrs)
+      study <- place Locations.study
+      startAt study
     ResolveChaosToken _ Cultist iid -> do
       pushWhen (isHardExpert attrs) $ DrawAnotherChaosToken iid
       pure s

@@ -146,6 +146,7 @@ library
       Arkham.Act.Cards.TheCosmosBeckons
       Arkham.Act.Cards.TheDisappearance
       Arkham.Act.Cards.TheDoomThatCameBefore
+      Arkham.Act.Cards.TheEndlessStairs
       Arkham.Act.Cards.TheFinalDescent
       Arkham.Act.Cards.TheFourKeys
       Arkham.Act.Cards.TheGateOpens
@@ -1168,6 +1169,7 @@ library
       Arkham.Enemy.Cards.TheRougarou
       Arkham.Enemy.Cards.TheSpectralWatcher
       Arkham.Enemy.Cards.TheThingThatFollows
+      Arkham.Enemy.Cards.TheUnnamable
       Arkham.Enemy.Cards.TheWingedSerpent
       Arkham.Enemy.Cards.Thrall
       Arkham.Enemy.Cards.TidalTerror
@@ -2160,6 +2162,7 @@ library
       Arkham.Scenario.Scenarios.WeaverOfTheCosmos
       Arkham.Scenario.Scenarios.WhereDoomAwaits
       Arkham.Scenario.Scenarios.WhereTheGodsDwell
+      Arkham.Scenario.Setup
       Arkham.Scenario.Types
       Arkham.ScenarioLogKey
       Arkham.Scenarios.APhantomOfTruth.Helpers
@@ -2456,6 +2459,7 @@ library
       Arkham.Treachery.Cards.DarkFuture
       Arkham.Treachery.Cards.DeadlyFate
       Arkham.Treachery.Cards.DeathApproaches
+      Arkham.Treachery.Cards.DeceptiveMemories
       Arkham.Treachery.Cards.DeepDark
       Arkham.Treachery.Cards.DeeperSlumber
       Arkham.Treachery.Cards.DescentIntoMadness
@@ -2474,6 +2478,7 @@ library
       Arkham.Treachery.Cards.EagerForDeath
       Arkham.Treachery.Cards.EagerForDeathUnionAndDisillusion
       Arkham.Treachery.Cards.EncephalonSignal
+      Arkham.Treachery.Cards.EndlessDescent
       Arkham.Treachery.Cards.Entombed
       Arkham.Treachery.Cards.EphemeralExhibits
       Arkham.Treachery.Cards.EvilPast
@@ -2492,6 +2497,7 @@ library
       Arkham.Treachery.Cards.GiftOfMadnessMisery
       Arkham.Treachery.Cards.GiftOfMadnessPity
       Arkham.Treachery.Cards.GlimpseOfTheUnderworld
+      Arkham.Treachery.Cards.GlowingEyes
       Arkham.Treachery.Cards.GraspingHands
       Arkham.Treachery.Cards.GraveLight
       Arkham.Treachery.Cards.GraveLightSpectral
@@ -2506,6 +2512,7 @@ library
       Arkham.Treachery.Cards.IllOmen
       Arkham.Treachery.Cards.IncriminatingEvidence
       Arkham.Treachery.Cards.Indebted
+      Arkham.Treachery.Cards.IndescribableApparition
       Arkham.Treachery.Cards.InsatiableBloodlust
       Arkham.Treachery.Cards.InternalInjury
       Arkham.Treachery.Cards.Kidnapped
@@ -2579,6 +2586,7 @@ library
       Arkham.Treachery.Cards.RottingRemainsBloodOnTheAltar
       Arkham.Treachery.Cards.RuinAndDestruction
       Arkham.Treachery.Cards.SearchingForIzzie
+      Arkham.Treachery.Cards.SecretsInTheAttic
       Arkham.Treachery.Cards.SecretsOfTheBeyond
       Arkham.Treachery.Cards.SelfCentered
       Arkham.Treachery.Cards.SelfDestructive
