@@ -221,6 +221,10 @@ const cardType = (card: Arkham.CardDef) => {
 
 const cardTraits = (card: Arkham.CardDef) => {
   if (card.cardTraits.length === 0) { return '' }
+  else {
+    card.cardTraits.forEach((item, index) => {
+      card.cardTraits[index] = t(item)
+  })}
   return `${card.cardTraits.join('. ')}.`
 }
 

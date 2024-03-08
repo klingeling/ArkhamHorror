@@ -460,7 +460,7 @@ const gameOver = computed(() => props.game.gameState.tag === "IsOver")
           <div v-tooltip="$t('PLAYERWINDOW')" :class="{'current': phaseStep?.contents === 'MythosPhaseWindow'}"><i class="fast-icon" /></div>
           <div v-tooltip="$t('mythosPhaseEnds')" :class="{'current': phaseStep?.contents === 'MythosPhaseEndsStep'}">1.5</div>
         </div>
-        <div>{{$t('Mythos')}}</div>
+        <div>{{$t('mythosPhase')}}</div>
       </div>
       <div class="phase" :class="{ 'active-phase': phase == 'InvestigationPhase' }">
         <div class="subphases">
@@ -472,7 +472,7 @@ const gameOver = computed(() => props.game.gameState.tag === "IsOver")
           <div v-tooltip="$t('investigatorTurnEnds')" :class="{'current': phaseStep?.contents === 'InvestigatorsTurnEndsStep'}">2.2.2</div>
           <div v-tooltip="$t('investigationPhaseEnds')" :class="{'current': phaseStep?.contents === 'InvestigationPhaseEndsStep'}">2.3</div>
         </div>
-        <div>{{$t('Investigation')}}</div>
+        <div>{{$t('investigationPhase')}}</div>
       </div>
       <div class="phase" :class="{ 'active-phase': phase == 'EnemyPhase' }">
         <div class="subphases">
@@ -483,7 +483,7 @@ const gameOver = computed(() => props.game.gameState.tag === "IsOver")
           <div v-tooltip="$t('PLAYERWINDOW')" :class="{'current': phaseStep?.contents === 'AfterResolveAttacksWindow'}"><i class="fast-icon" /></div>
           <div v-tooltip="$t('enemyPhaseEnds')" :class="{'current': phaseStep?.contents === 'EnemyPhaseEndsStep'}">3.4</div>
         </div>
-        <div>{{$t('Enemy')}}</div>
+        <div>{{$t('enemyPhase')}}</div>
       </div>
       <div class="phase" :class="{ 'active-phase': phase == 'UpkeepPhase' }">
         <div class="subphases">
@@ -495,7 +495,7 @@ const gameOver = computed(() => props.game.gameState.tag === "IsOver")
           <div v-tooltip="$t('eachInvestigatorChecksHandSize')" :class="{'current': phaseStep?.contents === 'CheckHandSizeStep'}">4.5</div>
           <div v-tooltip="$t('upkeepPhaseEnds')" :class="{'current': phaseStep?.contents === 'UpkeepPhaseEndsStep'}">4.6</div>
         </div>
-        <div>{{$t('Upkeep')}}</div>
+        <div>{{$t('upkeepPhase')}}</div>
       </div>
     </div>
   </div>
