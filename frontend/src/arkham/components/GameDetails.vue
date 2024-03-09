@@ -54,7 +54,7 @@ const box = computed(() => {
         <router-link class="title" :to="`/games/${game.id}`">{{game.name}}</router-link>
         <div v-if="scenario" class="scenario-details">
           <img class="scenario-icon" :src="imgsrc(`sets/${scenario.id.replace('c', '')}.png`)" />
-          <span>{{scenario.name.title}}</span>
+          <span>{{$t(scenario.name.title)}}</span>
         </div>
         <div class="game-difficulty">{{$t(difficulty)}}</div>
       </div>

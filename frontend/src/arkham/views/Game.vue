@@ -289,7 +289,7 @@ provide('solo', solo)
       <div class="game-main">
         <div v-if="gameCard" class="revelation">
           <div class="revelation-container">
-            <h2>{{gameCard.title}}</h2>
+            <h2>{{$t(gameCard.title)}}</h2>
             <div class="revelation-card-container">
               <div class="revelation-card">
                 <CardView :game="game" :card="gameCard.card" :playerId="playerId" />
