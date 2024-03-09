@@ -49,6 +49,7 @@
   "sideStory": "Side Story",
   "normal": "Normal",
   "Return to...": "Return to...",
+  "returnTo": "Return to...",
   "fullCampaign": "Full Campaign",
   "partialCampaign": "Partial Campaign",
   "difficulty": "Difficulty",
@@ -280,5 +281,14 @@
   "Wendy Adams": "Wendy Adams",
   "The Urchin": "The Urchin",
   "Random Basic Weakness": "Random Basic Weakness",
-  "Unknown": "Unknown"
+  "Unknown": "Unknown",
+  "The Night of the Zealot": "The Night of the Zealot",
+  "The Gathering": "The Gathering",
+  "The Midnight Masks": "The Midnight Masks",
+  "The Devourer Below": "The Devourer Below",
+  "Extracurricular Activity": "Extracurricular Activity",
+  "The House Always Wins": "The House Always Wins",
+  "Skip playing fast cards or using reactions": "Skip playing fast cards or using reactions",
+  "discovered 1 clue": "discovered 1 clue",
+  "played": "played"
 }

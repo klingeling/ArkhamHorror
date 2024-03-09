@@ -49,6 +49,7 @@
   "sideStory": "独立扩充",
   "normal": "常规",
   "Return to...": "重返...",
+  "returnTo": "重返...",
   "fullCampaign": "完整剧本",
   "partialCampaign": "部分剧本",
   "difficulty": "难度",
@@ -280,5 +281,14 @@
   "Wendy Adams": "温蒂·亚当斯",
   "The Urchin": "淘气包",
   "Random Basic Weakness": "随机基础弱点",
-  "Unknown": "未知"
+  "Unknown": "未知",
+  "The Night of the Zealot": "狂热之夜",
+  "The Gathering": "聚集于此",
+  "The Midnight Masks": "午夜假面",
+  "The Devourer Below": "地底噬魔",
+  "Extracurricular Activity": "课外活动",
+  "The House Always Wins": "百赌百胜",
+  "Skip playing fast cards or using reactions": "跳过打出快速卡牌或使用反应",
+  "discovered 1 clue": "发现了1个线索",
+  "played": " 打出了 "
 }

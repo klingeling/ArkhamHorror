@@ -389,6 +389,14 @@ tr th:nth-child(1){
   padding-left: 20px;
 }
 
+tr td:nth-child(3) {
+  text-align: center;
+}
+
+tr td:nth-child(5) {
+  text-align: center;
+}
+
 tbody td {
   border-top: 1px solid #111;
   padding: 2px 0;
