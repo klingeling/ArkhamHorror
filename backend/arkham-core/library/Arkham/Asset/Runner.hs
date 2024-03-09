@@ -22,8 +22,11 @@ import Arkham.ChaosToken
 import Arkham.Classes.HasGame
 import Arkham.Damage
 import Arkham.DefeatedBy
+import Arkham.Helpers.Placement
 import Arkham.Helpers.Use
-import Arkham.Matcher (AssetMatcher (AnyAsset, AssetAttachedToAsset, AssetWithId))
+import Arkham.Matcher (
+  AssetMatcher (AnyAsset, AssetAttachedToAsset, AssetWithId),
+ )
 import Arkham.Message qualified as Msg
 import Arkham.Placement
 import Arkham.Projection
@@ -184,10 +187,12 @@ instance RunMessage AssetAttrs where
           pushM $ checkWindows [mkAfter $ Window.SpentUses controller (toId a) useType' n]
         pure $ a & usesL . ix useType' .~ remainingUses
       _ -> error "Trying to use the wrong use type"
-    AttachAsset aid target | aid == assetId -> case target of
-      LocationTarget lid -> pure $ a & (placementL .~ AttachedToLocation lid)
-      EnemyTarget eid -> pure $ a & (placementL .~ AttachedToEnemy eid)
-      _ -> error "Cannot attach asset to that type"
+    AttachAsset aid target | aid == assetId -> do
+      case target of
+        LocationTarget lid -> push $ PlaceAsset aid (AttachedToLocation lid)
+        EnemyTarget eid -> push $ PlaceAsset aid (AttachedToEnemy eid)
+        _ -> error "Cannot attach asset to that type"
+      pure a
     RemoveFromGame target | a `isTarget` target -> do
       a <$ push (RemoveFromPlay $ toSource a)
     Discard _ source target | a `isTarget` target -> do
@@ -311,6 +316,12 @@ instance RunMessage AssetAttrs where
     AddToHand _ cards -> do
       pure $ a & cardsUnderneathL %~ filter (`notElem` cards)
     PlaceAsset aid placement | aid == assetId -> do
+      checkEntersThreatArea a placement
       pure $ a & placementL .~ placement
     Blanked msg' -> runMessage msg' a
+    RemoveAllAttachments source target -> do
+      case placementToAttached a.placement of
+        Just attached | target == attached -> push $ toDiscard source a
+        _ -> pure ()
+      pure a
     _ -> pure a

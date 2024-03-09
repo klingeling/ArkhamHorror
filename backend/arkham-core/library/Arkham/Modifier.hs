@@ -49,6 +49,7 @@ data ModifierType
   | AdditionalCost Cost
   | AdditionalCostToEnter Cost
   | AdditionalCostToInvestigate Cost
+  | AdditionalCostToResign Cost
   | AdditionalCostToLeave Cost
   | AdditionalStartingUses Int
   | AdditionalStartingCards [Card]
@@ -358,6 +359,9 @@ instance IsLabel "move" ActionTarget where
 
 instance IsLabel "investigate" ActionTarget where
   fromLabel = IsAction #investigate
+
+instance IsLabel "resign" ActionTarget where
+  fromLabel = IsAction #resign
 
 setActiveDuringSetup :: Modifier -> Modifier
 setActiveDuringSetup m = m {modifierActiveDuringSetup = True}

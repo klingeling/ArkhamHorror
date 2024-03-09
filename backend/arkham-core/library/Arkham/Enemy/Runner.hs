@@ -37,6 +37,7 @@ import Arkham.DefeatedBy
 import {-# SOURCE #-} Arkham.GameEnv
 import Arkham.Helpers.Card
 import Arkham.Helpers.Investigator
+import Arkham.Helpers.Placement
 import Arkham.Id
 import Arkham.Keyword (_Swarming)
 import Arkham.Keyword qualified as Keyword
@@ -58,6 +59,7 @@ import Arkham.Matcher (
  )
 import Arkham.Message
 import Arkham.Message qualified as Msg
+import Arkham.Movement
 import Arkham.Placement
 import Arkham.Prelude
 import Arkham.Projection
@@ -292,6 +294,17 @@ instance RunMessage EnemyAttrs where
                   [ chooseOne lead $ targetLabels closestLocationIds (only . EnemyMove enemyId)
                   , MoveUntil lid target
                   ]
+      pure a
+    Move movement | isTarget a (moveTarget movement) -> do
+      case moveDestination movement of
+        ToLocation destinationLocationId -> do
+          push $ EnemyMove (toId a) destinationLocationId
+        ToLocationMatching matcher -> do
+          lids <- select matcher
+          player <- getLeadPlayer
+          push
+            $ chooseOrRunOne player
+            $ [targetLabel lid [Move $ movement {moveDestination = ToLocation lid}] | lid <- lids]
       pure a
     EnemyMove eid lid | eid == enemyId -> case enemyPlacement of
       AsSwarm eid' _ -> do
@@ -969,21 +982,21 @@ instance RunMessage EnemyAttrs where
       case enemyPlacement of
         AsSwarm eid' _ -> do
           push $ EnemyEngageInvestigator eid' iid
-          pure a
         _ -> do
           lid <- getJustLocation iid
           enemyLocation <- field EnemyLocation eid
           when (Just lid /= enemyLocation) $ push $ EnemyEntered eid lid
           massive <- eid <=~> MassiveEnemy
-          pure $ a & (if massive then id else placementL .~ InThreatArea iid)
+          pushWhen (not massive) $ PlaceEnemy eid (InThreatArea iid)
+      pure a
     EngageEnemy iid eid mTarget False | eid == enemyId -> do
       case enemyPlacement of
         AsSwarm eid' _ -> do
           push $ EngageEnemy iid eid' mTarget False
-          pure a
         _ -> do
           massive <- eid <=~> MassiveEnemy
-          pure $ a & (if massive then id else placementL .~ InThreatArea iid)
+          pushWhen (not massive) $ PlaceEnemy eid (InThreatArea iid)
+      pure a
     WhenWillEnterLocation iid lid -> do
       case enemyPlacement of
         InThreatArea iid' | iid' == iid -> do
@@ -1114,6 +1127,7 @@ instance RunMessage EnemyAttrs where
         & (tokensL %~ removeAllTokens Doom . removeAllTokens Clue . removeAllTokens Token.Damage)
     PlaceEnemy eid placement | eid == enemyId -> do
       push $ EnemyCheckEngagement eid
+      checkEntersThreatArea a placement
       pure $ a & placementL .~ placement
     Blanked msg' -> runMessage msg' a
     UseCardAbility iid (isSource a -> True) AbilityAttack _ _ -> do
@@ -1137,4 +1151,9 @@ instance RunMessage EnemyAttrs where
       push $ RemoveEnemy (toId a)
       pure a
     SendMessage (isTarget a -> True) msg' -> runMessage msg' a
+    RemoveAllAttachments source target -> do
+      case placementToAttached a.placement of
+        Just attached | target == attached -> push $ toDiscard source a
+        _ -> pure ()
+      pure a
     _ -> pure a

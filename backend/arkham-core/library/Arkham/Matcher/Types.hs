@@ -708,6 +708,10 @@ instance IsCardMatcher CardType where
   toCardMatcher = CardWithType
   {-# INLINE toCardMatcher #-}
 
+instance IsCardMatcher Trait where
+  toCardMatcher = CardWithTrait
+  {-# INLINE toCardMatcher #-}
+
 data DiscardedPlayerCardMatcher
   = DiscardedCardMatcher InvestigatorMatcher CardMatcher
   deriving stock (Show, Eq, Ord, Data)
@@ -853,6 +857,7 @@ data WindowMatcher
   | LostActions Timing Who SourceMatcher
   | WouldTriggerChaosTokenRevealEffectOnCard Who CardMatcher [ChaosTokenFace]
   | Exhausts Timing Who TargetMatcher
+  | EntersThreatArea Timing Who CardMatcher
   deriving stock (Show, Eq, Ord, Data)
 
 data PhaseStepMatcher = EnemiesAttackStep | HuntersMoveStep
