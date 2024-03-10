@@ -104,7 +104,7 @@ resolve msg = [When msg, msg, After msg]
 story :: [PlayerId] -> FlavorText -> Message
 story pids flavor =
   AskMap
-    (mapFromList [(pid, Read flavor [Label "continue" []]) | pid <- pids])
+    (mapFromList [(pid, Read flavor [Label "$continue" []]) | pid <- pids])
 
 storyWithChooseOne :: PlayerId -> [PlayerId] -> FlavorText -> [UI Message] -> Message
 storyWithChooseOne lead pids flavor choices =
