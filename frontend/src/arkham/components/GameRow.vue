@@ -53,7 +53,7 @@ const toCssName = (s: string): string => s.charAt(0).toLowerCase() + s.substring
         <div class="campaign-icon-container" v-else-if="scenario">
           <img class="campaign-icon" :src="imgsrc(`sets/${scenario.id.replace('c', '').slice(0,2)}.png`)" />
         </div>
-        <router-link class="title" :to="`/games/${game.id}`">{{$t(game.name)}}</router-link>
+        <router-link class="title" :to="`/games/${game.id}`">{{game.name}}</router-link>
         <div v-if="scenario" class="scenario-details">
           <img class="scenario-icon" :src="imgsrc(`sets/${scenario.id.replace('c', '')}.png`)" />
           <span>{{$t(scenario.name.title)}}</span>
