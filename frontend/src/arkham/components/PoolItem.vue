@@ -7,6 +7,7 @@ const { t } = useI18n()
 export interface Props {
   type: string
   amount: number
+  tooltip?: string
 }
 const props = defineProps<Props>()
 
@@ -16,8 +17,8 @@ const image = computed(() => {
 </script>
 
 <template>
-  <div class="poolItem" :class="`poolItem-${type}`" @click="$emit('choose')">
-    <img :src="image" v-tooltip="t(type)"/>
+  <div class="poolItem" :class="`poolItem-${type}`" @click="$emit('choose')" v-tooltip="t(tooltip)">
+    <img :src="image"/>
     <span>{{amount}}</span>
   </div>
 </template>
@@ -42,7 +43,6 @@ const image = computed(() => {
 }
 
 .poolItem {
-  pointer-events: none;
   width: 30px;
   display: grid;
   place-items: center;
@@ -57,7 +57,6 @@ const image = computed(() => {
 
   img {
     width: 100%;
-    pointer-events: auto;
   }
 
   span {
