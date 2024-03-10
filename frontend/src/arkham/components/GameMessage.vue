@@ -1,9 +1,7 @@
 <script lang="ts">
 import { defineComponent, h } from 'vue';
 import { Game } from '@/arkham/types/Game';
-import { useI18n } from 'vue-i18n';
 
-const { t } = useI18n()
 export default defineComponent({
   props: {
     game: { type: Object as () => Game, required: true },
