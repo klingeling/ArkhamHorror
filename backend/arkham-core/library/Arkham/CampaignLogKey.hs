@@ -237,6 +237,13 @@ data CampaignLogKey
   | VirgilWasCaptured
   | RandolphEludedCapture
   | RandolphWasCaptured
+  | RandolphSurvivedTheDescent
+  | RandolphDidNotSurviveTheDescent
+  | TheInvestigatorsPossessTheSilverKey
+  | TheBlackCatRequestedAidFromTheOthers
+  | TheBlackCatSharedKnowledgeOfTheUnderworld
+  | TheBlackCatIsSearchingForTheTruth
+  | TheDreamersKnowOfAnotherPath
   | -- | Curse of the Rougarou
     TheRougarouContinuesToHauntTheBayou
   | TheRougarouIsDestroyed

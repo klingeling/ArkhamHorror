@@ -8,6 +8,7 @@ import Arkham.Classes.HasQueue
 import Arkham.Classes.HasQueue as X (runQueueT)
 import Arkham.Classes.Query
 import Arkham.Helpers
+import Arkham.Helpers.Campaign
 import Arkham.Helpers.Campaign qualified as Msg
 import Arkham.Helpers.Log qualified as Msg
 import Arkham.Helpers.Message qualified as Msg
@@ -92,6 +93,12 @@ story flavor = do
   players <- allPlayers
   push $ Msg.story players flavor
 
+storyWithChooseOne :: ReverseQueue m => FlavorText -> [UI Message] -> m ()
+storyWithChooseOne flavor choices = do
+  players <- allPlayers
+  lead <- getLeadPlayer
+  push $ Msg.storyWithChooseOne lead players flavor choices
+
 sufferTrauma :: ReverseQueue m => InvestigatorId -> Int -> Int -> m ()
 sufferTrauma iid physical mental = push $ SufferTrauma iid physical mental
 
@@ -167,3 +174,9 @@ setAsideCards = genCards >=> push . Msg.SetAsideCards
 
 addChaosToken :: ReverseQueue m => ChaosTokenFace -> m ()
 addChaosToken = push . AddChaosToken
+
+removeCampaignCard :: (HasCardDef a, ReverseQueue m) => a -> m ()
+removeCampaignCard (toCardDef -> def) = do
+  mOwner <- getOwner def
+  for_ mOwner \owner ->
+    push $ RemoveCampaignCardFromDeck owner def
