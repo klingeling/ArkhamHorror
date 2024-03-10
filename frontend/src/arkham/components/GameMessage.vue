@@ -15,7 +15,7 @@ export default defineComponent({
         if (found) {
           const [, cardName, cardId] = found
           if (cardName && cardId) {
-            return h('span', { 'data-image-id': cardId }, cardName.replace(/\\"/g, "\""))
+            return h('span', { 'data-image-id': cardId }, this.$t(cardName.replace(/\\"/g, "\"")))
           }
         }
       } else if (/{investigator:"((?:[^"]|\\.)+)":"([^"]+)"}/.test(split)) {
@@ -23,11 +23,11 @@ export default defineComponent({
         if (found) {
           const [, name, investigatorId ] = found
           if (investigatorId) {
-            return name ? h('span', { 'data-image-id': investigatorId }, name.replace(/\\"/g, "\"")) : split
+            return name ? h('span', { 'data-image-id': investigatorId }, this.$t(name.replace(/\\"/g, "\""))) : this.$t(split)
           }
         }
       }
-      return split
+      return this.$t(split)
     })
 
     return h('div', { className: 'message-body' }, els)
