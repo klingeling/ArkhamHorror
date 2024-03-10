@@ -288,7 +288,7 @@ async function start() {
 
           <div>
             <p>{{ $t('gameName') }}</p>
-            <input type="text" v-model="campaignName" :placeholder="currentCampaignName" />
+            <input type="text" v-model="campaignName" :placeholder="$t(currentCampaignName)" />
           </div>
 
           <button type="submit" :disabled="disabled">{{$t('create')}}</button>
