@@ -17,8 +17,8 @@ const image = computed(() => {
 </script>
 
 <template>
-  <div class="poolItem" :class="`poolItem-${type}`" @click="$emit('choose')" v-tooltip="t(type)">
-    <img :src="image"/>
+  <div class="poolItem" :class="`poolItem-${type}`" @click="$emit('choose')">
+    <img :src="image" v-tooltip="t(type)"/>
     <span>{{amount}}</span>
   </div>
 </template>
@@ -57,6 +57,7 @@ const image = computed(() => {
 
   img {
     width: 100%;
+    pointer-events: auto;
   }
 
   span {
