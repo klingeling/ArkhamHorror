@@ -207,7 +207,7 @@ watch(abilities, (abilities) => {
         @choose="$emit('choose', $event)"
       />
       <template v-if="debug.active">
-        <button @click="debug.send(game.id, {tag: 'DefeatEnemy', contents: [id, investigatorId, {tag: 'TestSource', contents:[]}]})">{{$t('defeat')}}</button>
+        <button @click="debug.send(game.id, {tag: 'DefeatEnemy', contents: [id, investigatorId, {tag: 'InvestigatorSource', contents:investigatorId}]})">{{$t('defeat')}}</button>
       </template>
     </div>
 
