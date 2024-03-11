@@ -17,7 +17,7 @@ const image = computed(() => {
 </script>
 
 <template>
-  <div class="poolItem" :class="`poolItem-${type}`" @click="$emit('choose')" v-tooltip="t(tooltip)">
+  <div class="poolItem" :class="`poolItem-${type}`" @click="$emit('choose')" v-tooltip="t(type)">
     <img :src="image"/>
     <span>{{amount}}</span>
   </div>
