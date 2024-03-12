@@ -75,7 +75,7 @@ const fullName = (name: Name): string => {
 
 <template>
   <div class="campaign-log">
-    <h1>{{$t('campaignLogGameName', [game.name])}}</h1>
+    <h1>{{$t('campaignLogGameName', [t(game.name)])}}</h1>
     <div v-if="logTitles" class="options">
       <template v-for="title in logTitles" :key="title">
         <input
@@ -92,7 +92,7 @@ const fullName = (name: Name): string => {
       <h2>{{ $t('supplies') }}</h2>
       <Supplies v-for="i in game.investigators" :key="i.id" :player="i">
         <template #heading>
-          <h3>{{i.name.title}}</h3>
+          <h3>{{$t(i.name.title)}}</h3>
         </template>
       </Supplies>
     </div>
