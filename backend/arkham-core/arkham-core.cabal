@@ -190,6 +190,7 @@ library
       Arkham.Act.Cards.WitchHauntings
       Arkham.Act.Cards.WorldsBeyond
       Arkham.Act.Helpers
+      Arkham.Act.Import.Lifted
       Arkham.Act.Runner
       Arkham.Act.Sequence
       Arkham.Act.Types
@@ -339,6 +340,7 @@ library
       Arkham.Agenda.Cards.WhatsGoingOn
       Arkham.Agenda.Cards.WheelOfFortuneX
       Arkham.Agenda.Helpers
+      Arkham.Agenda.Import.Lifted
       Arkham.Agenda.Runner
       Arkham.Agenda.Sequence
       Arkham.Agenda.Types
@@ -2205,6 +2207,7 @@ library
       Arkham.Scenarios.CurseOfTheRougarou.Helpers
       Arkham.Scenarios.CurtainCall.Helpers
       Arkham.Scenarios.CurtainCall.Story
+      Arkham.Scenarios.DarkSideOfTheMoon.Helpers
       Arkham.Scenarios.DimCarcosa.Helpers
       Arkham.Scenarios.DimCarcosa.Story
       Arkham.Scenarios.DisappearanceAtTheTwilightEstate.Story
@@ -2370,6 +2373,7 @@ library
       Arkham.Story.Cards.JosefsPlan
       Arkham.Story.Cards.LagneauPerdu
       Arkham.Story.Cards.MappingTheStreets
+      Arkham.Story.Cards.OffTheGalley
       Arkham.Story.Cards.PennysFate
       Arkham.Story.Cards.SickeningReality_65
       Arkham.Story.Cards.SickeningReality_66

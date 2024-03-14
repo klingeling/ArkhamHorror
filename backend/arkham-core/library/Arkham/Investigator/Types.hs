@@ -81,6 +81,7 @@ data instance Field Investigator :: Type -> Type where
   InvestigatorResources :: Field Investigator Int
   InvestigatorDoom :: Field Investigator Int
   InvestigatorClues :: Field Investigator Int
+  InvestigatorTokens :: Field Investigator Tokens
   InvestigatorHand :: Field Investigator [Card]
   InvestigatorHandSize :: Field Investigator Int
   InvestigatorCardsUnderneath :: Field Investigator [Card]
@@ -219,7 +220,58 @@ instance ToJSON InvestigatorAttrs where
   toEncoding = genericToEncoding $ aesonOptions $ Just "investigator"
 
 instance FromJSON InvestigatorAttrs where
-  parseJSON = genericParseJSON $ aesonOptions $ Just "investigator"
+  parseJSON = withObject "InvestigatorAttrs" $ \o -> do
+    investigatorId <- o .: "id"
+    investigatorPlayerId <- o .: "playerId"
+    investigatorName <- o .: "name"
+    investigatorCardCode <- o .: "cardCode"
+    investigatorArt <- o .: "art"
+    investigatorClass <- o .: "class"
+    investigatorHealth <- o .: "health"
+    investigatorAssignedHealthDamage <- o .: "assignedHealthDamage"
+    investigatorSanity <- o .: "sanity"
+    investigatorAssignedSanityDamage <- o .: "assignedSanityDamage"
+    investigatorWillpower <- o .: "willpower"
+    investigatorIntellect <- o .: "intellect"
+    investigatorCombat <- o .: "combat"
+    investigatorAgility <- o .: "agility"
+    investigatorTokens <- o .: "tokens"
+    investigatorPlacement <- o .:? "placement" .!= Unplaced
+    investigatorActionsTaken <- o .: "actionsTaken"
+    investigatorActionsPerformed <- o .: "actionsPerformed"
+    investigatorRemainingActions <- o .: "remainingActions"
+    investigatorEndedTurn <- o .: "endedTurn"
+    investigatorDeck <- o .: "deck"
+    investigatorDecks <- o .: "decks"
+    investigatorDiscard <- o .: "discard"
+    investigatorHand <- o .: "hand"
+    investigatorTraits <- o .: "traits"
+    investigatorDefeated <- o .: "defeated"
+    investigatorResigned <- o .: "resigned"
+    investigatorKilled <- o .: "killed"
+    investigatorDrivenInsane <- o .: "drivenInsane"
+    investigatorSlots <- o .: "slots"
+    investigatorXp <- o .: "xp"
+    investigatorPhysicalTrauma <- o .: "physicalTrauma"
+    investigatorMentalTrauma <- o .: "mentalTrauma"
+    investigatorStartsWith <- o .: "startsWith"
+    investigatorStartsWithInHand <- o .: "startsWithInHand"
+    investigatorCardsUnderneath <- o .: "cardsUnderneath"
+    investigatorSearch <- o .: "search"
+    investigatorMovement <- o .: "movement"
+    investigatorUsedAbilities <- o .: "usedAbilities"
+    investigatorUsedAdditionalActions <- o .: "usedAdditionalActions"
+    investigatorMulligansTaken <- o .: "mulligansTaken"
+    investigatorBondedCards <- o .: "bondedCards"
+    investigatorHorrorHealed <- o .: "horrorHealed"
+    investigatorSupplies <- o .: "supplies"
+    investigatorDrawnCards <- o .: "drawnCards"
+    investigatorIsYithian <- o .: "isYithian"
+    investigatorKeys <- o .: "keys"
+    investigatorLog <- o .:? "log" .!= mempty
+    investigatorDiscarding <- o .: "discarding"
+
+    pure InvestigatorAttrs {..}
 
 instance Is InvestigatorAttrs InvestigatorId where
   is = (==) . toId

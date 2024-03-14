@@ -525,6 +525,7 @@ getCanAffordCost
   -> Cost
   -> m Bool
 getCanAffordCost iid (toSource -> source) actions windows' = \case
+  UnpayableCost -> pure False
   Free -> pure True
   UpTo {} -> pure True
   OptionalCost {} -> pure True
@@ -672,7 +673,7 @@ getCanAffordCost iid (toSource -> source) actions windows' = \case
     handCards <- mapMaybe (preview _PlayerCard) <$> field InvestigatorHand iid
     let total = unionsWith (+) $ map (frequencies . cdSkills . toCardDef) handCards
     let wildCount = total ^. at #wild . non 0
-    pure $ foldr (\x y -> y || x + wildCount >= n) False $ traceShowId $ toList $ deleteMap #wild total
+    pure $ foldr (\x y -> y || x + wildCount >= n) False $ toList $ deleteMap #wild total
   DiscardCombinedCost n -> do
     handCards <-
       mapMaybe (preview _PlayerCard)
