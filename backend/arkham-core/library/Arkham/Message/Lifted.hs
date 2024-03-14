@@ -221,6 +221,10 @@ placeTokens
   :: (ReverseQueue m, Sourceable source, Targetable target) => source -> target -> Token -> Int -> m ()
 placeTokens source lid token n = push $ PlaceTokens (toSource source) (toTarget lid) token n
 
+removeTokens
+  :: (ReverseQueue m, Sourceable source, Targetable target) => source -> target -> Token -> Int -> m ()
+removeTokens source lid token n = push $ RemoveTokens (toSource source) (toTarget lid) token n
+
 afterSkillTest :: ReverseQueue m => Message -> m ()
 afterSkillTest = Msg.pushAfterSkillTest
 
@@ -254,6 +258,11 @@ chooseOrRunOne :: ReverseQueue m => InvestigatorId -> [UI Message] -> m ()
 chooseOrRunOne iid msgs = do
   player <- getPlayer iid
   push $ Msg.chooseOrRunOne player msgs
+
+chooseOne :: ReverseQueue m => InvestigatorId -> [UI Message] -> m ()
+chooseOne iid msgs = do
+  player <- getPlayer iid
+  push $ Msg.chooseOne player msgs
 
 addToHand :: (IsCard a, ReverseQueue m) => InvestigatorId -> [a] -> m ()
 addToHand iid cards = push $ AddToHand iid (map toCard cards)
