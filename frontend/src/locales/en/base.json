@@ -102,8 +102,8 @@
   "modifiedSkillValue": "Modified Skill Value (skill value + icon value - tokens):",
   "modifiedDifficulty": "Modified Difficulty:",
   "result": "Result",
-  "succeedBy": "Succeed by {0}",
-  "failBy": "Fail by {0}",
+  "succeededByTestresult": "Succeeded by {0}",
+  "failedBy": "Failed by {0}",
   "use": "Use",
   "applyResults": "Apply Results",
   "Evade": "Evade",
@@ -879,5 +879,8 @@
   "Wormhole": "Wormhole",
   "Vast Expanse": "Vast Expanse",
   " must discard down to 5 cards": " must discard down to 5 cards",
-  "play": "Play"
+  "play": "Play",
+  "skillTest": "Skill Test",
+  "testDifficulty": "Test Difficulty",
+  "modifiedSkill": "Modified Skill."
 }

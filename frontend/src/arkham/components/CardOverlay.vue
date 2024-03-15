@@ -112,20 +112,6 @@ const getImage = (el: HTMLElement): string | null => {
   <div class="card-overlay" ref="cardOverlay" :style="{ top: overlayPosition.top + 'px', left: overlayPosition.left + 'px' }">
     <img v-if="card" :src="card" :class="{ reversed }" />
   </div>
-  <!-- Magic for border radius -->
-  <svg style="visibility: hidden" width="0" height="0">
-    <defs>
-      <filter id="filter-radius">
-        <!-- Create a blur of 4px radius from the original image -->
-        <!-- (Transparent pixels are ignored, thus the blur radius starts at the corner of the image) -->
-        <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
-        <!-- Filter out the pixels where alpha values that are too low, in this case the blurred corners are filtered out -->
-        <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 100 -50" result="mask" />
-        <!-- As the final result is now blurred, we need to use the mask we obtained from previous step to cut from the original source -->
-        <feComposite in="SourceGraphic" in2="mask" operator="atop" />
-      </filter>
-    </defs>
-  </svg>
 </template>
 
 <style lang="scss">
@@ -136,7 +122,6 @@ const getImage = (el: HTMLElement): string | null => {
   max-height: 420px;
   height: fit-content;
   display: flex;
-  filter: url('#filter-radius');
   img {
     border-radius: 15px;
     width: 300px;

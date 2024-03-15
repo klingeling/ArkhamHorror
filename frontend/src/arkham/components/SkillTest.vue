@@ -88,19 +88,19 @@ const testResult = computed(() => {
   <Teleport to="body">
     <Draggable class="skill-test">
       <template #handle>
-        <h2>Skill Test</h2>
+        <h2>{{$t('skillTest')}}</h2>
       </template>
       <div class="skill-test-contents">
         <Card v-if="card" :game="game" :card="card" :revealed="true" playerId="" />
         <div class="test-status">
           <div class="test-difficulty">
             <span class="difficulty">{{skillTest.difficulty}}</span>
-            <span>Test Difficulty</span>
+            <span>{{$t('testDifficulty')}}</span>
           </div>
           <span>VS</span>
           <div class="modified-skill">
             <span class="skill">{{skillTest.modifiedSkillValue}}</span>
-            <span>Modified Skill</span>
+            <span>{{$t('modifiedSkill')}}</span>
           </div>
         </div>
         <img
@@ -125,15 +125,15 @@ const testResult = computed(() => {
             @choose="$emit('choose', $event)"
           />
         </div>
-        <h2>Committed Skills</h2>
+        <h2>{{$t('committedSkills')}}</h2>
       </div>
 
       <div v-if="skillTestResults" class="skill-test-results" :class="{ success: skillTestResults.skillTestResultsSuccess, failure: !skillTestResults.skillTestResultsSuccess}">
         <span v-if="skillTestResults.skillTestResultsSuccess">
-          Succeeded by {{testResult}}
+          {{$t('succeededByTestresult', [testResult])}}
         </span>
         <span v-else-if="testResult">
-          Failed by {{testResult - (skillTestResults.skillTestResultsResultModifiers || 0)}}
+          {{$t('failedBy', [testResult - (skillTestResults.skillTestResultsResultModifiers || 0)])}}
         </span>
       </div>
 
@@ -142,7 +142,7 @@ const testResult = computed(() => {
         class="apply-results"
         v-if="applyResultsAction !== -1"
         @click="choose(applyResultsAction)"
-      >Apply Results</button>
+      >{{$t('applyResults')}}</button>
     </Draggable>
   </Teleport>
 </template>

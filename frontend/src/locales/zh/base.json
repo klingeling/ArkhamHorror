@@ -102,8 +102,8 @@
   "modifiedSkillValue": "修正后的技能值(技能值 + 图标值 - 标记):",
   "modifiedDifficulty": "修正后的难度:",
   "result": "结果",
-  "succeedBy": "结果为 {0} 而成功",
-  "failBy": "结果为 {0} 而失败",
+  "succeededByTestresult": "结果为 {0} 而成功",
+  "failedBy": "结果为 {0} 而失败",
   "use": "使用",
   "applyResults": "应用结果",
   "Evade": "躲避",
@@ -877,5 +877,8 @@
   "Wormhole": "虫洞",
   "Vast Expanse": "辽阔无边",
   " must discard down to 5 cards": " 必须弃至5张卡牌",
-  "play": "打出"
+  "play": "打出",
+  "skillTest": "技能检定",
+  "testDifficulty": "检定难度",
+  "modifiedSkill": "修正后的技能"
 }
