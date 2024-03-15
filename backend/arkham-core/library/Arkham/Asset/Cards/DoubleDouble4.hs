@@ -1,14 +1,10 @@
-module Arkham.Asset.Cards.DoubleDouble4 (
-  doubleDouble4,
-  DoubleDouble4 (..),
-) where
-
-import Arkham.Prelude
+module Arkham.Asset.Cards.DoubleDouble4 (doubleDouble4, DoubleDouble4 (..)) where
 
 import Arkham.Ability
 import Arkham.Asset.Cards qualified as Cards
 import Arkham.Asset.Runner hiding (PlayCard)
 import Arkham.Matcher
+import Arkham.Prelude
 
 newtype DoubleDouble4 = DoubleDouble4 AssetAttrs
   deriving anyclass (IsAsset, HasModifiersFor)
@@ -28,6 +24,6 @@ instance HasAbilities DoubleDouble4 where
 instance RunMessage DoubleDouble4 where
   runMessage msg a@(DoubleDouble4 attrs) = case msg of
     UseCardAbility iid (isSource attrs -> True) 1 ws@(cardPlayed -> card) _ -> do
-      pushAll [AddToHand iid [card], PutCardIntoPlay iid card Nothing ws]
+      pushAll [AddToHand iid [card], PutCardIntoPlay iid card Nothing NoPayment ws]
       pure a
     _ -> DoubleDouble4 <$> runMessage msg attrs

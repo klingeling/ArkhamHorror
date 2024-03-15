@@ -20,9 +20,8 @@ moonstone :: AssetCard Moonstone
 moonstone = asset Moonstone Cards.moonstone
 
 instance HasModifiersFor Moonstone where
-  getModifiersFor (InvestigatorTarget iid) (Moonstone a)
-    | a `controlledBy` iid =
-        pure $ toModifiers a [SkillModifier #willpower 1, SkillModifier #agility 1]
+  getModifiersFor (InvestigatorTarget iid) (Moonstone a) | a `controlledBy` iid = do
+    pure $ toModifiers a [SkillModifier #willpower 1, SkillModifier #agility 1]
   getModifiersFor _ _ = pure []
 
 instance HasAbilities Moonstone where
@@ -41,6 +40,8 @@ instance RunMessage Moonstone where
   runMessage msg a@(Moonstone attrs) = case msg of
     UseCardAbility iid (isSource attrs -> True) 1 windows' _ -> do
       pushAll
-        [PayCardCost iid (toCard attrs) windows', PutCardIntoPlay iid (toCard attrs) Nothing windows']
+        [ PayCardCost iid (toCard attrs) windows'
+        , PutCardIntoPlay iid (toCard attrs) Nothing NoPayment windows'
+        ]
       pure a
     _ -> Moonstone <$> runMessage msg attrs

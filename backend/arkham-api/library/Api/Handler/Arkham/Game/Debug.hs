@@ -1,10 +1,7 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE OverloadedRecordDot #-}
-{-# LANGUAGE TemplateHaskell #-}
-
 module Api.Handler.Arkham.Game.Debug (
   getApiV1ArkhamGameExportR,
   postApiV1ArkhamGamesImportR,
+  postApiV1ArkhamGamesFixR,
 ) where
 
 import Api.Arkham.Export
@@ -15,12 +12,14 @@ import Conduit
 import Data.Text qualified as T
 import Data.Time.Clock
 import Database.Esqueleto.Experimental hiding (update)
+import Database.Persist qualified as Persist
 import Entity.Arkham.LogEntry
 import Entity.Arkham.Player
 import Entity.Arkham.Step
 import Import hiding (delete, exists, on, (==.))
 import Json
 import Safe (fromJustNote)
+import UnliftIO.Exception (catch)
 
 getApiV1ArkhamGameExportR :: ArkhamGameId -> Handler ArkhamExport
 getApiV1ArkhamGameExportR gameId = do
@@ -45,6 +44,14 @@ getApiV1ArkhamGameExportR gameId = do
         , aeCampaignData = arkhamGameToExportData ge (map entityVal steps) entries
         }
 
+postApiV1ArkhamGamesFixR :: Handler ()
+postApiV1ArkhamGamesFixR = do
+  gameIds <- runDB $ selectKeysList @ArkhamGame [] []
+  for_ gameIds $ \gameId -> do
+    let handleBrokenGame :: SomeException -> Handler ()
+        handleBrokenGame _ = void $ runDB (Persist.delete gameId)
+    void (runDB (Persist.get gameId) :: Handler (Maybe ArkhamGame)) `catch` handleBrokenGame
+
 postApiV1ArkhamGamesImportR :: Handler (PublicGame ArkhamGameId)
 postApiV1ArkhamGamesImportR = do
   -- Convert to multiplayer solitaire
@@ -56,7 +63,7 @@ postApiV1ArkhamGamesImportR = do
       . fromJustNote "No export file uploaded"
       . headMay
       . snd
-        =<< runRequestBody
+      =<< runRequestBody
   now <- liftIO getCurrentTime
 
   case eExportData of

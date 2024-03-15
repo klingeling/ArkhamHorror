@@ -7,7 +7,6 @@ import { toCardContents } from '@/arkham/types/Card';
 import { imgsrc, pluralize } from '@/arkham/helpers';
 import * as ArkhamCard from '@/arkham/types/Card';
 import * as ArkhamGame from '@/arkham/types/Game';
-import CommittedSkills from '@/arkham/components/CommittedSkills.vue';
 import Enemy from '@/arkham/components/Enemy.vue';
 import Story from '@/arkham/components/Story.vue';
 import Location from '@/arkham/components/Location.vue';
@@ -315,7 +314,7 @@ function onLeave(el: Element, done: () => void) {
       <transition-group tag="section" class="in-play" @enter="onEnter" @leave="onLeave" @before-enter="onBeforeEnter">
 
         <template v-if="tarotCards.length > 0">
-          <div v-for="tarotCard in tarotCards" :key="tarotCard.arcana">
+          <div v-for="tarotCard in tarotCards" :key="tarotCard.arcana" :data-index="tarotCard.arcana">
             <img :src="imgsrc(`tarot/${tarotCardImage(tarotCard)}`)" class="card tarot-card" :class="{ [tarotCard.facing]: true, 'can-interact': tarotCardAbility(tarotCard) !== -1 }" @click="$emit('choose', tarotCardAbility(tarotCard))"/>
           </div>
         </template>
@@ -392,18 +391,8 @@ function onLeave(el: Element, done: () => void) {
           @choose="$emit('choose', $event)"
         />
 
-        <div v-for="(slot, idx) in emptySlots" :key="idx" class="slot">
+        <div v-for="(slot, idx) in emptySlots" :key="idx" class="slot" :data-index="`${slot}${idx}`">
           <img :src="slotImg(slot)" />
-        </div>
-
-        <div v-if="committedCards.length > 0" class="committed-skills" key="committed-skills">
-          <h2>{{$t('committedSkills')}}</h2>
-          <CommittedSkills
-            :game="game"
-            :cards="committedCards"
-            :playerId="playerId"
-            @choose="$emit('choose', $event)"
-          />
         </div>
       </transition-group>
     </transition>

@@ -1,17 +1,10 @@
-module Arkham.Asset.Cards.TheStarXVII3 (
-  theStarXvii3,
-  TheStarXVII3 (..),
-)
-where
-
-import Arkham.Prelude
+module Arkham.Asset.Cards.TheStarXVII3 (theStarXvii3, TheStarXVII3 (..)) where
 
 import Arkham.Ability
 import Arkham.Asset.Cards qualified as Cards
 import Arkham.Asset.Runner
-import Arkham.Card
 import Arkham.Matcher
-import Arkham.Window (defaultWindows)
+import Arkham.Prelude
 
 newtype TheStarXVII3 = TheStarXVII3 AssetAttrs
   deriving anyclass (IsAsset)
@@ -38,6 +31,6 @@ instance HasAbilities TheStarXVII3 where
 instance RunMessage TheStarXVII3 where
   runMessage msg a@(TheStarXVII3 attrs) = case msg of
     InHand _ (UseCardAbility iid (isSource attrs -> True) 1 _ _) -> do
-      push $ PutCardIntoPlay iid (toCard attrs) Nothing (defaultWindows iid)
+      push $ putCardIntoPlay iid attrs
       pure a
     _ -> TheStarXVII3 <$> runMessage msg attrs

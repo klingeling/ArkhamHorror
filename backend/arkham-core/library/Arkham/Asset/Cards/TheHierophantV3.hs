@@ -1,17 +1,11 @@
-module Arkham.Asset.Cards.TheHierophantV3 (
-  theHierophantV3,
-  TheHierophantV3 (..),
-)
-where
-
-import Arkham.Prelude
+module Arkham.Asset.Cards.TheHierophantV3 (theHierophantV3, TheHierophantV3 (..)) where
 
 import Arkham.Ability
 import Arkham.Asset.Cards qualified as Cards
 import Arkham.Asset.Runner
 import Arkham.Card
 import Arkham.Matcher
-import Arkham.Window (defaultWindows)
+import Arkham.Prelude
 
 newtype TheHierophantV3 = TheHierophantV3 AssetAttrs
   deriving anyclass (IsAsset)
@@ -38,7 +32,7 @@ instance HasModifiersFor TheHierophantV3 where
 instance RunMessage TheHierophantV3 where
   runMessage msg a@(TheHierophantV3 attrs) = case msg of
     InHand _ (UseThisAbility iid (isSource attrs -> True) 1) -> do
-      push $ PutCardIntoPlay iid (toCard attrs) Nothing (defaultWindows iid)
+      push $ putCardIntoPlay iid attrs
       pure a
     CardEnteredPlay iid card | toCardId card == toCardId attrs -> do
       push $ AddSlot iid ArcaneSlot (Slot (toSource attrs) [])

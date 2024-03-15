@@ -20,6 +20,7 @@ import Arkham.Deck qualified as Deck
 import Arkham.Game.Helpers
 import Arkham.Helpers.Card
 import Arkham.Helpers.Message
+import Arkham.Helpers.Ref
 import Arkham.Matcher hiding (IgnoreChaosToken, RevealChaosToken)
 import Arkham.Message qualified as Msg
 import Arkham.Projection
@@ -70,7 +71,7 @@ calculateSkillTestResultsData s = do
     addResultModifier n (SkillTestResultValueModifier m) = n + m
     addResultModifier n _ = n
     resultValueModifiers = foldl' addResultModifier 0 modifiers'
-    totaledChaosTokenValues = chaosTokenValues + (skillTestValueModifier s)
+    totaledChaosTokenValues = chaosTokenValues + skillTestValueModifier s
     modifiedSkillValue' =
       max 0 (currentSkillValue + totaledChaosTokenValues + iconCount - subtractIconCount)
     op = if FailTies `elem` modifiers' then (>) else (>=)
@@ -93,7 +94,7 @@ autoFailSkillTestResultsData s = do
         (nub $ skillTestRevealedChaosTokens s <> skillTestResolvedChaosTokens s)
         (getModifiedChaosTokenValue s)
   let
-    totaledChaosTokenValues = chaosTokenValues + (skillTestValueModifier s)
+    totaledChaosTokenValues = chaosTokenValues + skillTestValueModifier s
   pure $ SkillTestResultsData 0 0 totaledChaosTokenValues modifiedSkillTestDifficulty Nothing False
 
 subtractSkillIconCount :: HasGame m => SkillTest -> m Int
@@ -141,7 +142,17 @@ instance RunMessage SkillTest where
     BeginSkillTestAfterFast -> do
       windowMsg <- checkWindows [mkWindow #when Window.FastPlayerWindow]
       pushAll [windowMsg, BeforeSkillTest s, EndSkillTestWindow]
-      pure s
+      mAbilityCardId <- case skillTestSource of
+        AbilitySource src _ -> fmap toCardId <$> sourceToMaybeCard src
+        t -> fmap toCardId <$> sourceToMaybeCard t
+      mTargetCardId <- case skillTestTarget of
+        ProxyTarget _ t -> fmap toCardId <$> targetToMaybeCard t
+        t -> fmap toCardId <$> targetToMaybeCard t
+      mSourceCardId <- case skillTestSource of
+        ProxySource _ t -> fmap toCardId <$> sourceToMaybeCard t
+        AbilitySource src _ -> fmap toCardId <$> sourceToMaybeCard src
+        t -> fmap toCardId <$> sourceToMaybeCard t
+      pure $ s & cardL .~ (mAbilityCardId <|> mTargetCardId <|> mSourceCardId)
     ReplaceSkillTestSkill (FromSkillType fsType) (ToSkillType tsType) -> do
       let
         stType = case skillTestType of
@@ -234,8 +245,7 @@ instance RunMessage SkillTest where
             then
               CommitToSkillTest
                 s
-                ( Label "Done Comitting" $ [CheckAllAdditionalCommitCosts, windowMsg, RevealSkillTestChaosTokens iid]
-                )
+                (Label "Done Comitting" [CheckAllAdditionalCommitCosts, windowMsg, RevealSkillTestChaosTokens iid])
             else RevealSkillTestChaosTokens iid
         for_ chaosTokenFaces $ \chaosTokenFace -> do
           let
@@ -377,7 +387,7 @@ instance RunMessage SkillTest where
       pure $ s & committedCardsL %~ map (filter (/= card))
     PutCardOnTopOfDeck _ _ card -> do
       pure $ s & committedCardsL %~ map (filter (/= card))
-    PutCardIntoPlay _ card _ _ -> do
+    PutCardIntoPlay _ card _ _ _ -> do
       pure $ s & committedCardsL %~ map (filter (/= card))
     CardEnteredPlay _ card -> do
       pure $ s & committedCardsL %~ map (filter (/= card))

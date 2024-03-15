@@ -1,18 +1,11 @@
-module Arkham.Asset.Cards.Dendromorphosis (
-  dendromorphosis,
-  Dendromorphosis (..),
-)
-where
-
-import Arkham.Prelude
+module Arkham.Asset.Cards.Dendromorphosis (dendromorphosis, Dendromorphosis (..)) where
 
 import Arkham.Ability
 import Arkham.Asset.Cards qualified as Cards
 import Arkham.Asset.Runner
-import Arkham.Card
 import Arkham.Matcher
 import Arkham.Message qualified as Msg
-import Arkham.Window (defaultWindows)
+import Arkham.Prelude
 
 newtype Dendromorphosis = Dendromorphosis AssetAttrs
   deriving anyclass (IsAsset, HasModifiersFor)
@@ -32,9 +25,9 @@ instance HasAbilities Dendromorphosis where
 instance RunMessage Dendromorphosis where
   runMessage msg a@(Dendromorphosis attrs) = case msg of
     Revelation iid (isSource attrs -> True) -> do
-      push $ PutCardIntoPlay iid (toCard attrs) Nothing (defaultWindows iid)
+      push $ putCardIntoPlay iid attrs
       pure a
     UseThisAbility _iid (isSource attrs -> True) 1 -> do
-      push $ Msg.AssetDamage (toId a) (toAbilitySource attrs 1) 1 0
+      push $ Msg.AssetDamage (toId a) (attrs.ability 1) 1 0
       pure a
     _ -> Dendromorphosis <$> runMessage msg attrs

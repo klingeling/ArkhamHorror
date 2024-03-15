@@ -1,16 +1,11 @@
-module Arkham.Asset.Cards.SegmentOfOnyx1 (
-  segmentOfOnyx1,
-  SegmentOfOnyx1 (..),
-)
-where
-
-import Arkham.Prelude
+module Arkham.Asset.Cards.SegmentOfOnyx1 (segmentOfOnyx1, SegmentOfOnyx1 (..)) where
 
 import Arkham.Ability
 import Arkham.Asset.Cards qualified as Cards
 import Arkham.Asset.Runner
 import Arkham.Helpers.Investigator (searchBonded)
 import Arkham.Matcher hiding (AssetCard)
+import Arkham.Prelude
 
 newtype SegmentOfOnyx1 = SegmentOfOnyx1 AssetAttrs
   deriving anyclass (IsAsset, HasModifiersFor)
@@ -25,7 +20,7 @@ instance HasAbilities SegmentOfOnyx1 where
         attrs
         1
         ( AssetCount 3 (AssetControlledBy You <> assetIs Cards.segmentOfOnyx1)
-            <> Negate (exists $ assetIs Cards.pendantOfTheQueen) -- unique so we can't have more than one
+            <> notExists (assetIs Cards.pendantOfTheQueen) -- unique so we can't have more than one
         )
         $ FastAbility Free
     ]
@@ -37,7 +32,7 @@ instance RunMessage SegmentOfOnyx1 where
       segments <- selectFields AssetCard $ assetIs Cards.segmentOfOnyx1 <> assetControlledBy iid
 
       for_ mPendant $ \pendant -> do
-        push $ PutCardIntoPlay iid pendant Nothing []
+        push $ PutCardIntoPlay iid pendant Nothing NoPayment []
 
       pushAll $ map (PlaceInBonded iid) segments
 

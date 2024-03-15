@@ -9,7 +9,6 @@ import { MessageType } from '@/arkham/types/Message';
 import { QuestionType } from '@/arkham/types/Question';
 import Draggable from '@/components/Draggable.vue';
 import DropDown from '@/components/DropDown.vue';
-import CommittedSkills from '@/arkham/components/CommittedSkills.vue';
 
 export interface Props {
   game: Game
@@ -24,12 +23,6 @@ const question = computed(() => props.game.question[props.playerId])
 const hide = ref(false)
 
 const choose = (idx: number) => emit('choose', idx)
-
-const applyResultsAction = computed(() => {
-  return choices.value.findIndex((c) => c.tag === "SkillTestApplyResultsButton");
-})
-
-const skillTestResults = computed(() => props.game.skillTestResults)
 
 const cardLabelImage = (cardCode: string) => {
   return imgsrc(`cards/${cardCode.replace('c', '')}.jpg`);
@@ -57,17 +50,6 @@ const tarotLabels = computed(() =>
       return choice.tag === "TarotLabel" ? [{choice, index}] : []
     }))
 
-const tokenOperator = computed(() => (skillTestResults.value?.skillTestResultsChaosTokensValue || 0) < 0 ? '-' : '+')
-
-const testResult = computed(() => {
-  const result = skillTestResults.value
-  if (result !== null) {
-    const {skillTestResultsSkillValue, skillTestResultsIconValue, skillTestResultsChaosTokensValue, skillTestResultsDifficulty} = result
-    return skillTestResultsSkillValue + skillTestResultsIconValue + skillTestResultsChaosTokensValue - skillTestResultsDifficulty
-  } else {
-    return null
-  }
-})
 
 // focused cards are handled by the player's choice modal
 const focusedCards = computed(() => {
@@ -85,15 +67,11 @@ const focusedCards = computed(() => {
   return props.game.focusedCards
 })
 
-const showChoices = computed(() => focusedCards.value.length == 0 && choices.value.some((c) => { return c.tag === MessageType.DONE || c.tag === MessageType.LABEL || c.tag === MessageType.SKILL_LABEL || c.tag === MessageType.SKILL_LABEL_WITH_LABEL || c.tag == MessageType.PORTRAIT_LABEL }) || (applyResultsAction.value !== -1))
+const showChoices = computed(() => focusedCards.value.length == 0 && choices.value.some((c) => { return c.tag === MessageType.DONE || c.tag === MessageType.LABEL || c.tag === MessageType.SKILL_LABEL || c.tag === MessageType.SKILL_LABEL_WITH_LABEL || c.tag == MessageType.PORTRAIT_LABEL }))
 
 const title = computed(() => {
   if (focusedCards.value.length > 0) {
     return null
-  }
-
-  if (skillTestResults.value) {
-    return "Results"
   }
 
   if (cardLabels.value.length > 0) {
@@ -154,35 +132,6 @@ const label = function(body: string) {
   <Draggable v-if="title" class="modal" :class="{ hide }">
     <template #handle><h2 v-html="t(label(title))"></h2></template>
     <section class="status-bar">
-      <div v-if="skillTestResults" class="skill-test-results">
-        <CommittedSkills
-          v-if="game.skillTest && game.skillTest.committedCards.length > 0"
-          :game="game"
-          :cards="game.skillTest.committedCards"
-          :playerId="playerId"
-          @choose="choose"
-        />
-        <dl>
-          <dt>{{$t('modifiedSkillValue')}}</dt>
-          <dd>
-            {{skillTestResults.skillTestResultsSkillValue}}
-            + {{skillTestResults.skillTestResultsIconValue}}
-            {{tokenOperator}}
-            {{Math.abs(skillTestResults.skillTestResultsChaosTokensValue)}}
-          </dd>
-          <dt>{{$t('modifiedDifficulty')}}</dt>
-          <dd>{{skillTestResults.skillTestResultsDifficulty}}</dd>
-          <dt>{{$t('result')}}:</dt>
-          <dd v-if="skillTestResults.skillTestResultsSuccess">
-            {{$t('succeedBy', [testResult])}}
-          </dd>
-          <dd v-else-if="testResult">
-            {{$t('failBy', [testResult - (skillTestResults.skillTestResultsResultModifiers || 0)])}}
-          </dd>
-        </dl>
-      </div>
-
-      <div v-if="skillTestResults" class="skill-test-results-break"></div>
 
       <div v-if="cardLabels.length > 0" class="cardLabels">
         <template v-for="{choice, index} in cardLabels" :key="index">
@@ -255,11 +204,6 @@ const label = function(body: string) {
           {{$t('use')}} <i :class="`icon${choice.skillType}`">: {{$t(choice.label)}}</i>
           </a>
 
-          <button
-            class="apply-results"
-            v-if="applyResultsAction !== -1"
-            @click="choose(applyResultsAction)"
-          >{{$t('applyResults')}}</button>
         </template>
       </div>
     </section>
@@ -396,26 +340,6 @@ section {
   }
 }
 
-.skill-test-results {
-  background: rgba(255,255,255,0.6);
-  border-radius: 5px;
-  margin-bottom: 5px;
-  padding: 10px;
-  text-align: left;
-  dl { padding: 0; margin: 0; display: flex; flex-wrap: wrap;}
-  dt { flex: 0 0 50%; font-weight: bold;}
-  &:after {
-    display: block;
-    content: "";
-    flex-basis: 100%;
-  }
-}
-
-.skill-test-results-break {
-  flex-basis: 100%;
-  height: 0;
-}
-
 .status-bar {
   text-align: center;
 }
@@ -528,10 +452,5 @@ h2 {
   font-family: "Teutonic";
   letter-spacing: 1px;
   font-size: 1.7em;
-}
-
-.apply-results {
-  margin-bottom: 10px;
-  margin-top: 5px;
 }
 </style>

@@ -1,17 +1,10 @@
-module Arkham.Asset.Cards.TheWorldXXI3 (
-  theWorldXxi3,
-  TheWorldXXI3 (..),
-)
-where
-
-import Arkham.Prelude
+module Arkham.Asset.Cards.TheWorldXXI3 (theWorldXxi3, TheWorldXXI3 (..)) where
 
 import Arkham.Ability
 import Arkham.Asset.Cards qualified as Cards
 import Arkham.Asset.Runner
-import Arkham.Card
 import Arkham.Matcher
-import Arkham.Window (defaultWindows)
+import Arkham.Prelude
 
 newtype TheWorldXXI3 = TheWorldXXI3 AssetAttrs
   deriving anyclass (IsAsset, HasModifiersFor)
@@ -34,6 +27,6 @@ instance RunMessage TheWorldXXI3 where
       pushM $ drawCards iid (toAbilitySource attrs 1) 1
       pure a
     InHand _ (UseThisAbility iid (isSource attrs -> True) 2) -> do
-      push $ PutCardIntoPlay iid (toCard attrs) Nothing (defaultWindows iid)
+      push $ putCardIntoPlay iid attrs
       pure a
     _ -> TheWorldXXI3 <$> runMessage msg attrs

@@ -55,6 +55,7 @@ import Arkham.Helpers.Message hiding (
   InvestigatorResigned,
   createEnemy,
  )
+import Arkham.Helpers.Ref
 import Arkham.History
 import Arkham.Id
 import Arkham.Investigator (
@@ -1034,7 +1035,7 @@ runGameMessage msg g = case msg of
     card <- field LocationCard locationId
     push $ ShuffleCardsIntoDeck deck [card]
     pure $ g & entitiesL . locationsL %~ deleteMap locationId
-  PlayCard iid card _mtarget windows' True -> do
+  PlayCard iid card _mtarget _payment windows' True -> do
     allModifiers <-
       mconcat
         <$> sequence
@@ -1074,19 +1075,19 @@ runGameMessage msg g = case msg of
       %~ insertMap (activeCostId activeCost') activeCost'
       & (phaseHistoryL %~ insertHistory iid historyItem)
       & setTurnHistory
-  PlayCard iid card mtarget windows' False -> do
+  PlayCard iid card mtarget payment windows' False -> do
     investigator' <- getInvestigator iid
     playableCards <- getPlayableCards (toAttrs investigator') Cost.PaidCost windows'
     case find (== card) playableCards of
       Nothing -> pure g
       Just _ -> do
-        g' <- runGameMessage (PutCardIntoPlay iid card mtarget windows') g
+        g' <- runGameMessage (PutCardIntoPlay iid card mtarget payment windows') g
         let
           recordLimit g'' = \case
             MaxPerGame _ -> g'' & cardUsesL . at (toCardCode card) . non 0 +~ 1
             _ -> g''
         pure $ foldl' recordLimit g' (cdLimits $ toCardDef card)
-  PutCardIntoPlay iid card mtarget windows' -> do
+  PutCardIntoPlay iid card mtarget payment windows' -> do
     let cardId = toCardId card
     case card of
       PlayerCard pc -> case toCardType pc of
@@ -1116,6 +1117,7 @@ runGameMessage msg g = case msg of
               (createAsset card aid)
           pushAll
             [ CardEnteredPlay iid card
+            , PaidForCardCost iid card payment
             , InvestigatorPlayAsset iid aid
             , ResolvedCard iid card
             ]
@@ -1136,6 +1138,7 @@ runGameMessage msg g = case msg of
                   , eventPlayedFrom = zone
                   , eventTarget = mtarget
                   , eventOriginalCardCode = pcOriginalCardCode pc
+                  , eventPayment = payment
                   }
 
           pushAll
@@ -1883,8 +1886,7 @@ runGameMessage msg g = case msg of
     let treachery = createTreachery card iid treacheryId
     push (AttachTreachery treacheryId (InvestigatorTarget iid))
     pure $ g & entitiesL . treacheriesL . at treacheryId ?~ treachery
-  AttachStoryTreacheryTo card target -> do
-    treacheryId <- getRandom
+  AttachStoryTreacheryTo treacheryId card target -> do
     let treachery = createTreachery card (g ^. leadInvestigatorIdL) treacheryId
     push (AttachTreachery treacheryId target)
     pure $ g & entitiesL . treacheriesL . at treacheryId ?~ treachery
@@ -2102,7 +2104,7 @@ runGameMessage msg g = case msg of
         ( initSkillTest
             iid
             (TreacherySource tid)
-            (InvestigatorTarget iid)
+            (TreacheryTarget tid)
             skillType
             difficulty
         )

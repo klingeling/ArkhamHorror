@@ -15,13 +15,9 @@ const beta = ref(props.user.beta ? "On" : "Off")
 
 const betaUpdate = async () => props.updateBeta(beta.value == "On")
 
-const currentLanguage = localStorage.getItem('language') ?? 'en' 
-
-const language = ref(currentLanguage)
-
-const updateLanguage = () => {
-  localStorage.setItem('language', language.value)
-  locale.value = language.value
+const updateLanguage = (a: Event) => {
+  const target = a.target as HTMLInputElement;
+  localStorage.setItem('language', target.value)
 }
 </script>
 
@@ -32,7 +28,7 @@ const updateLanguage = () => {
     <fieldset>
       <legend>{{$t('language')}}</legend>
       <p>{{$t('thisWillChangeTheLanguage')}}</p>
-      <select v-model="language" @change="updateLanguage">
+      <select v-model="$i18n.locale" @change="updateLanguage">
         <option value="en">English</option>
         <option value="it">Italiano</option>
         <option value="zh">中文</option>

@@ -1,9 +1,4 @@
-module Arkham.Event.Cards.UnearthTheAncients2 (
-  unearthTheAncients2,
-  UnearthTheAncients2 (..),
-) where
-
-import Arkham.Prelude
+module Arkham.Event.Cards.UnearthTheAncients2 (unearthTheAncients2, UnearthTheAncients2 (..)) where
 
 import Arkham.Action qualified as Action
 import Arkham.Card
@@ -13,8 +8,8 @@ import Arkham.Event.Runner
 import Arkham.Helpers.Modifiers
 import Arkham.Investigate
 import Arkham.Matcher
+import Arkham.Prelude
 import Arkham.Trait
-import Arkham.Window (defaultWindows)
 
 newtype Metadata = Metadata {chosenCards :: [Card]}
   deriving stock (Show, Eq, Generic)
@@ -56,7 +51,7 @@ instance RunMessage UnearthTheAncients2 where
     Successful (Action.Investigate, _) iid (isSource attrs -> True) _ _ -> do
       chosen <- forToSnd (chosenCards metadata) $ \_ -> drawCards iid attrs 1
       pushAll
-        $ [PutCardIntoPlay iid card Nothing (defaultWindows iid) | card <- chosenCards metadata]
+        $ [putCardIntoPlay iid card | card <- chosenCards metadata]
         <> [drawing | (card, drawing) <- chosen, Relic `member` toTraits card]
       pure e
     _ -> UnearthTheAncients2 . (`with` metadata) <$> runMessage msg attrs
