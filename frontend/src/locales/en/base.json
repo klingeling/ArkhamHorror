@@ -882,5 +882,7 @@
   "play": "Play",
   "skillTest": "Skill Test",
   "testDifficulty": "Test Difficulty",
-  "modifiedSkill": "Modified Skill."
+  "modifiedSkill": "Modified Skill.",
+  "switchToThisInvestigator": "Switch to this investigator's perspective",
+  "skipTriggers": "Skip Triggers"
 }

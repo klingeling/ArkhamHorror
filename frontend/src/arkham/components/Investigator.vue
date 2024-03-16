@@ -263,7 +263,7 @@ const alarmLevel = computed(() => props.investigator.tokens[TokenType.AlarmLevel
           :disabled="skipTriggersAction == -1"
           @click="$emit('choose', skipTriggersAction)"
           class="skip-triggers-button"
-        >Skip Triggers</button>
+        >{{$t('skipTriggers')}}</button>
 
         <button v-if="cardsUnderneath.length > 0" class="view-discard-button" @click="showCardsUnderneath">{{cardsUnderneathLabel}}</button>
       </div>

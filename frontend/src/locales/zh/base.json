@@ -880,5 +880,7 @@
   "play": "打出",
   "skillTest": "技能检定",
   "testDifficulty": "检定难度",
-  "modifiedSkill": "修正后的技能"
+  "modifiedSkill": "修正后技能",
+  "switchToThisInvestigator": "切换到此调查员的视角",
+  "skipTriggers": "跳过触发"
 }

@@ -8,7 +8,9 @@ import * as ArkhamGame from '@/arkham/types/Game';
 import type { Investigator } from '@/arkham/types/Investigator';
 import type { TarotCard } from '@/arkham/types/TarotCard';
 import { imgsrc } from '@/arkham/helpers';
+import { useI18n } from 'vue-i18n';
 
+const { t } = useI18n()
 export interface Props {
   game: Game
   playerId: string
@@ -49,7 +51,7 @@ function hasSwitch(investigator: Investigator) {
 
 function instructions(investigator: Investigator) {
   if (investigator.playerId !== props.playerId) {
-    return "Switch to this investigator's perspective"
+    return t('switchToThisInvestigator')
   }
 
   return null
