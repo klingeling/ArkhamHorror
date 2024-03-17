@@ -103,7 +103,7 @@ watchEffect(() => selectedTab.value = props.playerId)
         :class='tabClass(investigator)'
       >
       <div
-          v-if="tabClass(investigator) == 'tab--lead-player'"
+          v-if="tabClass(investigator).includes('tab--lead-player')"
           v-tooltip="$t('leadInvestigator')"
           class="lead-investigator"></div>
         <span>{{ $t(investigator.name.title) }}</span>
