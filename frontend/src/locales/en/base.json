@@ -884,5 +884,6 @@
   "testDifficulty": "Test Difficulty",
   "modifiedSkill": "Modified Skill.",
   "switchToThisInvestigator": "Switch to this investigator's perspective",
-  "skipTriggers": "Skip Triggers"
+  "skipTriggers": "Skip Triggers",
+  "leadInvestigator": "Lead Investigator"
 }

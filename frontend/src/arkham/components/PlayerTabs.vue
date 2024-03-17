@@ -102,6 +102,10 @@ watchEffect(() => selectedTab.value = props.playerId)
         @click='selectTab(investigator.playerId)'
         :class='tabClass(investigator)'
       >
+      <div
+          v-if="tabClass(investigator) == 'tab--lead-player'"
+          v-tooltip="$t('leadInvestigator')"
+          class="lead-investigator"></div>
         <span>{{ $t(investigator.name.title) }}</span>
         <button
           v-if="solo"
@@ -201,19 +205,16 @@ ul.tabs__header > li.tab--selected {
   margin-top: -32px;
 }
 
-.tab--lead-player {
-  &:before {
-    position: absolute;
-    content: "";
-    inset: 0;
-    top: -5px;
-    margin-inline: auto;
-    transform: translateY(-100%);
-    width: 25px;
-    height: 25px;
-    background-image: v-bind(lead);
-    background-size: contain;
-  }
+.lead-investigator {
+  position: absolute;
+  inset: 0;
+  top: -5px;
+  margin-inline: auto;
+  transform: translateY(-100%);
+  width: 25px;
+  height: 25px;
+  background-image: v-bind(lead);
+  background-size: contain;
 }
 
 .switch-investigators {
