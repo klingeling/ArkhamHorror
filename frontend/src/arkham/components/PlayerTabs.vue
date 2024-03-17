@@ -27,9 +27,6 @@ const switchInvestigator = inject<((i: string) => void)>('switchInvestigator')
 const hasChoices = (iid: string) => ArkhamGame.choices(props.game, iid).length > 0
 const investigators = computed(() => props.playerOrder.map(iid => props.players[iid]))
 const lead = computed(() => `url('${imgsrc(`lead-investigator.png`)}')`)
-let timer = ref(null) as any;
-const isPressing = ref(false)
-const longPressTimeout = ref()
 
 function tabClass(investigator: Investigator) {
   const pid = investigator.playerId
@@ -72,24 +69,6 @@ function tarotCardsFor(i: string) {
   return props.tarotCards.filter(c => c.scope.tag === 'InvestigatorTarot' && c.scope.contents === i)
 }
 
-function handleMouseDown() {
-  longPressTimeout.value = setTimeout(() => {
-    isPressing.value = false;
-    if (isPressing.value == false) {
-      isPressing.value = true;
-    }
-  }, 500);
-}
-
-function handleMouseUp(i: string) {
-  clearTimeout(longPressTimeout.value);
-  if (isPressing.value == true) {
-    selectTabExtended(i);
-  } else if(isPressing.value == false) {
-    selectTab(i);
-  }
-  isPressing.value = false;
-}
 
 watchEffect(() => selectedTab.value = props.playerId)
 </script>
@@ -102,10 +81,6 @@ watchEffect(() => selectedTab.value = props.playerId)
         @click='selectTab(investigator.playerId)'
         :class='tabClass(investigator)'
       >
-      <div
-          v-if="tabClass(investigator).includes('tab--lead-player')"
-          v-tooltip="$t('leadInvestigator')"
-          class="lead-investigator"></div>
         <span>{{ $t(investigator.name.title) }}</span>
         <button
           v-if="solo"
@@ -205,16 +180,19 @@ ul.tabs__header > li.tab--selected {
   margin-top: -32px;
 }
 
-.lead-investigator {
-  position: absolute;
-  inset: 0;
-  top: -5px;
-  margin-inline: auto;
-  transform: translateY(-100%);
-  width: 25px;
-  height: 25px;
-  background-image: v-bind(lead);
-  background-size: contain;
+.tab--lead-player {
+  &:before {
+    position: absolute;
+    content: "";
+    inset: 0;
+    top: -5px;
+    margin-inline: auto;
+    transform: translateY(-100%);
+    width: 25px;
+    height: 25px;
+    background-image: v-bind(lead);
+    background-size: contain;
+  }
 }
 
 .switch-investigators {

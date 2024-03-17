@@ -257,6 +257,7 @@ const alarmLevel = computed(() => props.investigator.tokens[TokenType.AlarmLevel
         <button
           :disabled="endTurnAction == -1"
           @click="$emit('choose', endTurnAction)"
+          class="end-turn-button"
         >{{$t('endTurn')}}</button>
 
         <button
@@ -557,7 +558,12 @@ i.action {
   margin-right: 10px;
 }
 
+.end-turn-button {
+  white-space: nowrap;
+}
+
 .skip-triggers-button {
+  white-space: nowrap;
   transition: all 0.2s ease-in;
   background-color: $select;
   color: white;
