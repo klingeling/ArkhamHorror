@@ -347,11 +347,8 @@
       "  )",
       "where",
       "",
-      "import Arkham.Prelude",
-      "",
-      "import Arkham.GameValue",
       "import Arkham.Location.Cards qualified as Cards",
-      "import Arkham.Location.Runner",
+      "import Arkham.Location.Import.Lifted",
       "",
       "newtype {dot} = {dot} LocationAttrs",
       "  deriving anyclass (IsLocation, HasModifiersFor)",
@@ -365,8 +362,8 @@
       "    extendRevealed attrs []",
       "",
       "instance RunMessage {dot} where",
-      "  runMessage msg ({dot} attrs) =",
-      "    {dot} <$> runMessage msg attrs"
+      "  runMessage msg ({dot} attrs) = runQueueT $ case msg of",
+      "    _ -> {dot} <$> lift (runMessage msg attrs)"
       ]
   },
   "arkham-core/library/Arkham/Skill/Cards/*.hs": {
@@ -406,10 +403,8 @@
        "  , {dot|snakecase|camelcase}",
        "  ) where",
        "",
-       "import Arkham.Prelude",
-       "",
        "import Arkham.Story.Cards qualified as Cards",
-       "import Arkham.Story.Runner",
+       "import Arkham.Story.Import.Lifted",
        "",
        "newtype {dot} = {dot} StoryAttrs",
        "  deriving anyclass (IsStory, HasModifiersFor, HasAbilities)",
@@ -419,10 +414,10 @@
        "{dot|snakecase|camelcase} = story {dot} Cards.{dot|snakecase|camelcase}",
        "",
        "instance RunMessage {dot} where",
-       "  runMessage msg s@({dot} attrs) = case msg of",
+       "  runMessage msg s@({dot} attrs) = runQueueT $ case msg of",
        "    ResolveStory _ ResolveIt story' | story' == toId attrs -> do",
        "      pure s",
-       "    _ -> {dot} <$> runMessage msg attrs"
+       "    _ -> {dot} <$> lift (runMessage msg attrs)"
     ]
   },
   "arkham-core/library/Arkham/*.hs": {

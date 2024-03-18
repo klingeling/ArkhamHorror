@@ -27,6 +27,7 @@ import Arkham.Matcher
 import Arkham.Message hiding (story)
 import Arkham.Movement
 import Arkham.Prelude
+import Arkham.Query
 import Arkham.SkillType qualified as SkillType
 import Arkham.Source
 import Arkham.Target
@@ -197,8 +198,10 @@ killRemaining (toSource -> source) = do
   gameOverIf (null resigned)
   pure remaining
 
-addCampaignCardToDeckChoice
-  :: ReverseQueue m => [InvestigatorId] -> CardDef -> m ()
+addCampaignCardToDeck :: ReverseQueue m => InvestigatorId -> CardDef -> m ()
+addCampaignCardToDeck investigator cardDef = push $ Msg.AddCampaignCardToDeck investigator cardDef
+
+addCampaignCardToDeckChoice :: ReverseQueue m => [InvestigatorId] -> CardDef -> m ()
 addCampaignCardToDeckChoice choices cardDef = do
   lead <- getLeadPlayer
   push $ Msg.addCampaignCardToDeckChoice lead choices cardDef
@@ -234,6 +237,25 @@ createSetAsideEnemyWith def creation f = do
   card <- getSetAsideCard def
   msg <- Msg.createEnemy card creation
   push $ toMessage (f msg)
+
+createEnemyWith
+  :: (ReverseQueue m, IsCard card, IsEnemyCreationMethod creation)
+  => card
+  -> creation
+  -> (EnemyCreation Message -> EnemyCreation Message)
+  -> m EnemyId
+createEnemyWith card creation f = do
+  msg <- Msg.createEnemy card creation
+  push $ toMessage (f msg)
+  pure msg.enemy
+
+createEnemyWith_
+  :: (ReverseQueue m, IsCard card, IsEnemyCreationMethod creation)
+  => card
+  -> creation
+  -> (EnemyCreation Message -> EnemyCreation Message)
+  -> m ()
+createEnemyWith_ card creation f = void $ createEnemyWith card creation f
 
 setAsideCards :: ReverseQueue m => [CardDef] -> m ()
 setAsideCards = genCards >=> push . Msg.SetAsideCards
@@ -272,6 +294,9 @@ eachInvestigator :: ReverseQueue m => (InvestigatorId -> m ()) -> m ()
 eachInvestigator f = do
   investigators <- getInvestigators
   for_ investigators f
+
+selectEach :: (Query a, ReverseQueue m) => a -> (QueryElement a -> m ()) -> m ()
+selectEach matcher f = select matcher >>= traverse_ f
 
 advanceAgendaDeck :: ReverseQueue m => AgendaAttrs -> m ()
 advanceAgendaDeck attrs = push $ AdvanceAgendaDeck (agendaDeckId attrs) (toSource attrs)
@@ -313,3 +338,11 @@ createCardEffect def mMeta source target = push $ Msg.createCardEffect def mMeta
 gameModifier
   :: (ReverseQueue m, Sourceable source, Targetable target) => source -> target -> ModifierType -> m ()
 gameModifier source target modifier = push $ Msg.gameModifier source target modifier
+
+flipOver
+  :: (ReverseQueue m, Sourceable a, Targetable a) => InvestigatorId -> a -> m ()
+flipOver iid a = push $ Msg.Flip iid (toSource a) (toTarget a)
+
+flipOverBy
+  :: (ReverseQueue m, Sourceable source, Targetable target) => InvestigatorId -> source -> target -> m ()
+flipOverBy iid source target = push $ Msg.Flip iid (toSource source) (toTarget target)
