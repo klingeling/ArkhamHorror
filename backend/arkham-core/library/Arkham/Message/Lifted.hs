@@ -28,6 +28,7 @@ import Arkham.Message hiding (story)
 import Arkham.Movement
 import Arkham.Prelude
 import Arkham.Query
+import Arkham.SkillType
 import Arkham.SkillType qualified as SkillType
 import Arkham.Source
 import Arkham.Target
@@ -71,8 +72,12 @@ placeLocation_ = Msg.placeLocation_ >=> push
 
 placeRandomLocationGroupCards
   :: ReverseQueue m => Text -> [CardDef] -> m ()
-placeRandomLocationGroupCards groupName cards = do
-  shuffled <- traverse genCard =<< shuffleM cards
+placeRandomLocationGroupCards groupName = genCards >=> placeRandomLocationGroup groupName
+
+placeRandomLocationGroup
+  :: ReverseQueue m => Text -> [Card] -> m ()
+placeRandomLocationGroup groupName cards = do
+  shuffled <- shuffleM cards
   msgs <- Msg.placeLabeledLocations_ groupName shuffled
   pushAll msgs
 
@@ -118,6 +123,9 @@ recordSetInsert
   -> m ()
 recordSetInsert k = push . Msg.recordSetInsert k
 
+incrementRecordCount :: ReverseQueue m => CampaignLogKey -> Int -> m ()
+incrementRecordCount key = push . IncrementRecordCount key
+
 story :: ReverseQueue m => FlavorText -> m ()
 story flavor = do
   players <- allPlayers
@@ -153,6 +161,10 @@ endOfScenario = push $ EndOfGame Nothing
 assignHorror
   :: (ReverseQueue m, Sourceable source) => InvestigatorId -> source -> Int -> m ()
 assignHorror iid (toSource -> source) horror = push $ Msg.assignHorror iid source horror
+
+assignDamageAndHorror
+  :: (ReverseQueue m, Sourceable source) => InvestigatorId -> source -> Int -> Int -> m ()
+assignDamageAndHorror iid (toSource -> source) damage horror = push $ Msg.assignDamageAndHorror iid source damage horror
 
 findAndDrawEncounterCard
   :: (ReverseQueue m, IsCardMatcher a) => InvestigatorId -> a -> m ()
@@ -310,6 +322,9 @@ shuffleEncounterDiscardBackIn = push ShuffleEncounterDiscardBackIn
 placeDoomOnAgenda :: ReverseQueue m => Int -> m ()
 placeDoomOnAgenda n = push $ PlaceDoomOnAgenda n CanNotAdvance
 
+placeDoomOnAgendaAndCheckAdvance :: ReverseQueue m => Int -> m ()
+placeDoomOnAgendaAndCheckAdvance n = push $ PlaceDoomOnAgenda n CanAdvance
+
 revertAgenda :: (ReverseQueue m, AsId a, IdOf a ~ AgendaId) => a -> m ()
 revertAgenda a = push $ RevertAgenda (asId a)
 
@@ -346,3 +361,17 @@ flipOver iid a = push $ Msg.Flip iid (toSource a) (toTarget a)
 flipOverBy
   :: (ReverseQueue m, Sourceable source, Targetable target) => InvestigatorId -> source -> target -> m ()
 flipOverBy iid source target = push $ Msg.Flip iid (toSource source) (toTarget target)
+
+chooseFightEnemy
+  :: (ReverseQueue m, Sourceable source) => InvestigatorId -> source -> SkillType -> m ()
+chooseFightEnemy iid (toSource -> source) sType = push $ Msg.chooseFightEnemy iid source sType
+
+skillTestModifiers
+  :: forall target source m
+   . (ReverseQueue m, Sourceable source, Targetable target)
+  => source
+  -> target
+  -> [ModifierType]
+  -> m ()
+skillTestModifiers (toSource -> source) (toTarget -> target) mods =
+  push $ Msg.skillTestModifiers source target mods

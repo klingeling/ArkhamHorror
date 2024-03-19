@@ -138,8 +138,12 @@ getPreyMatcher a = do
 
 noSpawn :: HasQueue Message m => EnemyAttrs -> Maybe InvestigatorId -> m ()
 noSpawn attrs miid = do
-  pushAll $ toDiscard GameSource attrs
-    : [Surge iid (toSource attrs) | enemySurgeIfUnableToSpawn attrs, iid <- toList miid]
+  let noSpawnMsg = case enemyUnableToSpawn attrs of
+        DiscardIfUnableToSpawn -> toDiscard GameSource (toId attrs)
+        ShuffleBackInIfUnableToSpawn -> ShuffleBackIntoEncounterDeck (toTarget attrs)
+  pushAll $ noSpawnMsg
+    : [ Surge iid (toSource attrs) | enemySurgeIfUnableToSpawn attrs, iid <- toList miid
+      ]
 
 isSwarm :: EnemyAttrs -> Bool
 isSwarm attrs = case enemyPlacement attrs of
@@ -229,6 +233,14 @@ instance RunMessage EnemyAttrs where
               (eid : swarm)
           pure $ a & placementL .~ AtLocation lid
     Ready (isTarget a -> True) -> do
+      mods <- getModifiers a
+      phase <- getPhase
+      if CannotReady `elem` mods || (DoesNotReadyDuringUpkeep `elem` mods && phase == #upkeep)
+        then pure ()
+        else do
+          wouldDo msg (Window.WouldReady $ toTarget a) (Window.Readies $ toTarget a)
+      pure a
+    Do (Ready (isTarget a -> True)) -> do
       mods <- getModifiers a
       phase <- getPhase
       if CannotReady `elem` mods || (DoesNotReadyDuringUpkeep `elem` mods && phase == #upkeep)
@@ -716,16 +728,42 @@ instance RunMessage EnemyAttrs where
       sanityDamage <- field EnemySanityDamage (toId a)
 
       case attackTarget details of
-        InvestigatorTarget iid ->
+        InvestigatorTarget iid -> do
+          player <- getPlayer iid
+          let
+            attackMessage =
+              if AttackDealsEitherDamageOrHorror `elem` modifiers
+                then
+                  chooseOne
+                    player
+                    [ Label
+                        ("Take " <> tshow healthDamage <> " damage")
+                        [ InvestigatorAssignDamage
+                            iid
+                            (EnemyAttackSource enemyId)
+                            (attackDamageStrategy details)
+                            healthDamage
+                            0
+                        ]
+                    , Label
+                        ("Take " <> tshow sanityDamage <> " horror")
+                        [ InvestigatorAssignDamage
+                            iid
+                            (EnemyAttackSource enemyId)
+                            (attackDamageStrategy details)
+                            0
+                            sanityDamage
+                        ]
+                    ]
+                else
+                  InvestigatorAssignDamage
+                    iid
+                    (EnemyAttackSource enemyId)
+                    (attackDamageStrategy details)
+                    healthDamage
+                    sanityDamage
           pushAll
-            $ [ InvestigatorAssignDamage
-                iid
-                (EnemyAttackSource enemyId)
-                (attackDamageStrategy details)
-                healthDamage
-                sanityDamage
-              | allowAttack
-              ]
+            $ [attackMessage | allowAttack]
             <> [Exhaust (toTarget a) | allowAttack, attackExhaustsEnemy details]
             <> ignoreWindows
             <> [After (EnemyAttack details)]
@@ -1055,11 +1093,12 @@ instance RunMessage EnemyAttrs where
                     then do
                       spawnAt
                         enemyId
+                        (Just iid)
                         $ applyMatcherExclusions mods
                         $ replaceYouMatcher iid (SpawnAt $ not_ changeSpawnMatchers <> changedSpawnMatchers)
                     else noSpawn a (Just iid)
             Nothing -> noSpawn a (Just iid)
-        Just matcher -> spawnAt enemyId (applyMatcherExclusions mods $ replaceYouMatcher iid matcher)
+        Just matcher -> spawnAt enemyId (Just iid) (applyMatcherExclusions mods $ replaceYouMatcher iid matcher)
       pure a
     EnemySpawnAtLocationMatching miid locationMatcher eid | eid == enemyId -> do
       activeInvestigatorId <- getActiveInvestigatorId
@@ -1167,4 +1206,10 @@ instance RunMessage EnemyAttrs where
         Just attached | target == attached -> push $ toDiscard source a
         _ -> pure ()
       pure a
+    PlaceUnderneath _ cards -> do
+      when (toCard a `elem` cards) $ push $ RemoveEnemy (toId a)
+      pure a
+    DoBatch _ msg' -> do
+      -- generic DoBatch handler
+      runMessage (Do msg') a
     _ -> pure a

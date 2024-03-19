@@ -19,6 +19,7 @@ import Arkham.ChaosToken
 import Arkham.ChaosToken qualified as ChaosToken
 import Arkham.ClassSymbol
 import Arkham.Cost.Status
+import {-# SOURCE #-} Arkham.Criteria
 import Arkham.Criteria.Override
 import Arkham.Damage
 import Arkham.Deck
@@ -400,6 +401,7 @@ data LocationMatcher
   | AccessibleTo LocationMatcher
   | LocationWithVictory
   | LocationWithDistanceFrom Int LocationMatcher
+  | LocationWithDistanceFromAtLeast Int LocationId LocationMatcher
   | LocationWithResources ValueMatcher
   | LocationWithClues ValueMatcher
   | LocationWithHorror ValueMatcher
@@ -453,6 +455,7 @@ data LocationMatcher
   | FewestBreaches
   | MostBreaches LocationMatcher
   | IncludeEmptySpace LocationMatcher
+  | LocationWhenCriteria Criterion
   | -- | Must be replaced
     ThatLocation
   deriving stock (Show, Eq, Ord, Data)
@@ -813,6 +816,7 @@ data WindowMatcher
   | RemovedBreaches Timing TargetMatcher
   | EnemyWouldBeDefeated Timing EnemyMatcher
   | EnemyWouldReady Timing EnemyMatcher
+  | EnemyReadies Timing EnemyMatcher
   | EnemyEnters Timing Where EnemyMatcher
   | EnemyLeaves Timing Where EnemyMatcher
   | AgendaAdvances Timing AgendaMatcher

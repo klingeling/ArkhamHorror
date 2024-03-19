@@ -2608,6 +2608,9 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
     Matcher.EnemyWouldReady timing enemyMatcher -> guardTiming timing $ \case
       Window.WouldReady (EnemyTarget enemyId) -> enemyMatches enemyId enemyMatcher
       _ -> noMatch
+    Matcher.EnemyReadies timing enemyMatcher -> guardTiming timing $ \case
+      Window.Readies (EnemyTarget enemyId) -> enemyMatches enemyId enemyMatcher
+      _ -> noMatch
     Matcher.FastPlayerWindow -> guardTiming #when (pure . (== Window.FastPlayerWindow))
     Matcher.DealtDamageOrHorror timing sourceMatcher whoMatcher -> guardTiming timing $ \case
       Window.WouldTakeDamageOrHorror source' (InvestigatorTarget iid') _ _ ->
@@ -2972,6 +2975,8 @@ locationMatches investigatorId source window locationId matcher' = do
     Matcher.LocationWithTreachery treacheryMatcher -> do selectAny $ Matcher.treacheryAt locationId <> treacheryMatcher
 
     -- normal cases
+    Matcher.LocationWithDistanceFromAtLeast {} -> locationId <=~> matcher
+    Matcher.LocationWhenCriteria {} -> locationId <=~> matcher
     Matcher.CanMoveToLocation {} -> locationId <=~> matcher
     Matcher.CanEnterLocation _ -> locationId <=~> matcher
     Matcher.IncludeEmptySpace _ -> locationId <=~> matcher
