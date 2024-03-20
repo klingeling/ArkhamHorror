@@ -20,14 +20,14 @@
   "passwordUpdatedSuccessfully": "密码已成功更新",
   "register": "注册",
   "resetPassword": "重置密码",
-  "设置": "设置",
+  "settings": "设置",
   "updatePassword": "更新密码",
   "username": "用户名",
   "usernameOrEmailAlreadyTaken": "用户名或电子邮件已被使用",
   "thisWillChangeTheLanguage": "这将更改卡牌和应用程序的语言，但如果卡牌或文本不支持所选语言，则默认为英语。",
   "enrollInBeta": "报名测试版",
   "betaFeatures": "测试版功能可能会非常残缺，游戏可能无法恢复，请仅在愿意提供反馈的情况下启用此功能。",
-  "于": "开启",
+  "on": "开启",
   "off": "关闭",
   "close": "关闭",
   "yes": "是",
@@ -888,5 +888,6 @@
   "leadInvestigator": "调查员队长",
   "shuffle": "混洗",
   " draws ": "抓取了",
-  " chaos token": "混乱标记"
+  " chaos token": "混乱标记",
+  "victoryPoint": "胜利 {0}."
 }

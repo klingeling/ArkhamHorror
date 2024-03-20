@@ -886,5 +886,8 @@
   "switchToThisInvestigator": "Switch to this investigator's perspective",
   "skipTriggers": "Skip Triggers",
   "leadInvestigator": "Lead Investigator",
-  "shuffle": "Shuffle"
+  "shuffle": "Shuffle",
+  "victoryPoint": "Victory {0}.",
+  " chaos token": " chaos token",
+  " draws ": " draws "
 }

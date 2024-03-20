@@ -155,7 +155,7 @@ const getImage = (el: HTMLElement): string | null => {
     <span class="fight" v-if="fight">{{ fight }}</span>
     <span class="health" v-if="health">{{ health }}</span>
     <span class="evade" v-if="evade">{{ evade }}</span>
-    <span class="victory" v-if="victory">Victory {{ victory }}.</span>
+    <span class="victory" v-if="victory">{{$t('victoryPoint', [victory])}}</span>
     <span class="keywords" v-if="keywords">{{ keywords }}.</span>
     <img class="damage damage-1" v-if="damage && damage >= 1" :src="imgsrc('damage-overlay.png')"/>
     <img class="damage damage-2" v-if="damage && damage >= 2" :src="imgsrc('damage-overlay.png')"/>
