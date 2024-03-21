@@ -146,7 +146,7 @@ const testResult = computed(() => {
         v-if="skipTriggersAction !== -1"
         @click="$emit('choose', skipTriggersAction)"
         class="skip-triggers-button"
-      >Skip Triggers</button>
+      >{{$t('skipTriggers')}}</button>
       <button
         class="apply-results"
         v-if="applyResultsAction !== -1"

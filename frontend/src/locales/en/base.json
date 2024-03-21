@@ -890,5 +890,6 @@
   "victoryPoint": "Victory {0}.",
   " chaos token": " chaos token",
   " draws ": " draws ",
-  "removeClues": "Remove Clues"
+  "removeClues": "Remove Clues",
+  "shuffleBackIn": "Shuffle Back In"
 }

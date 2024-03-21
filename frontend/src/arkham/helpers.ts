@@ -33,5 +33,14 @@ export function imgsrc(src: string) {
 }
 
 export function pluralize(w: string, n: number) {
-  return `${n} ${w}${n == 1 ? '' : ''}`
+  const language = localStorage.getItem('language') || 'en'
+  switch (language) {
+    case 'it': {
+      return `${n} ${w}${n == 1 ? '' : 's'}`
+    }
+    case 'zh': {
+      return `${n}${w}${n == 1 ? '' : ''}`
+    }
+    default: return `${n} ${w}${n == 1 ? '' : 's'}`
+  }
 }
