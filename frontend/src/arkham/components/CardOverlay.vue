@@ -116,8 +116,8 @@ const getPosition = (el: HTMLElement) => {
   // Calculate the left position, adjusting for rotated cards
   const left = rect.left + window.scrollX + rect.width + 10;
 
-  if (left + width >= window.innerWidth) {
-    return { top: newTop, left: rect.left - overlayWidth - 10 };
+  if (left + width + 420 >= window.innerWidth) {
+    return { top: newTop, left: rect.left - overlayWidth - 130 };
   } else {
     return { top: newTop, left: left };
   }
