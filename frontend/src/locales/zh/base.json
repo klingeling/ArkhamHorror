@@ -889,5 +889,6 @@
   "shuffle": "混洗",
   " draws ": "抓取了",
   " chaos token": "混乱标记",
-  "victoryPoint": "胜利 {0}."
+  "victoryPoint": "胜利 {0}.",
+  "removeClues": "移除线索"
 }
