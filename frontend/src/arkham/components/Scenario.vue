@@ -27,6 +27,7 @@ import ScenarioDeck from '@/arkham/components/ScenarioDeck.vue';
 import Story from '@/arkham/components/Story.vue';
 import Location from '@/arkham/components/Location.vue';
 import * as ArkhamGame from '@/arkham/types/Game';
+import { useDebug } from '@/arkham/debug'
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n()
@@ -38,6 +39,7 @@ export interface Props {
 
 const props = defineProps<Props>()
 const emit = defineEmits(['choose'])
+const debug = useDebug()
 
 function beforeLeave(e: Element) {
   const el = e as HTMLElement
@@ -283,6 +285,9 @@ const gameOver = computed(() => props.game.gameState.tag === "IsOver")
 
 
             <button v-if="discards.length > 0" class="view-discard-button" @click="showDiscards">{{viewDiscardLabel}}</button>
+            <template v-if="debug.active">
+              <button @click="debug.send(game.id, {tag: 'ShuffleEncounterDiscardBackIn'})">Shuffle Back In</button>
+            </template>
           </div>
 
           <EncounterDeck

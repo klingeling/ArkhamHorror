@@ -233,7 +233,7 @@ const debug = useDebug()
 
       <template v-if="debug.active">
         <button v-if="!location.revealed" @click="debug.send(game.id, {tag: 'RevealLocation', contents: [null, id]})">{{$t('reveal')}}</button>
-        <button v-if="clues && clues > 0" @click="debug.send(game.id, {tag: 'RemoveTokens', contents: [{ tag: 'TestSource', contents: []}, { tag: 'LocationTarget', contents: id }, 'Clue', 1]})">{{$t('removeToken')}}</button>
+        <button v-if="clues && clues > 0" @click="debug.send(game.id, {tag: 'RemoveTokens', contents: [{ tag: 'TestSource', contents: []}, { tag: 'LocationTarget', contents: id }, 'Clue', clues]})">{{$t('removeClues')}}</button>
       </template>
     </div>
     <div class="attachments">
