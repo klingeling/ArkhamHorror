@@ -102,9 +102,9 @@ const cardCost = (card: Arkham.CardDef) => {
 const cardType = (card: Arkham.CardDef) => {
   switch(card.cardType) {
     case "PlayerTreacheryType":
-      return "Treachery"
+      return t('Treachery')
     case "PlayerEnemyType":
-      return "Enemy"
+      return t('Enemy')
     default:
       return card.cardType.replace(/Type$/, '')
   }
@@ -158,7 +158,7 @@ const cardSetText = (card: Arkham.CardDef) => {
     return `${t(set.name)} ${setNumber % 500}`
   }
 
-  return "Unknown"
+  return t('Unknown')
 }
 
 async function deleteDeckEvent() {

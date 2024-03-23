@@ -108,7 +108,6 @@ watch(step, currentStep => {
 
 .sidebar {
   height: 100%;
-  width: 25vw;
   max-width: 500px;
   display: flex;
   flex-direction: column;
