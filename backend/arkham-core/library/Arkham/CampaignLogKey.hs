@@ -252,6 +252,13 @@ data CampaignLogKey
   | TheBlackCatSpokeOfNyarlathotep
   | TheBlackCatSpokeOfAtlachNacha
   | TheBlackCatKnowsTheTruth
+  | Nyarlathotep'sInvasionHasBegun
+  | TheDreamersEscapedFromNyarlathotep'sGrasp
+  | TheDreamersBanishedNyarlathotep
+  | TheDreamersAwoke
+  | TheDreamersStayedInTheDreamlandsForever
+  | TheDreamersTraveledBeneathTheMonastery
+  | TheInvestigatorsAreTrappedInAtlachNacha'sRealm
   | -- | Curse of the Rougarou
     TheRougarouContinuesToHauntTheBayou
   | TheRougarouIsDestroyed
