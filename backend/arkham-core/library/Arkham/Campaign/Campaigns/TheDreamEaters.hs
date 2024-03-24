@@ -20,6 +20,7 @@ import Arkham.Helpers.Query
 import Arkham.Id
 import Arkham.Investigator (Investigator, lookupInvestigator)
 import Arkham.Matcher
+import Arkham.Message qualified as Msg
 import Arkham.Message.Lifted hiding (record)
 import Arkham.Prelude
 import Arkham.Projection
@@ -666,6 +667,92 @@ instance RunMessage TheDreamEaters where
             [ Label "Where the Gods Dwell" [NextCampaignStep (Just WhereTheGodsDwell)]
             , Label "Weaver of the Cosmos" [NextCampaignStep (Just WeaverOfTheCosmos)]
             ]
+        pure c
+      CampaignStep EpilogueStep -> do
+        invasionHasBegun <- getHasRecord TheDreamQuest Nyarlathotep'sInvasionHasBegun
+        awoke <- getHasRecord TheDreamQuest TheDreamersAwoke
+        stayed <- getHasRecord TheDreamQuest TheDreamersStayedInTheDreamlandsForever
+        traveled <- getHasRecord TheDreamQuest TheDreamersTraveledBeneathTheMonastery
+        bridgeCompleted <- getHasRecord TheWebOfDreams TheBridgeWasCompleted
+        returned <- getHasRecord TheWebOfDreams TheInvestigatorsReturnedToReality
+        neverEscaped <- getHasRecord TheWebOfDreams TheInvestigatorsNeverEscaped
+        stillInDreamlands <- getHasRecord TheWebOfDreams TheInvestigatorsAreStillInTheDreamlands
+        if
+          | invasionHasBegun ->
+              if
+                | bridgeCompleted -> do
+                    story $ i18n "theDreamEaters.epilogue1"
+                    setCampaignPart TheDreamQuest c (EpilogueStepPart 17)
+                | returned -> do
+                    story $ i18n "theDreamEaters.epilogue2"
+                    setCampaignPart TheDreamQuest c (EpilogueStepPart 17)
+                | neverEscaped -> do
+                    story $ i18n "theDreamEaters.epilogue3"
+                    setCampaignPart TheDreamQuest c (EpilogueStepPart 17)
+                | stillInDreamlands -> do
+                    story $ i18n "theDreamEaters.epilogue4"
+                    setCampaignPart TheDreamQuest c (EpilogueStepPart 17)
+                | otherwise -> error "invalid"
+          | awoke ->
+              if
+                | bridgeCompleted -> do
+                    story $ i18n "theDreamEaters.epilogue5"
+                    setCampaignPart TheDreamQuest c (EpilogueStepPart 5)
+                | returned -> do
+                    story $ i18n "theDreamEaters.epilogue6"
+                    setCampaignPart TheDreamQuest c (EpilogueStepPart 17)
+                | neverEscaped -> do
+                    story $ i18n "theDreamEaters.epilogue7"
+                    setCampaignPart TheDreamQuest c (EpilogueStepPart 17)
+                | stillInDreamlands -> do
+                    story $ i18n "theDreamEaters.epilogue8"
+                    setCampaignPart TheDreamQuest c (EpilogueStepPart 17)
+                | otherwise -> error "invalid"
+          | stayed ->
+              if
+                | bridgeCompleted -> do
+                    story $ i18n "theDreamEaters.epilogue9"
+                    setCampaignPart TheDreamQuest c (EpilogueStepPart 17)
+                | returned -> do
+                    story $ i18n "theDreamEaters.epilogue10"
+                    setCampaignPart TheDreamQuest c (EpilogueStepPart 17)
+                | neverEscaped -> do
+                    story $ i18n "theDreamEaters.epilogue11"
+                    setCampaignPart TheDreamQuest c (EpilogueStepPart 17)
+                | stillInDreamlands -> do
+                    story $ i18n "theDreamEaters.epilogue12"
+                    setCampaignPart TheDreamQuest c (EpilogueStepPart 17)
+                | otherwise -> error "invalid"
+          | traveled ->
+              if
+                | bridgeCompleted -> do
+                    story $ i18n "theDreamEaters.epilogue13"
+                    setCampaignPart TheDreamQuest c (EpilogueStepPart 13)
+                | returned -> do
+                    story $ i18n "theDreamEaters.epilogue14"
+                    setCampaignPart TheDreamQuest c (EpilogueStepPart 17)
+                | neverEscaped -> do
+                    story $ i18n "theDreamEaters.epilogue15"
+                    setCampaignPart TheDreamQuest c (EpilogueStepPart 17)
+                | stillInDreamlands -> do
+                    story $ i18n "theDreamEaters.epilogue16"
+                    setCampaignPart TheDreamQuest c (EpilogueStepPart 17)
+                | otherwise -> error "invalid"
+          | otherwise -> error "invalid"
+      CampaignStep (EpilogueStepPart 5) -> do
+        eachInvestigator (kill attrs)
+        push $ CampaignStep (EpilogueStepPart 17)
+        pure c
+      CampaignStep (EpilogueStepPart 13) -> do
+        eachInvestigator $ push . DrivenInsane
+        push $ CampaignStep (EpilogueStepPart 17)
+        pure c
+      CampaignStep (EpilogueStepPart 17) -> do
+        iids <- select $ InvestigatorWithRecord WasCaptured <> not_ DefeatedInvestigator
+        when (notNull iids) do
+          players <- traverse getPlayer iids
+          push $ Msg.story players $ i18n "theDreamEaters.brokeTheLawOfUlthar"
+          for_ iids $ kill attrs
         pure c
       InTheDreamQuest msg' -> do
         case currentCampaignMode meta of
