@@ -45,14 +45,47 @@ const debug = useDebug()
 const needsInit = ref(true)
 
 onMounted(() => {
-  rotateImages(true);
+  if(props.scenario.id === "c06333") {
+    waitForImagesToLoad(() => {
+      rotateImages(true);
+    })
+  }
 });
+
+function waitForImagesToLoad(callback) {
+  const images = document.querySelectorAll('img')
+  const totalImages = images.length
+  let loadedCount = 0
+
+  if (totalImages === 0) {
+    callback()
+    return
+  }
+
+  const checkIfAllLoaded = () => {
+    loadedCount++
+    if (loadedCount === totalImages) {
+      callback()
+    }
+  };
+
+  images.forEach(image => {
+    if (image.complete) {
+      checkIfAllLoaded()
+    } else {
+      image.addEventListener('load', checkIfAllLoaded)
+      image.addEventListener('error', checkIfAllLoaded)
+    }
+  });
+}
 
 onUpdated(() => {
-  rotateImages(needsInit.value);
+  if(props.scenario.id === "c06333") {
+    rotateImages(needsInit.value)
+  }
 });
 
-const previousRotation = ref(0);
+const previousRotation = ref(0)
 const legsSet = ref(["legs1", "legs2", "legs3", "legs4"])
 
 function rotateImages(init) {
@@ -318,7 +351,7 @@ const gameOver = computed(() => props.game.gameState.tag === "IsOver")
 </script>
 
 <template>
-  <div v-if="!gameOver" id="scenario" class="scenario">
+  <div v-if="!gameOver" id="scenario" class="scenario" :data-scenario="scenario.id">
     <div class="scenario-body">
       <StatusBar :game="game" :playerId="playerId" @choose="choose" />
       <CardRow
@@ -962,15 +995,9 @@ const gameOver = computed(() => props.game.gameState.tag === "IsOver")
   margin-inline: 10px;
 }
 
-</style>
-
-<style>
-@keyframes rotateInfinite {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+// We lower the margin so things line up a bit better.
+[data-scenario='c06333'] .location-cards:deep(.location-container) {
+margin: 20px !important;
 }
+
 </style>
