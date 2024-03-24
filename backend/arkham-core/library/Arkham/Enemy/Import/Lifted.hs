@@ -12,9 +12,11 @@ import Arkham.Enemy.Runner as X (
   cardCodeL,
   enemy,
   enemyWith,
+  flippedL,
   is,
   push,
   setMeta,
+  spawnAtL,
  )
 import Arkham.GameValue as X
 import Arkham.Helpers.Ability as X
