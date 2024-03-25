@@ -1,6 +1,8 @@
 <script lang="ts" setup>
 import * as Arkham from '@/arkham/types/Game'
-import { computed, ref } from 'vue'
+import { LogContents, logContentsDecoder } from '@/arkham/types/Log';
+import { computed, ref, onMounted, watch } from 'vue'
+import { fetchCard } from '@/arkham/api';
 import type { CardDef } from '@/arkham/types/CardDef'
 import type { Name } from '@/arkham/types/Name'
 import Supplies from '@/arkham/components/Supplies.vue';
@@ -17,7 +19,12 @@ const props = defineProps<Props>()
 
 const mainLog = props.game.campaign?.log || props.game.scenario?.standaloneCampaignLog || { recorded: [], recordedSets: [], recordedCounts: [] }
 
-const otherLog = props.game.campaign?.meta?.otherCampaignAttrs?.log
+const otherLog = ref<LogContents | null>(null)
+
+if (props.game.campaign?.meta?.otherCampaignAttrs?.log) {
+  logContentsDecoder.decodeToPromise(props.game.campaign?.meta?.otherCampaignAttrs?.log).then(res => otherLog.value = res)
+}
+
 const logTitle = props.game.campaign?.meta?.currentCampaignMode ?
   (props.game.campaign.meta.currentCampaignMode === 'TheDreamQuest' ? "The Dream-Quest" : "The Web of Dreams") : null
 
@@ -35,16 +42,42 @@ const recordedSets = computed(() => campaignLog.value.recordedSets)
 const recordedCounts = computed(() => campaignLog.value.recordedCounts)
 const hasSupplies = computed(() => Object.values(props.game.investigators).some((i) => i.supplies.length > 0))
 
-const findCard = (cardCode: string): CardDef | undefined => {
-  return props.cards.find((c) => c.cardCode == cardCode)
-}
+const loadedCards = ref<CardDef[]>([]);
 
-const displayRecordValue = (key: string, value: string): string => {
-  if (key === 'MementosDiscovered') {
-    return toCapitalizedWords(value)
+// Function to load missing cards
+async function loadMissingCards() {
+  const missingCardCodes = new Set();
+
+  for (const setValue of Object.values(recordedSets.value)) {
+    for (const val of setValue[1]) { // Assuming setValue is an entry [setKey, setValues]
+      const cardCode = val.recordVal.contents; // Assuming this is how you get the card code
+      if (!findCard(cardCode)) {
+        missingCardCodes.add(cardCode);
+      }
+    }
   }
 
-  return cardCodeToTitle(value)
+  const missingCardsPromises = Array.from(missingCardCodes).map(code => fetchCard(code.replace(/^c/, '')));
+  const fetchedCards = await Promise.all(missingCardsPromises);
+
+  loadedCards.value.push(...fetchedCards);
+}
+
+// Invoke the loading function when the component mounts or recordedSets changes
+onMounted(loadMissingCards);
+watch(recordedSets, loadMissingCards, { deep: true });
+
+const findCard = (cardCode: string): CardDef | undefined => {
+  return props.cards.find((c) => c.cardCode == cardCode) || loadedCards.value.find(c => c.cardCode == cardCode);
+}
+
+const displayRecordValue = (key: string, value: SomeRecordable): string => {
+  if (key === 'MementosDiscovered') {
+    return toCapitalizedWords(value.recordVal.contents)
+  }
+
+  const code = value.contents || value.recordVal?.contents
+  return cardCodeToTitle(code)
 }
 
 const cardCodeToTitle = (cardCode: string): string => {
@@ -105,7 +138,7 @@ const fullName = (name: Name): string => {
     <ul>
       <li v-for="[setKey, setValues] in Object.entries(recordedSets)" :key="setKey">{{toCapitalizedWords(setKey)}}
         <ul>
-          <li v-for="setValue in setValues" :key="setValue" :class="{ 'crossed-out': setValue.tag === 'CrossedOut' }">{{displayRecordValue(setKey, setValue.contents)}}</li>
+          <li v-for="setValue in setValues" :key="setValue" :class="{ 'crossed-out': setValue.tag === 'CrossedOut' }">{{displayRecordValue(setKey, setValue)}}</li>
         </ul>
       </li>
     </ul>
