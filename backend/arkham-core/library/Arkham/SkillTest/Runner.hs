@@ -425,21 +425,18 @@ instance RunMessage SkillTest where
             (s ^. committedCardsL . to mapToList)
 
       skillTestEndsWindows <- windows [Window.SkillTestEnded s]
-      discardMessages <- for discards $ \(iid, discard) -> do
+      discardMessages <- forMaybeM discards $ \(iid, discard) -> do
         mods <- getModifiers (toCardId discard)
         pure
           $ if PlaceOnBottomOfDeckInsteadOfDiscard `elem` mods
-            then PutCardOnBottomOfDeck iid (Deck.InvestigatorDeck iid) (toCard discard)
-            else AddToDiscard iid discard
+            then Just (PutCardOnBottomOfDeck iid (Deck.InvestigatorDeck iid) (toCard discard))
+            else guard (LeaveCardWhereItIs `notElem` mods) $> AddToDiscard iid discard
 
       pushAll
         $ ResetChaosTokens (toSource s)
         : discardMessages
           <> skillTestEndsWindows
-          <> [ AfterSkillTestEnds
-                skillTestSource
-                skillTestTarget
-                skillTestResult
+          <> [ AfterSkillTestEnds skillTestSource skillTestTarget skillTestResult
              , Msg.SkillTestEnded
              ]
       pure s

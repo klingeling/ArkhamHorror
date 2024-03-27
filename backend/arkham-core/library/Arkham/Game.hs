@@ -2812,6 +2812,7 @@ instance Projection (DiscardedEntity Asset) where
     let attrs = toAttrs a
     case f of
       DiscardedAssetTraits -> pure . cdCardTraits $ toCardDef attrs
+      DiscardedAssetController -> pure $ assetController attrs
 
 instance Projection (DiscardedEntity Treachery) where
   getAttrs tid = do
@@ -3002,6 +3003,7 @@ instance Projection Investigator where
     let attrs@InvestigatorAttrs {..} = toAttrs i
     case f of
       InvestigatorLog -> pure investigatorLog
+      InvestigatorMeta -> pure investigatorMeta
       InvestigatorCardCode -> pure investigatorCardCode
       InvestigatorKeys -> pure investigatorKeys
       InvestigatorPlayerId -> pure investigatorPlayerId
