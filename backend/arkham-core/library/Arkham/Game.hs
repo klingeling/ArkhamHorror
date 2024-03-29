@@ -1747,6 +1747,11 @@ getLocationsMatching lmatcher = do
         ls' <- filter (`elem` ls) <$> getLocationsMatching matcher'
         maxes <$> forToSnd ls' (fieldMap LocationBreaches (maybe 0 Breach.countBreaches) . toId)
       LocationWithVictory -> filterM (getHasVictoryPoints . toId) ls
+      LocationBeingDiscovered -> do
+        maybeToList <$> runMaybeT do
+          LocationTarget lid <- MaybeT getSkillTestTarget
+          Action.Investigate <- MaybeT getSkillTestAction
+          hoistMaybe $ find ((== lid) . toId) ls
       -- these can not be queried
       LocationWithIncursion -> pure $ filter (maybe False Breach.isIncursion . attr locationBreaches) ls
       LocationLeavingPlay -> pure []
@@ -2110,6 +2115,7 @@ maybeSkill sid = do
     $ preview (entitiesL . skillsL . ix sid) g
     <|> getInDiscardEntity skillsL sid g
     <|> getRemovedEntity skillsL sid g
+    <|> preview (inHandEntitiesL . each . skillsL . ix sid) g
     <|> preview (inSearchEntitiesL . skillsL . ix sid) g
 
 getStory :: (HasCallStack, HasGame m) => StoryId -> m Story
@@ -3663,6 +3669,25 @@ instance Projection (InHandEntity Event) where
     let attrs = toAttrs e
     case f of
       InHandEventCardId -> pure $ toCardId attrs
+
+instance Projection (InHandEntity Skill) where
+  getAttrs eid = do
+    let missingSkill = "Unknown skill: " <> show eid
+    toAttrs . fromJustNote missingSkill <$> project @(InHandEntity Skill) eid
+  project eid =
+    fmap InHandEntity
+      . lookup eid
+      . entitiesSkills
+      . mconcat
+      . Map.elems
+      . gameInHandEntities
+      <$> getGame
+  field f eid = do
+    let missingSkill = "Unknown skill: " <> show eid
+    e <- fromJustNote missingSkill <$> project @(InHandEntity Skill) eid
+    let attrs = toAttrs e
+    case f of
+      InHandSkillCardId -> pure $ toCardId attrs
 
 instance Projection (InHandEntity Asset) where
   getAttrs aid = do

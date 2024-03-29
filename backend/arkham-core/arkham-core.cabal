@@ -467,6 +467,7 @@ library
       Arkham.Asset.Cards.ConstanceDumaine
       Arkham.Asset.Cards.Cornered2
       Arkham.Asset.Cards.Courage
+      Arkham.Asset.Cards.CryptographicCipher
       Arkham.Asset.Cards.CrystallineElderSign3
       Arkham.Asset.Cards.CrystallizerOfDreams
       Arkham.Asset.Cards.CrystalPendulum
@@ -775,6 +776,7 @@ library
       Arkham.Asset.Cards.Scrying
       Arkham.Asset.Cards.Scrying3
       Arkham.Asset.Cards.ScryingMirror
+      Arkham.Asset.Cards.SeaChangeHarpoon
       Arkham.Asset.Cards.SealOfTheSeventhSign5
       Arkham.Asset.Cards.SebastienMoreau
       Arkham.Asset.Cards.SegmentOfOnyx1
@@ -790,6 +792,7 @@ library
       Arkham.Asset.Cards.Shrivelling5
       Arkham.Asset.Cards.SignMagick
       Arkham.Asset.Cards.SignMagick3
+      Arkham.Asset.Cards.SilassNet
       Arkham.Asset.Cards.SinisterSolution
       Arkham.Asset.Cards.SixthSense
       Arkham.Asset.Cards.SixthSense4
@@ -1199,6 +1202,7 @@ library
       Arkham.Enemy.Cards.ServantOfManyMouths
       Arkham.Enemy.Cards.ServantOfTheLurker
       Arkham.Enemy.Cards.SethBishop
+      Arkham.Enemy.Cards.ShadowAgents
       Arkham.Enemy.Cards.ShadowHound
       Arkham.Enemy.Cards.SilasBishop
       Arkham.Enemy.Cards.SilverTwilightAcolyte
@@ -1397,6 +1401,7 @@ library
       Arkham.Event.Cards.Infighting3
       Arkham.Event.Cards.IntelReport
       Arkham.Event.Cards.Interrogate
+      Arkham.Event.Cards.InTheShadows
       Arkham.Event.Cards.IveGotAPlan
       Arkham.Event.Cards.IveGotAPlan2
       Arkham.Event.Cards.IveHadWorse2
@@ -1552,6 +1557,7 @@ library
       Arkham.Helpers.Campaign
       Arkham.Helpers.Card
       Arkham.Helpers.ChaosBag
+      Arkham.Helpers.Cost
       Arkham.Helpers.Customization
       Arkham.Helpers.Deck
       Arkham.Helpers.Doom
@@ -1559,9 +1565,11 @@ library
       Arkham.Helpers.EncounterSet
       Arkham.Helpers.Enemy
       Arkham.Helpers.Event
+      Arkham.Helpers.GameValue
       Arkham.Helpers.Investigator
       Arkham.Helpers.Location
       Arkham.Helpers.Log
+      Arkham.Helpers.Matchers
       Arkham.Helpers.Message
       Arkham.Helpers.Message.Discard
       Arkham.Helpers.Modifiers
@@ -1621,11 +1629,13 @@ library
       Arkham.Investigator.Cards.RitaYoung
       Arkham.Investigator.Cards.RolandBanks
       Arkham.Investigator.Cards.SefinaRousseau
+      Arkham.Investigator.Cards.SilasMarsh
       Arkham.Investigator.Cards.SisterMary
       Arkham.Investigator.Cards.SkidsOToole
       Arkham.Investigator.Cards.StellaClark
       Arkham.Investigator.Cards.TommyMuldoon
       Arkham.Investigator.Cards.TonyMorgan
+      Arkham.Investigator.Cards.TrishScarborough
       Arkham.Investigator.Cards.UrsulaDowns
       Arkham.Investigator.Cards.ValentinoRivas
       Arkham.Investigator.Cards.WendyAdams
@@ -2359,6 +2369,7 @@ library
       Arkham.Skill.Cards.DesperateSearch
       Arkham.Skill.Cards.DoubleOrNothing
       Arkham.Skill.Cards.DreamParasite
+      Arkham.Skill.Cards.DreamsOfTheDeepTheDeepGate
       Arkham.Skill.Cards.Enraptured
       Arkham.Skill.Cards.EssenceOfTheDream
       Arkham.Skill.Cards.Eureka
@@ -2377,6 +2388,7 @@ library
       Arkham.Skill.Cards.ManualDexterity
       Arkham.Skill.Cards.ManualDexterity2
       Arkham.Skill.Cards.Momentum1
+      Arkham.Skill.Cards.NauticalProwess
       Arkham.Skill.Cards.NeitherRainNorSnow
       Arkham.Skill.Cards.Nimble
       Arkham.Skill.Cards.NotWithoutAFight
@@ -2742,6 +2754,7 @@ library
       Arkham.Treachery.Cards.ShellShock
       Arkham.Treachery.Cards.ShockingDiscovery
       Arkham.Treachery.Cards.SickeningWebs
+      Arkham.Treachery.Cards.SirenCall
       Arkham.Treachery.Cards.SlitheringBehindYou
       Arkham.Treachery.Cards.SmiteTheWicked
       Arkham.Treachery.Cards.SnakeBite

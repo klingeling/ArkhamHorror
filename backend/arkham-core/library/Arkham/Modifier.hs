@@ -51,6 +51,7 @@ data ModifierType
   | AdditionalCostToInvestigate Cost
   | AdditionalCostToResign Cost
   | AdditionalCostToLeave Cost
+  | AdditionalCostToCommit InvestigatorId Cost
   | AdditionalStartingUses Int
   | AdditionalStartingCards [Card]
   | AdditionalTargets Int
@@ -291,6 +292,7 @@ data ModifierType
   | UseSkillInsteadOf SkillType SkillType -- this doesn't
   | XPModifier Int
   | IfSuccessfulModifier ModifierType
+  | IfFailureModifier ModifierType
   | NoInitialSwarm
   | SwarmingValue Int
   | AttackDealsEitherDamageOrHorror

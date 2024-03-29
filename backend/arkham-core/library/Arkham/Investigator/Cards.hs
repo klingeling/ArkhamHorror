@@ -56,7 +56,9 @@ allInvestigatorCards =
       , patriceHathaway
       , sisterMary
       , amandaSharpe
+      , trishScarborough
       , dexterDrake
+      , silasMarsh
       , normanWithers
       , nathanielCho
       , harveyWalters
@@ -349,6 +351,14 @@ amandaSharpe =
     Seeker
     [Miskatonic, Scholar]
 
+trishScarborough :: CardDef
+trishScarborough =
+  investigator
+    "07003"
+    ("Trish Scarborough" <:> "The Spy")
+    Rogue
+    [Agency, Detective]
+
 dexterDrake :: CardDef
 dexterDrake =
   withAlternate "98016"
@@ -357,6 +367,15 @@ dexterDrake =
       ("Dexter Drake" <:> "The Magician")
       Mystic
       [Sorcerer, Veteran]
+
+silasMarsh :: CardDef
+silasMarsh =
+  withAlternate "98013"
+    $ investigator
+      "07005"
+      ("Silas Marsh" <:> "The Sailor")
+      Survivor
+      [Drifter]
 
 normanWithers :: CardDef
 normanWithers =

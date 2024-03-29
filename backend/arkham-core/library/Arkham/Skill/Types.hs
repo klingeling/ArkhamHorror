@@ -3,6 +3,7 @@ module Arkham.Skill.Types where
 import Arkham.Prelude
 
 import Arkham.Card
+import Arkham.ChaosToken
 import Arkham.Classes.Entity
 import Arkham.Classes.HasAbilities
 import Arkham.Classes.HasModifiersFor
@@ -44,6 +45,9 @@ data instance Field Skill :: Type -> Type where
   SkillOwner :: Field Skill InvestigatorId
   SkillPlacement :: Field Skill Placement
 
+data instance Field (InHandEntity Skill) :: Type -> Type where
+  InHandSkillCardId :: Field (InHandEntity Skill) CardId
+
 data SkillAttrs = SkillAttrs
   { skillCardCode :: CardCode
   , skillCardId :: CardId
@@ -53,17 +57,31 @@ data SkillAttrs = SkillAttrs
   , skillAdditionalPayment :: Maybe Payment
   , skillAfterPlay :: AfterPlayStrategy
   , skillPlacement :: Placement
+  , skillSealedChaosTokens :: [ChaosToken]
+  , skillMeta :: Value
   }
   deriving stock (Show, Eq, Generic)
 
 instance HasField "controller" SkillAttrs InvestigatorId where
   getField = skillOwner
 
+instance HasField "owner" SkillAttrs InvestigatorId where
+  getField = skillOwner
+
 instance HasField "placement" SkillAttrs Placement where
   getField = skillPlacement
 
+instance HasField "meta" SkillAttrs Value where
+  getField = skillMeta
+
+metaL :: Lens' SkillAttrs Value
+metaL = lens skillMeta $ \m x -> m {skillMeta = x}
+
 additionalCostL :: Lens' SkillAttrs (Maybe Cost)
 additionalCostL = lens skillAdditionalCost $ \m x -> m {skillAdditionalCost = x}
+
+sealedChaosTokensL :: Lens' SkillAttrs [ChaosToken]
+sealedChaosTokensL = lens skillSealedChaosTokens $ \m x -> m {skillSealedChaosTokens = x}
 
 afterPlayL :: Lens' SkillAttrs AfterPlayStrategy
 afterPlayL = lens skillAfterPlay $ \m x -> m {skillAfterPlay = x}
@@ -89,7 +107,18 @@ instance ToJSON SkillAttrs where
   toEncoding = genericToEncoding $ aesonOptions $ Just "skill"
 
 instance FromJSON SkillAttrs where
-  parseJSON = genericParseJSON $ aesonOptions $ Just "skill"
+  parseJSON = withObject "SkillAttrs" \o -> do
+    skillCardCode <- o .: "cardCode"
+    skillCardId <- o .: "cardId"
+    skillId <- o .: "id"
+    skillOwner <- o .: "owner"
+    skillAdditionalCost <- o .: "additionalCost"
+    skillAdditionalPayment <- o .: "additionalPayment"
+    skillAfterPlay <- o .: "afterPlay"
+    skillPlacement <- o .: "placement"
+    skillSealedChaosTokens <- o .:? "sealedChaosTokens" .!= []
+    skillMeta <- o .:? "meta" .!= Null
+    pure $ SkillAttrs {..}
 
 instance Entity SkillAttrs where
   type EntityId SkillAttrs = SkillId
@@ -134,6 +163,8 @@ skill f cardDef =
             , skillAdditionalPayment = Nothing
             , skillAfterPlay = DiscardThis
             , skillPlacement = Unplaced
+            , skillSealedChaosTokens = []
+            , skillMeta = Null
             }
     }
 
@@ -192,3 +223,6 @@ liftSomeSkillCard f (SomeSkillCard a) = f a
 
 someSkillCardCode :: SomeSkillCard -> CardCode
 someSkillCardCode = liftSomeSkillCard cbCardCode
+
+setMeta :: ToJSON a => a -> SkillAttrs -> SkillAttrs
+setMeta a = metaL .~ toJSON a
