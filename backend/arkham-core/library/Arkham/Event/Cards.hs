@@ -149,6 +149,7 @@ allPlayerEventCards =
       , glory
       , gritYourTeeth
       , guidance
+      , handOfFate
       , heroicRescue
       , heroicRescue2
       , hidingSpot
@@ -266,6 +267,7 @@ allPlayerEventCards =
       , taunt3
       , teamwork
       , telescopicSight3
+      , temptFate
       , thePaintedWorld
       , thinkOnYourFeet
       , thinkOnYourFeet2
@@ -285,6 +287,7 @@ allPlayerEventCards =
       , wardOfProtection
       , wardOfProtection2
       , wardOfProtection5
+      , wardOfRadiance
       , warningShot
       , waylay
       , wellMaintained1
@@ -2356,6 +2359,20 @@ inTheShadows =
     , cdDeckRestrictions = [Signature "07003"]
     }
 
+handOfFate :: CardDef
+handOfFate =
+  (event "07020" "Hand of Fate" 3 Guardian)
+    { cdSkills = [#willpower, #combat]
+    , cdCardTraits = setFromList [Spell, Blessed]
+    , cdFastWindow =
+        Just
+          $ EnemyAttacks
+            #when
+            (affectsOthers $ InvestigatorAt YourLocation)
+            (CancelableEnemyAttack AnyEnemyAttack)
+            AnyEnemy
+    }
+
 faustianBargain :: CardDef
 faustianBargain =
   (event "07028" "Faustian Bargain" 0 Rogue)
@@ -2364,6 +2381,26 @@ faustianBargain =
     , cdAdditionalCost = Just $ AddCurseTokenCost 2
     , cdCriteria =
         Just $ Criteria.exists $ affectsOthers $ can.gain.resources <> InvestigatorAt YourLocation
+    }
+
+wardOfRadiance :: CardDef
+wardOfRadiance =
+  (event "07031" "Ward of Radiance" 0 Mystic)
+    { cdSkills = [#willpower, #agility]
+    , cdCardTraits = setFromList [Insight, Blessed]
+    , cdFastWindow =
+        Just $ DrawCard #when Anyone (CanCancelRevelationEffect $ basic NonWeaknessTreachery) EncounterDeck
+    }
+
+temptFate :: CardDef
+temptFate =
+  (event "07037" "Tempt Fate" 0 Neutral)
+    { cdSkills = [#wild]
+    , cdCardTraits = setFromList [Fortune, Blessed, Cursed]
+    , cdFastWindow = Just FastPlayerWindow
+    , cdCriteria =
+        Just
+          $ oneOf [Criteria.HasRemainingBlessTokens, Criteria.HasRemainingCurseTokens, can.draw.cards You]
     }
 
 sweepingKick1 :: CardDef

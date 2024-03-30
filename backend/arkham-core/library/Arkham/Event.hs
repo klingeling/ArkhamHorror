@@ -400,8 +400,14 @@ allEvents =
       --- signature [tic]
       SomeEventCard obscureStudies
     , SomeEventCard inTheShadows
+    , --- guardian [tic]
+      SomeEventCard handOfFate
     , --- rogue [tic]
       SomeEventCard faustianBargain
+    , --- mystic [tic]
+      SomeEventCard wardOfRadiance
+    , --- neutral [tic]
+      SomeEventCard temptFate
     , -- Edge of the Earth
       --- guardian [eote]
       SomeEventCard sweepingKick1
