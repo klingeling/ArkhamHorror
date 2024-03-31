@@ -98,7 +98,10 @@ allSkills =
     , SomeSkillCard theEyeOfTruth5
     , SomeSkillCard dreamParasite
     , SomeSkillCard whispersFromTheDeep
+    , SomeSkillCard planOfAction
     , SomeSkillCard promiseOfPower
+    , SomeSkillCard predestined
+    , SomeSkillCard beloved
     , SomeSkillCard unrelenting1
     , SomeSkillCard defensiveStance1
     , SomeSkillCard surveyTheArea1

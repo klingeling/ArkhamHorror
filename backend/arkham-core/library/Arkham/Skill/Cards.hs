@@ -29,6 +29,7 @@ allPlayerSkillCards =
       , allIn5
       , anythingYouCanDoBetter
       , arrogance
+      , beloved
       , bruteForce1
       , copycat3
       , cunning
@@ -75,6 +76,8 @@ allPlayerSkillCards =
       , overpower2
       , perception
       , perception2
+      , planOfAction
+      , predestined
       , prescient
       , promiseOfPower
       , prophesy
@@ -569,10 +572,29 @@ whispersFromTheDeep =
     , cdCardInHandEffects = True
     }
 
+planOfAction :: CardDef
+planOfAction =
+  (skill "07024" "Plan of Action" [#wild] Seeker)
+    { cdCardTraits = setFromList [Practiced]
+    }
+
 promiseOfPower :: CardDef
 promiseOfPower =
   (skill "07032" "Promise of Power" [#wild, #wild, #wild, #wild] Mystic)
     { cdCardTraits = setFromList [Practiced, Cursed]
+    }
+
+predestined :: CardDef
+predestined =
+  (skill "07035" "Predestined" [] Survivor)
+    { cdCardTraits = setFromList [Fortune, Blessed]
+    , cdCommitRestrictions = [MaxOnePerTest]
+    }
+
+beloved :: CardDef
+beloved =
+  (skill "07036" "Beloved" [#willpower, #agility, #wild] Survivor)
+    { cdCardTraits = setFromList [Innate, Blessed]
     }
 
 unrelenting1 :: CardDef

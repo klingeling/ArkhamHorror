@@ -657,8 +657,15 @@ allAssets =
     , --- seeker [tic]
       SomeAssetCard cryptographicCipher
     , SomeAssetCard crypticGrimoireUntranslated
+    , --- rogue [tic]
+      SomeAssetCard twentyFiveAutomatic
     , --- mystic [tic]
       SomeAssetCard swordCane
+    , --- survivor [tic]
+      SomeAssetCard tokenOfFaith
+    , -- In Too Deep
+      --- guardian [itp]
+      SomeAssetCard riotWhistle
     , -- Devil Reef
       --- guardian [def]
       SomeAssetCard keenEye
@@ -673,6 +680,10 @@ allAssets =
     , -- Into the Maelstrom
       --- seeker [itm]
       SomeAssetCard ancestralKnowledge3
+    , --- rogue [itm]
+      SomeAssetCard twentyFiveAutomatic2
+    , SomeAssetCard darkRitual
+    , SomeAssetCard obfuscation
     , -- Edge of the Earth
       --- signature [eote]
       SomeAssetCard livreDeibon
@@ -708,6 +719,9 @@ allAssets =
     , SomeAssetCard fingerprintKit4
     , --- rogue [tsk]
       SomeAssetCard chuckFergus2
+    , -- The Feast of Hemloch Vale
+      --- guardian [tsk]
+      SomeAssetCard blessedBlade4
     , -- Return to Night of the Zealot
       --- guardian [rtnotz]
       SomeAssetCard physicalTraining2

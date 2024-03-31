@@ -402,10 +402,15 @@ allEvents =
     , SomeEventCard inTheShadows
     , --- guardian [tic]
       SomeEventCard handOfFate
+    , --- seeker [tic]
+      SomeEventCard deepKnowledge
     , --- rogue [tic]
       SomeEventCard faustianBargain
     , --- mystic [tic]
-      SomeEventCard wardOfRadiance
+      SomeEventCard tidesOfFate
+    , SomeEventCard wardOfRadiance
+    , --- survivor [tic]
+      SomeEventCard keepFaith
     , --- neutral [tic]
       SomeEventCard temptFate
     , -- Edge of the Earth
@@ -418,6 +423,9 @@ allEvents =
       SomeEventCard moneyTalks2
     , --- mystic [eote]
       SomeEventCard parallelFates2
+    , -- The Feast of Hemloch Vale
+      --- survivor [fhv]
+      SomeEventCard keepFaith2
     , -- Return to Night of the Zealot
       --- guardian [rtnotz]
       SomeEventCard dynamiteBlast2

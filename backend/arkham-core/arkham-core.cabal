@@ -431,6 +431,7 @@ library
       Arkham.Asset.Cards.Blackjack
       Arkham.Asset.Cards.Blackjack2
       Arkham.Asset.Cards.BlessedBlade
+      Arkham.Asset.Cards.BlessedBlade4
       Arkham.Asset.Cards.BloodPact3
       Arkham.Asset.Cards.BloodstainedDagger
       Arkham.Asset.Cards.BookOfPsalms
@@ -479,6 +480,7 @@ library
       Arkham.Asset.Cards.DanielChesterfield
       Arkham.Asset.Cards.DarioElAmin
       Arkham.Asset.Cards.DarkHorse
+      Arkham.Asset.Cards.DarkRitual
       Arkham.Asset.Cards.DavidRenfield
       Arkham.Asset.Cards.DayanaEsperence3
       Arkham.Asset.Cards.DeathXIII1
@@ -702,6 +704,7 @@ library
       Arkham.Asset.Cards.Newspaper2
       Arkham.Asset.Cards.NightmareBauble3
       Arkham.Asset.Cards.NineOfRods3
+      Arkham.Asset.Cards.Obfuscation
       Arkham.Asset.Cards.Observed4
       Arkham.Asset.Cards.OccultLexicon
       Arkham.Asset.Cards.OccultLexicon3
@@ -755,6 +758,7 @@ library
       Arkham.Asset.Cards.RelicOfAgesUnleashTheTimestream
       Arkham.Asset.Cards.ResearchLibrarian
       Arkham.Asset.Cards.RichardUptonPickman
+      Arkham.Asset.Cards.RiotWhistle
       Arkham.Asset.Cards.RiteOfSanctification
       Arkham.Asset.Cards.RiteOfSeeking
       Arkham.Asset.Cards.RiteOfSeeking2
@@ -871,6 +875,7 @@ library
       Arkham.Asset.Cards.ThirtyTwoColt2
       Arkham.Asset.Cards.TimewornBrand5
       Arkham.Asset.Cards.TimeWornLocket
+      Arkham.Asset.Cards.TokenOfFaith
       Arkham.Asset.Cards.TomeOfRituals
       Arkham.Asset.Cards.Tonys38LongColt
       Arkham.Asset.Cards.ToothOfEztli
@@ -881,6 +886,8 @@ library
       Arkham.Asset.Cards.TrueGrit
       Arkham.Asset.Cards.TryAndTryAgain1
       Arkham.Asset.Cards.TryAndTryAgain3
+      Arkham.Asset.Cards.TwentyFiveAutomatic
+      Arkham.Asset.Cards.TwentyFiveAutomatic2
       Arkham.Asset.Cards.TwilaKatherinePrice3
       Arkham.Asset.Cards.TwilightBlade
       Arkham.Asset.Cards.UntilTheEndOfTime
@@ -1335,6 +1342,7 @@ library
       Arkham.Event.Cards.DarkProphecy
       Arkham.Event.Cards.DecipheredReality5
       Arkham.Event.Cards.Decoy
+      Arkham.Event.Cards.DeepKnowledge
       Arkham.Event.Cards.DelayTheInevitable
       Arkham.Event.Cards.DelveTooDeep
       Arkham.Event.Cards.DenyExistence
@@ -1411,6 +1419,8 @@ library
       Arkham.Event.Cards.IveGotAPlan2
       Arkham.Event.Cards.IveHadWorse2
       Arkham.Event.Cards.IveHadWorse4
+      Arkham.Event.Cards.KeepFaith
+      Arkham.Event.Cards.KeepFaith2
       Arkham.Event.Cards.KnowledgeIsPower
       Arkham.Event.Cards.LessonLearned2
       Arkham.Event.Cards.LetGodSortThemOut
@@ -1511,6 +1521,7 @@ library
       Arkham.Event.Cards.TheStarsAreRight
       Arkham.Event.Cards.ThinkOnYourFeet
       Arkham.Event.Cards.ThinkOnYourFeet2
+      Arkham.Event.Cards.TidesOfFate
       Arkham.Event.Cards.TimeWarp2
       Arkham.Event.Cards.TrialByFire
       Arkham.Event.Cards.TrialByFire3
@@ -2360,6 +2371,7 @@ library
       Arkham.Skill.Cards.AllIn5
       Arkham.Skill.Cards.AnythingYouCanDoBetter
       Arkham.Skill.Cards.Arrogance
+      Arkham.Skill.Cards.Beloved
       Arkham.Skill.Cards.BruteForce1
       Arkham.Skill.Cards.Copycat3
       Arkham.Skill.Cards.Cunning
@@ -2406,6 +2418,8 @@ library
       Arkham.Skill.Cards.Overpower2
       Arkham.Skill.Cards.Perception
       Arkham.Skill.Cards.Perception2
+      Arkham.Skill.Cards.PlanOfAction
+      Arkham.Skill.Cards.Predestined
       Arkham.Skill.Cards.Prescient
       Arkham.Skill.Cards.PromiseOfPower
       Arkham.Skill.Cards.Prophesy
@@ -2606,6 +2620,7 @@ library
       Arkham.Treachery.Cards.Damned
       Arkham.Treachery.Cards.DanceOfTheYellowKing
       Arkham.Treachery.Cards.DarkFuture
+      Arkham.Treachery.Cards.DayOfReckoning
       Arkham.Treachery.Cards.DeadlyFate
       Arkham.Treachery.Cards.DeathApproaches
       Arkham.Treachery.Cards.DeceptiveMemories
@@ -2621,6 +2636,7 @@ library
       Arkham.Treachery.Cards.Doomed
       Arkham.Treachery.Cards.DraggedUnder
       Arkham.Treachery.Cards.DrawingTheSign
+      Arkham.Treachery.Cards.DreadCurse
       Arkham.Treachery.Cards.DreamersCurse
       Arkham.Treachery.Cards.DreamlandsEclipse
       Arkham.Treachery.Cards.DreamsOfRlyeh

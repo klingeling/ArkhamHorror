@@ -75,9 +75,11 @@ allPlayerTreacheryCards =
       , curseOfTheRougarou
       , damned
       , darkFuture
+      , dayOfReckoning
       , detachedFromReality
       , doomed
       , drawingTheSign
+      , dreadCurse
       , falseAwakening
       , falseAwakeningPointOfNoReturn
       , finalRhapsody
@@ -2025,6 +2027,18 @@ sirenCall :: CardDef
 sirenCall =
   (weakness "07016" "Siren Call")
     { cdCardTraits = singleton Curse
+    }
+
+dreadCurse :: CardDef
+dreadCurse =
+  (basicWeakness "07039" "Dread Curse")
+    { cdCardTraits = singleton Curse
+    }
+
+dayOfReckoning :: CardDef
+dayOfReckoning =
+  (basicWeakness "07040" "Day of Reckoning")
+    { cdCardTraits = singleton Endtimes
     }
 
 theHarbinger :: CardDef

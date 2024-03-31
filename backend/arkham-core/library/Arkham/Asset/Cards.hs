@@ -165,6 +165,7 @@ allPlayerAssetCards =
       , blackjack
       , blackjack2
       , blessedBlade
+      , blessedBlade4
       , bloodPact3
       , bloodstainedDagger
       , bookOfPsalms
@@ -210,6 +211,7 @@ allPlayerAssetCards =
       , daisysToteBagAdvanced
       , darioElAmin
       , darkHorse
+      , darkRitual
       , davidRenfield
       , dayanaEsperence3
       , deathXiii1
@@ -423,6 +425,7 @@ allPlayerAssetCards =
       , newspaper2
       , nightmareBauble3
       , nineOfRods3
+      , obfuscation
       , observed4
       , occultLexicon
       , occultLexicon3
@@ -474,6 +477,7 @@ allPlayerAssetCards =
       , relicOfAgesRepossessThePast
       , relicOfAgesUnleashTheTimestream
       , researchLibrarian
+      , riotWhistle
       , riteOfSanctification
       , riteOfSeeking
       , riteOfSeeking2
@@ -584,6 +588,7 @@ allPlayerAssetCards =
       , thirtyTwoColt
       , thirtyTwoColt2
       , timewornBrand5
+      , tokenOfFaith
       , tonys38LongColt
       , toothOfEztli
       , trackShoes
@@ -593,6 +598,8 @@ allPlayerAssetCards =
       , trueGrit
       , tryAndTryAgain1
       , tryAndTryAgain3
+      , twentyFiveAutomatic
+      , twentyFiveAutomatic2
       , twilaKatherinePrice3
       , twilightBlade
       , untilTheEndOfTime
@@ -4092,6 +4099,35 @@ crypticGrimoireUntranslated =
     , cdSlots = [#hand]
     }
 
+twentyFiveAutomatic :: CardDef
+twentyFiveAutomatic =
+  fast
+    $ (asset "07025" ".25 Automatic" 4 Rogue)
+      { cdCardTraits = setFromList [Item, Weapon, Firearm, Illicit]
+      , cdSkills = [#agility]
+      , cdSlots = [#hand]
+      , cdUses = uses Ammo 4
+      }
+
+darkRitual :: CardDef
+darkRitual =
+  (asset "07026" "Dark Ritual" 1 Rogue)
+    { cdCardTraits = setFromList [Ritual, Cursed]
+    , cdSkills = [#intellect]
+    , cdSlots = [#arcane]
+    , cdKeywords = singleton $ seal $ SealUpTo 5 #curse
+    }
+
+obfuscation :: CardDef
+obfuscation =
+  fast
+    $ (asset "07027" "Obfuscation" 2 Rogue)
+      { cdCardTraits = setFromList [Spell]
+      , cdSkills = [#combat]
+      , cdSlots = [#arcane]
+      , cdUses = uses Charge 3
+      }
+
 swordCane :: CardDef
 swordCane =
   (asset "07029" "Sword Cane" 2 Mystic)
@@ -4099,6 +4135,22 @@ swordCane =
     , cdSkills = [#combat]
     , cdSlots = [#hand]
     , cdAttackOfOpportunityModifiers = [DoesNotProvokeAttacksOfOpportunity]
+    }
+
+tokenOfFaith :: CardDef
+tokenOfFaith =
+  (asset "07033" "Token of Faith" 2 Survivor)
+    { cdCardTraits = setFromList [Item, Charm]
+    , cdSkills = [#intellect]
+    , cdSlots = [#accessory]
+    }
+
+riotWhistle :: CardDef
+riotWhistle =
+  (asset "07108" "Riot Whistle" 2 Guardian)
+    { cdCardTraits = setFromList [Item, Tool]
+    , cdSkills = [#willpower]
+    , cdSlots = [#accessory]
     }
 
 keenEye :: CardDef
@@ -4142,6 +4194,17 @@ ancestralKnowledge3 =
       { cdCardTraits = singleton Talent
       , cdKeywords = setFromList [Keyword.Exceptional]
       , cdLevel = 3
+      }
+
+twentyFiveAutomatic2 :: CardDef
+twentyFiveAutomatic2 =
+  fast
+    $ (asset "07305" ".25 Automatic" 4 Rogue)
+      { cdCardTraits = setFromList [Item, Weapon, Firearm, Illicit]
+      , cdSkills = [#combat, #agility]
+      , cdSlots = [#hand]
+      , cdUses = uses Ammo 4
+      , cdLevel = 2
       }
 
 livreDeibon :: CardDef
@@ -4342,6 +4405,15 @@ chuckFergus2 =
     , cdSlots = [#ally]
     , cdLevel = 2
     , cdUnique = True
+    }
+
+blessedBlade4 :: CardDef
+blessedBlade4 =
+  (asset "10034" "Blessed Blade" 3 Guardian)
+    { cdCardTraits = setFromList [Item, Weapon, Melee, Blessed]
+    , cdSkills = [#willpower, #combat]
+    , cdSlots = [#hand]
+    , cdLevel = 4
     }
 
 physicalTraining2 :: CardDef

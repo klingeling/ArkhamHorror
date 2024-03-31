@@ -96,6 +96,7 @@ allPlayerEventCards =
       , darkProphecy
       , decipheredReality5
       , decoy
+      , deepKnowledge
       , delayTheInevitable
       , delveTooDeep
       , denyExistence
@@ -172,6 +173,8 @@ allPlayerEventCards =
       , iveGotAPlan2
       , iveHadWorse2
       , iveHadWorse4
+      , keepFaith
+      , keepFaith2
       , knowledgeIsPower
       , lessonLearned2
       , letGodSortThemOut
@@ -271,6 +274,7 @@ allPlayerEventCards =
       , thePaintedWorld
       , thinkOnYourFeet
       , thinkOnYourFeet2
+      , tidesOfFate
       , timeWarp2
       , trialByFire
       , trialByFire3
@@ -2373,6 +2377,16 @@ handOfFate =
             AnyEnemy
     }
 
+deepKnowledge :: CardDef
+deepKnowledge =
+  (event "07023" "Deep Knowledge" 0 Seeker)
+    { cdSkills = [#willpower, #intellect]
+    , cdCardTraits = setFromList [Insight, Cursed]
+    , cdAdditionalCost = Just $ AddCurseTokenCost 2
+    , cdCriteria =
+        Just $ Criteria.exists $ affectsOthers $ can.draw.cards <> InvestigatorAt YourLocation
+    }
+
 faustianBargain :: CardDef
 faustianBargain =
   (event "07028" "Faustian Bargain" 0 Rogue)
@@ -2383,6 +2397,15 @@ faustianBargain =
         Just $ Criteria.exists $ affectsOthers $ can.gain.resources <> InvestigatorAt YourLocation
     }
 
+tidesOfFate :: CardDef
+tidesOfFate =
+  (event "07030" "Tides of Fate" 1 Mystic)
+    { cdSkills = [#wild]
+    , cdCardTraits = setFromList [Spell, Blessed]
+    , cdFastWindow = Just $ oneOf [FastPlayerWindow, RoundBegins #when]
+    , cdCriteria = Just $ Criteria.ChaosTokenCountIs #bless (atLeast 1)
+    }
+
 wardOfRadiance :: CardDef
 wardOfRadiance =
   (event "07031" "Ward of Radiance" 0 Mystic)
@@ -2390,6 +2413,15 @@ wardOfRadiance =
     , cdCardTraits = setFromList [Insight, Blessed]
     , cdFastWindow =
         Just $ DrawCard #when Anyone (CanCancelRevelationEffect $ basic NonWeaknessTreachery) EncounterDeck
+    }
+
+keepFaith :: CardDef
+keepFaith =
+  (event "07034" "Keep Faith" 1 Survivor)
+    { cdSkills = [#willpower]
+    , cdCardTraits = setFromList [Fortune, Blessed]
+    , cdFastWindow = Just FastPlayerWindow
+    , cdCriteria = Just Criteria.HasRemainingBlessTokens
     }
 
 temptFate :: CardDef
@@ -2461,6 +2493,16 @@ parallelFates2 =
     , cdLevel = 2
     , cdCriteria =
         Just $ Criteria.exists $ oneOf [affectsOthers can.manipulate.deck, You <> can.target.encounterDeck]
+    }
+
+keepFaith2 :: CardDef
+keepFaith2 =
+  (event "10124" "Keep Faith" 0 Survivor)
+    { cdSkills = [#willpower, #willpower]
+    , cdCardTraits = setFromList [Fortune, Blessed]
+    , cdFastWindow = Just FastPlayerWindow
+    , cdCriteria = Just Criteria.HasRemainingBlessTokens
+    , cdLevel = 2
     }
 
 dynamiteBlast2 :: CardDef
