@@ -116,6 +116,7 @@ pattern DuringAnySkillTest <- DuringSkillTest AnySkillTest
 
 data Criterion
   = AssetExists AssetMatcher
+  | DifferentAssetsExist AssetMatcher AssetMatcher
   | EventExists EventMatcher
   | ExcludeWindowAssetExists AssetMatcher
   | AgendaExists AgendaMatcher
@@ -224,6 +225,9 @@ atYourLocation matcher = exists (AtYourLocation <> matcher)
 
 class Exists a where
   exists :: a -> Criterion
+
+overrideExists :: Exists a => a -> CriteriaOverride
+overrideExists = CriteriaOverride . exists
 
 notExists :: Exists a => a -> Criterion
 notExists = not_ . exists

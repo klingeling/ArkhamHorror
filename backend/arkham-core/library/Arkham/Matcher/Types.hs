@@ -36,6 +36,7 @@ import Arkham.Location.Brazier
 import Arkham.LocationSymbol
 import Arkham.Modifier
 import {-# SOURCE #-} Arkham.Placement
+import Arkham.SkillTest.Step
 import Arkham.SkillType
 import Arkham.SlotType
 import {-# SOURCE #-} Arkham.Source
@@ -187,6 +188,7 @@ data AssetMatcher
   | AssetNotAtUsesX
   | AssetWithUseType UseType
   | AssetWithUses UseType
+  | AssetWithoutUses
   | AssetWithUseCount UseType ValueMatcher
   | AssetWithDoom ValueMatcher
   | AssetWithClues ValueMatcher
@@ -402,7 +404,11 @@ data LocationMatcher
   | AccessibleTo LocationMatcher
   | LocationWithVictory
   | LocationWithDistanceFrom Int LocationMatcher
-  | LocationWithDistanceFromAtLeast Int LocationId LocationMatcher
+  | -- | distance, start, end
+    LocationWithDistanceFromAtMost Int LocationMatcher LocationMatcher
+  | LocationWithDistanceFromAtLeast Int LocationMatcher LocationMatcher
+  | -- | distance, valid step, start, destination
+    LocationWithAccessiblePath Source Int InvestigatorMatcher LocationMatcher
   | LocationWithResources ValueMatcher
   | LocationWithClues ValueMatcher
   | LocationWithHorror ValueMatcher
@@ -924,6 +930,7 @@ data WindowMatcher
   | Explored Timing Who ExploreMatcher
   | AttemptExplore Timing Who
   | PhaseStep Timing PhaseStepMatcher
+  | SkillTestStep Timing SkillTestStep
   | AddingToCurrentDepth
   | CancelledOrIgnoredCardOrGameEffect SourceMatcher
   | LostResources Timing Who SourceMatcher

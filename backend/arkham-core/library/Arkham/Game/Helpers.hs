@@ -1346,6 +1346,14 @@ passesCriteria iid mcard source windows' = \case
   Criteria.ActExists matcher -> selectAny matcher
   Criteria.AssetExists matcher -> do
     selectAny (Matcher.replaceYouMatcher iid matcher)
+  Criteria.DifferentAssetsExist matcher1 matcher2 -> do
+    m1 <- select (Matcher.replaceYouMatcher iid matcher1)
+    m2 <- select (Matcher.replaceYouMatcher iid matcher2)
+    case (m1, m2) of
+      ([], _) -> pure False
+      (_, []) -> pure False
+      ([x], [y]) -> pure $ x /= y
+      _ -> pure True
   Criteria.EventExists matcher -> do
     selectAny (Matcher.replaceYouMatcher iid matcher)
   Criteria.ExcludeWindowAssetExists matcher -> case getWindowAsset windows' of
@@ -1441,7 +1449,7 @@ passesEnemyCriteria
 passesEnemyCriteria iid source windows' criterion = do
   bountiesOnly <- hasModifier iid BountiesOnly
   let matcherF = if bountiesOnly then (Matcher.EnemyWithBounty <>) else id
-  selectAny . matcherF =<< matcher criterion
+  selectAny . matcherF . Matcher.replaceYouMatcher iid =<< matcher criterion
  where
   matcher = \case
     Criteria.EnemyMatchesCriteria ms -> mconcatMapM matcher ms
@@ -1524,6 +1532,9 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
   case mtchr of
     Matcher.NotAnyWindow -> noMatch
     Matcher.AnyWindow -> isMatch
+    Matcher.SkillTestStep timing step -> guardTiming timing \case
+      Window.SkillTestStep step' -> pure $ step == step'
+      _ -> noMatch
     Matcher.PlacedToken timing token -> guardTiming timing \case
       Window.PlacedToken _ _ token' _ -> pure $ token == token'
       _ -> noMatch
@@ -2707,6 +2718,8 @@ locationMatches investigatorId source window locationId matcher' = do
 
     -- normal cases
     Matcher.LocationWithDistanceFromAtLeast {} -> locationId <=~> matcher
+    Matcher.LocationWithAccessiblePath {} -> locationId <=~> matcher
+    Matcher.LocationWithDistanceFromAtMost {} -> locationId <=~> matcher
     Matcher.LocationWhenCriteria {} -> locationId <=~> matcher
     Matcher.LocationBeingDiscovered {} -> locationId <=~> matcher
     Matcher.CanMoveToLocation {} -> locationId <=~> matcher

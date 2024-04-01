@@ -514,6 +514,7 @@ library
       Arkham.Asset.Cards.EighteenDerringer
       Arkham.Asset.Cards.EighteenDerringer2
       Arkham.Asset.Cards.ElderSignAmulet3
+      Arkham.Asset.Cards.EldritchSophist
       Arkham.Asset.Cards.EmpiricalHypothesis
       Arkham.Asset.Cards.EmpowerSelfAcuity2
       Arkham.Asset.Cards.EmpowerSelfAlacrity2
@@ -768,6 +769,7 @@ library
       Arkham.Asset.Cards.RobesOfEndlessNight2
       Arkham.Asset.Cards.Rolands38Special
       Arkham.Asset.Cards.RunicAxe
+      Arkham.Asset.Cards.SacredCovenant2
       Arkham.Asset.Cards.Safeguard
       Arkham.Asset.Cards.Safeguard2
       Arkham.Asset.Cards.SawedOffShotgun5
@@ -1482,6 +1484,7 @@ library
       Arkham.Event.Cards.Recharge2
       Arkham.Event.Cards.Recharge4
       Arkham.Event.Cards.Reliable1
+      Arkham.Event.Cards.RighteousHunt1
       Arkham.Event.Cards.Sacrifice1
       Arkham.Event.Cards.SceneOfTheCrime
       Arkham.Event.Cards.ScroungeForSupplies
@@ -2461,6 +2464,7 @@ library
       Arkham.SkillTest
       Arkham.SkillTest.Base
       Arkham.SkillTest.Runner
+      Arkham.SkillTest.Step
       Arkham.SkillTest.Type
       Arkham.SkillTestResult
       Arkham.SkillType

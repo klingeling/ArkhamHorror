@@ -245,6 +245,7 @@ allPlayerAssetCards =
       , eighteenDerringer
       , eighteenDerringer2
       , elderSignAmulet3
+      , eldritchSophist
       , empiricalHypothesis
       , empowerSelfAcuity2
       , empowerSelfAlacrity2
@@ -486,6 +487,7 @@ allPlayerAssetCards =
       , robesOfEndlessNight
       , robesOfEndlessNight2
       , rolands38Special
+      , sacredCovenant2
       , safeguard
       , safeguard2
       , sawedOffShotgun5
@@ -4151,6 +4153,23 @@ riotWhistle =
     { cdCardTraits = setFromList [Item, Tool]
     , cdSkills = [#willpower]
     , cdSlots = [#accessory]
+    }
+
+sacredCovenant2 :: CardDef
+sacredCovenant2 =
+  permanent
+    $ (asset "07110" "Sacred Covenant" 0 Guardian)
+      { cdCardTraits = setFromList [Covenant, Blessed]
+      , cdDeckRestrictions = [TraitPerDeckLimit Covenant 1]
+      }
+
+eldritchSophist :: CardDef
+eldritchSophist =
+  (asset "07111" "Eldritch Sophist" 4 Seeker)
+    { cdCardTraits = setFromList [Ally, Miskatonic]
+    , cdSkills = [#willpower]
+    , cdSlots = [#ally]
+    , cdUses = uses Secret 3
     }
 
 keenEye :: CardDef
