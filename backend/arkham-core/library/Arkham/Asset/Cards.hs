@@ -143,6 +143,8 @@ allPlayerAssetCards =
       , archaicGlyphsGuidingStones3
       , archaicGlyphsMarkingsOfIsis3
       , archaicGlyphsProphecyForetold3
+      , armageddon
+      , armageddon4
       , armorOfArdennes5
       , artStudent
       , augur
@@ -164,6 +166,7 @@ allPlayerAssetCards =
       , berettaM19184
       , blackjack
       , blackjack2
+      , blasphemousCovenant2
       , blessedBlade
       , blessedBlade4
       , bloodPact3
@@ -260,6 +263,7 @@ allPlayerAssetCards =
       , esotericAtlas2
       , esotericFormula
       , expeditionJournal
+      , falseCovenant2
       , familiarSpirit
       , familyInheritance
       , farsight4
@@ -4172,6 +4176,31 @@ eldritchSophist =
     , cdUses = uses Secret 3
     }
 
+blasphemousCovenant2 :: CardDef
+blasphemousCovenant2 =
+  permanent
+    $ (asset "07113" "Blasphemous Covenant" 0 Seeker)
+      { cdCardTraits = setFromList [Covenant, Cursed]
+      , cdDeckRestrictions = [TraitPerDeckLimit Covenant 1]
+      }
+
+falseCovenant2 :: CardDef
+falseCovenant2 =
+  permanent
+    $ (asset "07116" "False Covenant" 0 Rogue)
+      { cdCardTraits = setFromList [Covenant, Cursed]
+      , cdDeckRestrictions = [TraitPerDeckLimit Covenant 1]
+      }
+
+armageddon :: CardDef
+armageddon =
+  (asset "07117" "Armageddon" 4 Mystic)
+    { cdCardTraits = setFromList [Spell, Cursed]
+    , cdSkills = [#combat]
+    , cdUses = uses Charge 3
+    , cdSlots = [#arcane]
+    }
+
 keenEye :: CardDef
 keenEye =
   (asset "07152" "Keen Eye" 2 Guardian)
@@ -4195,6 +4224,16 @@ holyRosary2 =
     , cdCardTraits = setFromList [Item, Charm, Blessed]
     , cdSlots = [#accessory]
     , cdLevel = 2
+    }
+
+armageddon4 :: CardDef
+armageddon4 =
+  (asset "07226" "Armageddon" 4 Mystic)
+    { cdCardTraits = setFromList [Spell, Cursed]
+    , cdSkills = [#willpower, #combat]
+    , cdUses = uses Charge 3
+    , cdSlots = [#arcane]
+    , cdLevel = 4
     }
 
 hardKnocks4 :: CardDef

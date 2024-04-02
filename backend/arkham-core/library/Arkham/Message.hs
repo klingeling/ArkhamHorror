@@ -42,8 +42,10 @@ import Arkham.EffectMetadata
 import Arkham.EncounterCard.Source
 import Arkham.Enemy.Creation
 import {-# SOURCE #-} Arkham.Enemy.Types
+import Arkham.Evade.Types
 import Arkham.Exception
 import Arkham.Field
+import Arkham.Fight.Types
 import Arkham.Helpers
 import Arkham.History
 import Arkham.Id
@@ -248,6 +250,14 @@ instance IsMessage EnemyAttackDetails where
 
 instance IsMessage Investigate where
   toMessage = Arkham.Message.Investigate
+  {-# INLINE toMessage #-}
+
+instance IsMessage ChooseFight where
+  toMessage = Arkham.Message.ChooseFightEnemy
+  {-# INLINE toMessage #-}
+
+instance IsMessage ChooseEvade where
+  toMessage = Arkham.Message.ChooseEvadeEnemy
   {-# INLINE toMessage #-}
 
 instance IsMessage (HandDiscard Message) where
@@ -459,8 +469,8 @@ data Message
   | DoneDiscarding InvestigatorId
   | DiscardCard InvestigatorId Source CardId
   | ChooseEndTurn InvestigatorId
-  | ChooseEvadeEnemy InvestigatorId Source (Maybe Target) SkillType EnemyMatcher Bool
-  | ChooseFightEnemy InvestigatorId Source (Maybe Target) SkillType EnemyMatcher Bool -- If we add ChooseEngageEnemy update Tony Morgan
+  | ChooseEvadeEnemy ChooseEvade
+  | ChooseFightEnemy ChooseFight
   | ChooseEngageEnemy InvestigatorId Source (Maybe Target) EnemyMatcher Bool -- If we add ChooseEngageEnemy update Tony Morgan
   | ChooseLeadInvestigator
   | PreScenarioSetup

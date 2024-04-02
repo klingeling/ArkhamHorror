@@ -5,6 +5,8 @@ import Arkham.Action qualified as Action
 import Arkham.Asset.Cards qualified as Cards
 import Arkham.Asset.Runner
 import Arkham.Effect.Runner
+import Arkham.Evade
+import Arkham.Fight
 import Arkham.Matcher hiding (EnemyEvaded)
 import Arkham.Prelude
 
@@ -24,16 +26,17 @@ instance HasAbilities FireExtinguisher1 where
 instance RunMessage FireExtinguisher1 where
   runMessage msg a@(FireExtinguisher1 attrs) = case msg of
     UseThisAbility iid (isSource attrs -> True) 1 -> do
-      pushAll
-        [ skillTestModifier attrs iid (SkillModifier #combat 1)
-        , chooseFightEnemy iid (attrs.ability 1) #combat
-        ]
+      let source = attrs.ability 1
+      chooseFight <- toMessage <$> mkChooseFight iid source
+      pushAll [skillTestModifier source iid (SkillModifier #combat 1), chooseFight]
       pure a
     UseThisAbility iid (isSource attrs -> True) 2 -> do
+      let source = attrs.ability 2
+      chooseEvade <- toMessage <$> mkChooseEvade iid source
       pushAll
-        [ skillTestModifier attrs iid (SkillModifier #agility 3)
-        , createCardEffect Cards.fireExtinguisher1 Nothing (attrs.ability 2) SkillTestTarget
-        , chooseEvadeEnemy iid (attrs.ability 1) #agility
+        [ skillTestModifier source iid (SkillModifier #agility 3)
+        , createCardEffect Cards.fireExtinguisher1 Nothing source SkillTestTarget
+        , chooseEvade
         ]
       pure a
     _ -> FireExtinguisher1 <$> runMessage msg attrs

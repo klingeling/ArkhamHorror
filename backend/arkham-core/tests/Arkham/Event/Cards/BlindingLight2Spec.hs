@@ -35,21 +35,22 @@ spec = do
       assert $ Events.blindingLight2 `isInDiscardOf` self
       enemy.damage `shouldReturn` 2
 
-    it
-      "On Skull, Cultist, Tablet, ElderThing, or AutoFail the investigator loses an action and takes 1 horror"
-      $ for_ [Skull, Cultist, Tablet, ElderThing, AutoFail]
-      $ \token -> gameTest $ \self -> do
-        withProp @"willpower" 5 self
-        enemy <- testEnemy & prop @"evade" 4 & prop @"health" 3
-        location <- testLocation
-        setChaosTokens [token]
-        enemy `spawnAt` location
-        self `moveTo` location
-        self `playEvent` Events.blindingLight2
-        chooseOnlyOption "Evade enemy"
-        chooseOnlyOption "Run skill check"
-        chooseOnlyOption "Apply results"
-        chooseOnlyOption "take event damage"
-        assert $ Events.blindingLight2 `isInDiscardOf` self
-        self.remainingActions `shouldReturn` 2
-        self.horror `shouldReturn` 1
+    for_ [Skull, Cultist, Tablet, ElderThing, AutoFail] \token -> do
+      it
+        ("On " <> show token <> " the investigator loses an action and takes 1 horror")
+        . gameTest
+        $ \self -> do
+          withProp @"willpower" 5 self
+          enemy <- testEnemy & prop @"evade" 4 & prop @"health" 3
+          location <- testLocation
+          setChaosTokens [token]
+          enemy `spawnAt` location
+          self `moveTo` location
+          self `playEvent` Events.blindingLight2
+          chooseOnlyOption "Evade enemy"
+          chooseOnlyOption "Run skill check"
+          chooseOnlyOption "Apply results"
+          chooseOnlyOption "take event damage"
+          assert $ Events.blindingLight2 `isInDiscardOf` self
+          self.remainingActions `shouldReturn` 2
+          self.horror `shouldReturn` 1

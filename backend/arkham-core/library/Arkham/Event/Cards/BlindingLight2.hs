@@ -1,17 +1,14 @@
-module Arkham.Event.Cards.BlindingLight2 (
-  blindingLight2,
-  blindingLight2Effect,
-  BlindingLight2 (..),
-) where
-
-import Arkham.Prelude
+module Arkham.Event.Cards.BlindingLight2 (blindingLight2, blindingLight2Effect, BlindingLight2 (..)) where
 
 import Arkham.Action qualified as Action
+import Arkham.Aspect
 import Arkham.ChaosToken
 import Arkham.Classes
 import Arkham.Effect.Runner
+import Arkham.Evade
 import Arkham.Event.Cards qualified as Cards
 import Arkham.Event.Runner
+import Arkham.Prelude
 import Arkham.Window qualified as Window
 
 newtype BlindingLight2 = BlindingLight2 EventAttrs
@@ -24,11 +21,13 @@ blindingLight2 = event BlindingLight2 Cards.blindingLight2
 instance RunMessage BlindingLight2 where
   runMessage msg e@(BlindingLight2 attrs) = case msg of
     PlayThisEvent iid eid | attrs `is` eid -> do
+      chooseEvade <-
+        leftOr <$> aspect iid attrs (#willpower `InsteadOf` #agility) (mkChooseEvade iid attrs)
       pushAll
-        [ createCardEffect Cards.blindingLight2 Nothing attrs iid
-        , createCardEffect Cards.blindingLight2 Nothing attrs SkillTestTarget
-        , chooseEvadeEnemy iid eid #willpower
-        ]
+        $ [ createCardEffect Cards.blindingLight2 Nothing attrs iid
+          , createCardEffect Cards.blindingLight2 Nothing attrs SkillTestTarget
+          ]
+        <> chooseEvade
       pure e
     _ -> BlindingLight2 <$> runMessage msg attrs
 
@@ -42,11 +41,11 @@ blindingLight2Effect = cardEffect BlindingLight2Effect Cards.blindingLight2
 instance RunMessage BlindingLight2Effect where
   runMessage msg e@(BlindingLight2Effect attrs) = case msg of
     RevealChaosToken _ iid token | InvestigatorTarget iid == attrs.target -> do
-      when (chaosTokenFace token `elem` [Skull, Cultist, Tablet, ElderThing, AutoFail])
+      when (token.face `elem` [Skull, Cultist, Tablet, ElderThing, AutoFail])
         $ pushAll
           [ If
               (Window.RevealChaosTokenEffect iid token (toId attrs))
-              [LoseActions iid (toSource attrs) 1, assignHorror iid attrs 1]
+              [LoseActions iid attrs.source 1, assignHorror iid attrs 1]
           , disable attrs
           ]
       pure e

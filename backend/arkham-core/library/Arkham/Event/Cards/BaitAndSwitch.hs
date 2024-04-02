@@ -2,12 +2,12 @@ module Arkham.Event.Cards.BaitAndSwitch where
 
 import Arkham.Action qualified as Action
 import Arkham.Classes
+import Arkham.Evade
 import Arkham.Event.Cards qualified as Cards (baitAndSwitch)
 import Arkham.Event.Runner
 import Arkham.Game.Helpers
 import Arkham.Matcher hiding (EnemyEvaded)
 import Arkham.Prelude
-import Arkham.SkillType
 
 newtype BaitAndSwitch = BaitAndSwitch EventAttrs
   deriving anyclass (IsEvent, HasModifiersFor, HasAbilities)
@@ -19,7 +19,7 @@ baitAndSwitch = event BaitAndSwitch Cards.baitAndSwitch
 instance RunMessage BaitAndSwitch where
   runMessage msg e@(BaitAndSwitch attrs@EventAttrs {..}) = case msg of
     InvestigatorPlayEvent iid eid _ _ _ | eid == eventId -> do
-      push $ ChooseEvadeEnemy iid (toSource attrs) (Just $ toTarget attrs) SkillAgility AnyEnemy False
+      pushM $ setTarget attrs <$> mkChooseEvade iid attrs
       pure e
     Successful (Action.Evade, EnemyTarget eid) iid _ target _ | isTarget attrs target -> do
       nonElite <- elem eid <$> select NonEliteEnemy

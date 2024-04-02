@@ -669,6 +669,11 @@ allAssets =
     , SomeAssetCard sacredCovenant2
     , --- seeker [itp]
       SomeAssetCard eldritchSophist
+    , SomeAssetCard blasphemousCovenant2
+    , --- rogue [itp]
+      SomeAssetCard falseCovenant2
+    , --- mystic [itp]
+      SomeAssetCard armageddon
     , -- Devil Reef
       --- guardian [def]
       SomeAssetCard keenEye
@@ -677,6 +682,8 @@ allAssets =
     , -- A Light in the Fog
       --- guardian [lif]
       SomeAssetCard holyRosary2
+    , --- mystic [lif]
+      SomeAssetCard armageddon4
     , -- The Lair of Dagon
       --- rogue [lod]
       SomeAssetCard hardKnocks4

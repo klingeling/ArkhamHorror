@@ -407,6 +407,8 @@ library
       Arkham.Asset.Cards.ArchaicGlyphsGuidingStones3
       Arkham.Asset.Cards.ArchaicGlyphsMarkingsOfIsis3
       Arkham.Asset.Cards.ArchaicGlyphsProphecyForetold3
+      Arkham.Asset.Cards.Armageddon
+      Arkham.Asset.Cards.Armageddon4
       Arkham.Asset.Cards.ArmorOfArdennes5
       Arkham.Asset.Cards.ArtStudent
       Arkham.Asset.Cards.AshleighClarke
@@ -430,6 +432,7 @@ library
       Arkham.Asset.Cards.BerettaM19184
       Arkham.Asset.Cards.Blackjack
       Arkham.Asset.Cards.Blackjack2
+      Arkham.Asset.Cards.BlasphemousCovenant2
       Arkham.Asset.Cards.BlessedBlade
       Arkham.Asset.Cards.BlessedBlade4
       Arkham.Asset.Cards.BloodPact3
@@ -529,6 +532,7 @@ library
       Arkham.Asset.Cards.EsotericAtlas2
       Arkham.Asset.Cards.EsotericFormula
       Arkham.Asset.Cards.ExpeditionJournal
+      Arkham.Asset.Cards.FalseCovenant2
       Arkham.Asset.Cards.FamiliarSpirit
       Arkham.Asset.Cards.FamilyInheritance
       Arkham.Asset.Cards.Farsight4
@@ -1284,6 +1288,8 @@ library
       Arkham.Enemy.Types
       Arkham.Enemy.Types.Attrs
       Arkham.Entities
+      Arkham.Evade
+      Arkham.Evade.Types
       Arkham.Event
       Arkham.Event.Cards
       Arkham.Event.Cards.AceInTheHole3
@@ -1315,6 +1321,8 @@ library
       Arkham.Event.Cards.BloodEclipse1
       Arkham.Event.Cards.BloodEclipse3
       Arkham.Event.Cards.BloodRite
+      Arkham.Event.Cards.BreakingAndEntering
+      Arkham.Event.Cards.BreakingAndEntering2
       Arkham.Event.Cards.BurningTheMidnightOil
       Arkham.Event.Cards.BuryThemDeep
       Arkham.Event.Cards.CallingInFavors
@@ -1508,6 +1516,7 @@ library
       Arkham.Event.Cards.StandTogether
       Arkham.Event.Cards.StandTogether3
       Arkham.Event.Cards.Stargazing1
+      Arkham.Event.Cards.StirringUpTrouble1
       Arkham.Event.Cards.StormOfSpirits
       Arkham.Event.Cards.StormOfSpirits3
       Arkham.Event.Cards.SureGamble3
@@ -1560,6 +1569,8 @@ library
       Arkham.Field
       Arkham.Field.Import
       Arkham.Field.Matchers
+      Arkham.Fight
+      Arkham.Fight.Types
       Arkham.Game
       Arkham.Game.Base
       Arkham.Game.Diff
@@ -2437,6 +2448,7 @@ library
       Arkham.Skill.Cards.SealOfTheElderSign5
       Arkham.Skill.Cards.SelfSacrifice
       Arkham.Skill.Cards.SharpVision1
+      Arkham.Skill.Cards.Skeptic1
       Arkham.Skill.Cards.Steadfast
       Arkham.Skill.Cards.StrokeOfLuck2
       Arkham.Skill.Cards.StunningBlow

@@ -12,7 +12,7 @@ import Arkham.Card.CardType
 import Arkham.Card.Cost
 import Arkham.ClassSymbol
 import Arkham.Cost
-import Arkham.Criteria (exists)
+import Arkham.Criteria (Criterion, exists)
 import Arkham.Criteria qualified as Criteria
 import Arkham.Damage
 import Arkham.History.Types
@@ -68,6 +68,8 @@ allPlayerEventCards =
       , bloodEclipse1
       , bloodEclipse3
       , bloodRite
+      , breakingAndEntering
+      , breakingAndEntering2
       , burningTheMidnightOil
       , buryThemDeep
       , callingInFavors
@@ -261,6 +263,7 @@ allPlayerEventCards =
       , standTogether
       , standTogether3
       , stargazing1
+      , stirringUpTrouble1
       , stormOfSpirits
       , stormOfSpirits3
       , sureGamble3
@@ -309,6 +312,13 @@ allPlayerEventCards =
 allEncounterEventCards :: Map CardCode CardDef
 allEncounterEventCards = mapFromList $ concatMap toCardCodePairs [theStarsAreRight]
 
+canDiscoverCluesAtYourLocation :: Criterion
+canDiscoverCluesAtYourLocation =
+  Criteria.Criteria
+    [ exists $ YourLocation <> LocationWithAnyClues
+    , exists $ You <> InvestigatorCanDiscoverCluesAt YourLocation
+    ]
+
 onTheLam :: CardDef
 onTheLam =
   (event "01010" "On the Lam" 1 Neutral)
@@ -334,12 +344,7 @@ evidence =
     { cdSkills = [#intellect, #intellect]
     , cdCardTraits = setFromList [Insight]
     , cdFastWindow = Just $ EnemyDefeated #after You ByAny AnyEnemy
-    , cdCriteria =
-        Just
-          $ Criteria.Criteria
-            [ exists $ YourLocation <> LocationWithAnyClues
-            , exists $ You <> InvestigatorCanDiscoverCluesAt YourLocation
-            ]
+    , cdCriteria = Just canDiscoverCluesAtYourLocation
     , cdAlternateCardCodes = ["01522"]
     }
 
@@ -396,12 +401,7 @@ workingAHunch =
     { cdSkills = [#intellect, #intellect]
     , cdCardTraits = setFromList [Insight]
     , cdFastWindow = Just $ DuringTurn You
-    , cdCriteria =
-        Just
-          $ Criteria.Criteria
-            [ exists $ YourLocation <> LocationWithAnyClues
-            , exists $ You <> InvestigatorCanDiscoverCluesAt YourLocation
-            ]
+    , cdCriteria = Just canDiscoverCluesAtYourLocation
     , cdAlternateCardCodes = ["01537"]
     }
 
@@ -540,12 +540,7 @@ lookWhatIFound =
     , cdCardTraits = singleton Fortune
     , cdFastWindow =
         Just $ SkillTestResult #after You (WhileInvestigating Anywhere) $ FailureResult $ lessThan 3
-    , cdCriteria =
-        Just
-          $ Criteria.Criteria
-            [ exists $ YourLocation <> LocationWithAnyClues
-            , exists $ You <> InvestigatorCanDiscoverCluesAt YourLocation
-            ]
+    , cdCriteria = Just canDiscoverCluesAtYourLocation
     , cdAlternateCardCodes = ["01579", "60517"]
     }
 
@@ -2271,12 +2266,7 @@ extensiveResearch1 =
     { cdSkills = [#intellect, #intellect]
     , cdCardTraits = singleton Insight
     , cdCardInHandEffects = True
-    , cdCriteria =
-        Just
-          $ Criteria.Criteria
-            [ exists $ YourLocation <> LocationWithAnyClues
-            , exists $ You <> InvestigatorCanDiscoverCluesAt YourLocation
-            ]
+    , cdCriteria = Just canDiscoverCluesAtYourLocation
     , cdLevel = 1
     }
 
@@ -2454,6 +2444,24 @@ righteousHunt1 =
           $ LocationWithAccessiblePath ThisCard 2 You Anywhere
     }
 
+stirringUpTrouble1 :: CardDef
+stirringUpTrouble1 =
+  (event "07112" "Stirring Up Trouble" 0 Seeker)
+    { cdSkills = [#combat, #intellect]
+    , cdCardTraits = setFromList [Insight, Cursed]
+    , cdAdditionalCost = Just AddCurseTokensEqualToShroudCost
+    , cdCriteria = Just canDiscoverCluesAtYourLocation
+    }
+
+breakingAndEntering :: CardDef
+breakingAndEntering =
+  (event "07114" "Breaking and Entering" 2 Rogue)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Trick]
+    , cdActions = [#investigate]
+    , cdAttackOfOpportunityModifiers = [DoesNotProvokeAttacksOfOpportunity]
+    }
+
 sweepingKick1 :: CardDef
 sweepingKick1 =
   (event "08023" "Sweeping Kick" 1 Guardian)
@@ -2512,6 +2520,16 @@ parallelFates2 =
     , cdLevel = 2
     , cdCriteria =
         Just $ exists $ oneOf [affectsOthers can.manipulate.deck, You <> can.target.encounterDeck]
+    }
+
+breakingAndEntering2 :: CardDef
+breakingAndEntering2 =
+  (event "09074" "Breaking and Entering" 2 Rogue)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Trick]
+    , cdActions = [#investigate]
+    , cdAttackOfOpportunityModifiers = [DoesNotProvokeAttacksOfOpportunity]
+    , cdLevel = 2
     }
 
 keepFaith2 :: CardDef
@@ -2761,12 +2779,7 @@ evidence1 =
     { cdSkills = [#intellect, #intellect]
     , cdCardTraits = singleton Insight
     , cdFastWindow = Just (EnemyDefeated #after You ByAny AnyEnemy)
-    , cdCriteria =
-        Just
-          $ Criteria.Criteria
-            [ exists $ YourLocation <> LocationWithAnyClues
-            , exists $ You <> InvestigatorCanDiscoverCluesAt YourLocation
-            ]
+    , cdCriteria = Just canDiscoverCluesAtYourLocation
     , cdLevel = 1
     }
 
@@ -2817,12 +2830,7 @@ lessonLearned2 =
     { cdCardTraits = setFromList [Insight, Spirit]
     , cdSkills = [#willpower, #intellect, #intellect]
     , cdFastWindow = Just $ DealtDamage #after (SourceIsEnemyAttack AnyEnemy) You
-    , cdCriteria =
-        Just
-          $ Criteria.Criteria
-            [ exists $ YourLocation <> LocationWithAnyClues
-            , exists $ You <> InvestigatorCanDiscoverCluesAt YourLocation
-            ]
+    , cdCriteria = Just canDiscoverCluesAtYourLocation
     , cdLevel = 2
     }
 
@@ -2885,12 +2893,7 @@ extensiveResearch =
     { cdSkills = [#intellect, #intellect]
     , cdCardTraits = singleton Insight
     , cdCardInHandEffects = True
-    , cdCriteria =
-        Just
-          $ Criteria.Criteria
-            [ exists $ YourLocation <> LocationWithAnyClues
-            , exists $ You <> InvestigatorCanDiscoverCluesAt YourLocation
-            ]
+    , cdCriteria = Just canDiscoverCluesAtYourLocation
     }
 
 occultInvocation :: CardDef
