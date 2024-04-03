@@ -85,6 +85,7 @@ data InvestigatorMatcher
   | HasMatchingEvent EventMatcher
   | HasMatchingSkill SkillMatcher
   | HasMatchingTreachery TreacheryMatcher
+  | InvestigatorWithCommittableCard
   | MostToken Token
   | HasTokens Token ValueMatcher
   | MostKeys
@@ -409,6 +410,7 @@ data LocationMatcher
   | LocationWithDistanceFromAtLeast Int LocationMatcher LocationMatcher
   | -- | distance, valid step, start, destination
     LocationWithAccessiblePath Source Int InvestigatorMatcher LocationMatcher
+  | CanMoveCloserToLocation Source InvestigatorMatcher LocationMatcher
   | LocationWithResources ValueMatcher
   | LocationWithClues ValueMatcher
   | LocationWithHorror ValueMatcher
@@ -640,6 +642,7 @@ data ExtendedCardMatcher
   | CanCancelRevelationEffect ExtendedCardMatcher
   | CanCancelAllEffects ExtendedCardMatcher
   | CardWithoutModifier ModifierType
+  | CardIsCommittedBy InvestigatorMatcher
   deriving stock (Show, Eq, Ord, Data)
 
 instance Semigroup ExtendedCardMatcher where
@@ -868,6 +871,7 @@ data WindowMatcher
   | EnemyAttacked Timing Who SourceMatcher EnemyMatcher
   | EnemyAttackedSuccessfully Timing Who EnemyMatcher
   | RevealChaosToken Timing Who ChaosTokenMatcher
+  | ResolvesChaosToken Timing Who ChaosTokenMatcher
   | CancelChaosToken Timing Who ChaosTokenMatcher
   | IgnoreChaosToken Timing Who ChaosTokenMatcher
   | WouldRevealChaosToken Timing Who
@@ -1094,6 +1098,7 @@ data ChaosTokenMatcher
   | ChaosTokenFaceIsNot ChaosTokenFace
   | ChaosTokenMatchesAny [ChaosTokenMatcher]
   | AnyChaosToken
+  | IsSymbol
   | ChaosTokenMatches [ChaosTokenMatcher]
   | IncludeSealed ChaosTokenMatcher
   | WouldReduceYourSkillValueToZero

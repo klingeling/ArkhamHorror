@@ -80,6 +80,7 @@ data EventAttrs = EventAttrs
   , eventPlayedFrom :: Zone
   , eventWindows :: [Window]
   , eventTarget :: Maybe Target
+  , eventMeta :: Value
   }
   deriving stock (Show, Eq, Generic)
 
@@ -92,6 +93,9 @@ instance Is EventAttrs EventId where
 instance HasField "id" EventAttrs EventId where
   getField = eventId
 
+instance HasField "meta" EventAttrs Value where
+  getField = eventMeta
+
 instance HasField "placement" EventAttrs Placement where
   getField = eventPlacement
 
@@ -99,6 +103,9 @@ instance HasField "payment" EventAttrs Payment where
   getField = eventPayment
 
 instance HasField "owner" EventAttrs InvestigatorId where
+  getField = eventOwner
+
+instance HasField "controller" EventAttrs InvestigatorId where
   getField = eventOwner
 
 instance HasField "ability" EventAttrs (Int -> Source) where
@@ -135,6 +142,7 @@ instance FromJSON EventAttrs where
     eventPlayedFrom <- o .: "playedFrom"
     eventWindows <- o .: "windows"
     eventTarget <- o .: "target"
+    eventMeta <- o .:? "meta" .!= Null
 
     pure EventAttrs {..}
 
@@ -176,6 +184,7 @@ event f cardDef =
             , eventPlayedFrom = FromHand -- defaults but will be overwritten when needed
             , eventWindows = []
             , eventTarget = Nothing
+            , eventMeta = Null
             }
     }
 
@@ -267,3 +276,6 @@ someEventCardCode :: SomeEventCard -> CardCode
 someEventCardCode = liftSomeEventCard cbCardCode
 
 makeLensesWith suffixedFields ''EventAttrs
+
+setMeta :: ToJSON a => a -> EventAttrs -> EventAttrs
+setMeta a = metaL .~ toJSON a

@@ -420,6 +420,18 @@ allEvents =
       SomeEventCard stirringUpTrouble1
     , --- rogue [itd]
       SomeEventCard breakingAndEntering
+    , -- Devil Reef
+      --- guardian [def]
+      SomeEventCard radiantSmite1
+    , --- seeker [def]
+      SomeEventCard theTruthBeckons
+    , SomeEventCard gazeOfOuraxsh2
+    , --- rogue [def]
+      SomeEventCard underSurveillance1
+    , --- survivor [def]
+      SomeEventCard butterflyEffect1
+    , --- neutral [def]
+      SomeEventCard manipulateDestiny2
     , -- Edge of the Earth
       --- guardian [eote]
       SomeEventCard sweepingKick1

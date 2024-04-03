@@ -2278,6 +2278,10 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
       Window.RevealChaosToken who token ->
         andM [matchWho iid who whoMatcher, matchChaosToken who token tokenMatcher]
       _ -> noMatch
+    Matcher.ResolvesChaosToken timing whoMatcher tokenMatcher -> guardTiming timing $ \case
+      Window.ResolvesChaosToken who token ->
+        andM [matchWho iid who whoMatcher, matchChaosToken who token tokenMatcher]
+      _ -> noMatch
     Matcher.CancelChaosToken timing whoMatcher tokenMatcher ->
       guardTiming timing $ \case
         Window.CancelChaosToken who token ->
@@ -2719,6 +2723,7 @@ locationMatches investigatorId source window locationId matcher' = do
     -- normal cases
     Matcher.LocationWithDistanceFromAtLeast {} -> locationId <=~> matcher
     Matcher.LocationWithAccessiblePath {} -> locationId <=~> matcher
+    Matcher.CanMoveCloserToLocation {} -> locationId <=~> matcher
     Matcher.LocationWithDistanceFromAtMost {} -> locationId <=~> matcher
     Matcher.LocationWhenCriteria {} -> locationId <=~> matcher
     Matcher.LocationBeingDiscovered {} -> locationId <=~> matcher
@@ -2886,10 +2891,11 @@ skillTestMatches iid source st = \case
     AndSkillTest types -> sType `elem` types
     ResourceSkillTest -> False
   Matcher.SkillTestAtYourLocation -> do
+    canAffectOthers <- withoutModifier iid CannotAffectOtherPlayersWithPlayerEffectsExceptDamage
     mlid1 <- field InvestigatorLocation iid
-    mlid2 <- field InvestigatorLocation $ skillTestInvestigator st
+    mlid2 <- field InvestigatorLocation st.investigator
     case (mlid1, mlid2) of
-      (Just lid1, Just lid2) -> pure $ lid1 == lid2
+      (Just lid1, Just lid2) -> pure $ lid1 == lid2 && (canAffectOthers || iid == st.investigator)
       _ -> pure False
   Matcher.SkillTestMatches ms -> allM (skillTestMatches iid source st) ms
 

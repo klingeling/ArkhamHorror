@@ -674,16 +674,27 @@ allAssets =
       SomeAssetCard falseCovenant2
     , --- mystic [itp]
       SomeAssetCard armageddon
+    , SomeAssetCard eyeOfChaos
+    , SomeAssetCard shroudOfShadows
+    , SomeAssetCard paradoxicalCovenant2
+    , --- survivor [itp]
+      SomeAssetCard marinersCompass
+    , SomeAssetCard ancientCovenant2
     , -- Devil Reef
       --- guardian [def]
       SomeAssetCard keenEye
+    , --- rogue [def]
+      SomeAssetCard priestOfTwoFaiths1
     , --- mystic [def]
-      SomeAssetCard abyssalTome2
+      SomeAssetCard bloodPact
+    , SomeAssetCard abyssalTome2
     , -- A Light in the Fog
       --- guardian [lif]
       SomeAssetCard holyRosary2
     , --- mystic [lif]
       SomeAssetCard armageddon4
+    , SomeAssetCard eyeOfChaos4
+    , SomeAssetCard shroudOfShadows4
     , -- The Lair of Dagon
       --- rogue [lod]
       SomeAssetCard hardKnocks4
@@ -732,6 +743,8 @@ allAssets =
     , -- The Feast of Hemloch Vale
       --- guardian [tsk]
       SomeAssetCard blessedBlade4
+    , --- survivor [tsk]
+      SomeAssetCard marinersCompass2
     , -- Return to Night of the Zealot
       --- guardian [rtnotz]
       SomeAssetCard physicalTraining2

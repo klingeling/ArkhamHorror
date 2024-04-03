@@ -122,6 +122,7 @@ allPlayerAssetCards =
       , alyssaGraham
       , analyticalMind
       , ancestralKnowledge3
+      , ancientCovenant2
       , ancientStone1
       , ancientStoneKnowledgeOfTheElders4
       , ancientStoneMindsInHarmony4
@@ -169,6 +170,7 @@ allPlayerAssetCards =
       , blasphemousCovenant2
       , blessedBlade
       , blessedBlade4
+      , bloodPact
       , bloodPact3
       , bloodstainedDagger
       , bookOfPsalms
@@ -263,6 +265,8 @@ allPlayerAssetCards =
       , esotericAtlas2
       , esotericFormula
       , expeditionJournal
+      , eyeOfChaos
+      , eyeOfChaos4
       , falseCovenant2
       , familiarSpirit
       , familyInheritance
@@ -399,6 +403,8 @@ allPlayerAssetCards =
       , magnifyingGlass
       , magnifyingGlass1
       , mariaDeSilva
+      , marinersCompass
+      , marinersCompass2
       , maskedCarnevaleGoer_17
       , maskedCarnevaleGoer_18
       , maskedCarnevaleGoer_19
@@ -447,6 +453,7 @@ allPlayerAssetCards =
       , otherworldlyCompass2
       , painkillers
       , pantalone
+      , paradoxicalCovenant2
       , pathfinder1
       , patricesViolin
       , pendantOfTheQueen
@@ -464,6 +471,7 @@ allPlayerAssetCards =
       , powderOfIbnGhazi
       , preciousMementoFromAFormerLife4
       , preciousMementoFromAFutureLife4
+      , priestOfTwoFaiths1
       , professorWarrenRice
       , protectiveIncantation1
       , puzzleBox
@@ -521,6 +529,8 @@ allPlayerAssetCards =
       , shrivelling
       , shrivelling3
       , shrivelling5
+      , shroudOfShadows
+      , shroudOfShadows4
       , signMagick
       , signMagick3
       , silassNet
@@ -4201,11 +4211,69 @@ armageddon =
     , cdSlots = [#arcane]
     }
 
+eyeOfChaos :: CardDef
+eyeOfChaos =
+  (asset "07118" "Eye of Chaos" 5 Mystic)
+    { cdCardTraits = setFromList [Spell, Cursed]
+    , cdSkills = [#intellect]
+    , cdUses = uses Charge 3
+    , cdSlots = [#arcane]
+    }
+
+shroudOfShadows :: CardDef
+shroudOfShadows =
+  (asset "07119" "Shroud of Shadows" 3 Mystic)
+    { cdCardTraits = setFromList [Spell, Cursed]
+    , cdSkills = [#agility]
+    , cdUses = uses Charge 3
+    , cdSlots = [#arcane]
+    }
+
+paradoxicalCovenant2 :: CardDef
+paradoxicalCovenant2 =
+  permanent
+    $ (asset "07120" "Paradoxical Covenant" 0 Mystic)
+      { cdCardTraits = setFromList [Covenant, Blessed, Cursed]
+      , cdDeckRestrictions = [TraitPerDeckLimit Covenant 1]
+      }
+
+marinersCompass :: CardDef
+marinersCompass =
+  (asset "07121" "Mariner's Compass" 3 Survivor)
+    { cdCardTraits = setFromList [Item, Tool]
+    , cdSkills = [#intellect]
+    , cdSlots = [#hand]
+    }
+
+ancientCovenant2 :: CardDef
+ancientCovenant2 =
+  permanent
+    $ (asset "07122" "Ancient Covenant" 0 Survivor)
+      { cdCardTraits = setFromList [Covenant, Blessed]
+      , cdDeckRestrictions = [TraitPerDeckLimit Covenant 1]
+      }
+
 keenEye :: CardDef
 keenEye =
   (asset "07152" "Keen Eye" 2 Guardian)
     { cdCardTraits = setFromList [Talent]
     , cdSkills = [#intellect, #combat]
+    }
+
+priestOfTwoFaiths1 :: CardDef
+priestOfTwoFaiths1 =
+  (asset "07156" "Priest of Two Faiths" 1 Rogue)
+    { cdCardTraits = setFromList [Ally, Blessed, Cursed]
+    , cdSkills = [#agility]
+    , cdSlots = [#ally]
+    , cdLevel = 1
+    }
+
+bloodPact :: CardDef
+bloodPact =
+  (asset "07158" "Blood Pact" 2 Mystic)
+    { cdCardTraits = setFromList [Spell, Pact]
+    , cdSkills = [#willpower, #combat]
     }
 
 abyssalTome2 :: CardDef
@@ -4231,6 +4299,26 @@ armageddon4 =
   (asset "07226" "Armageddon" 4 Mystic)
     { cdCardTraits = setFromList [Spell, Cursed]
     , cdSkills = [#willpower, #combat]
+    , cdUses = uses Charge 3
+    , cdSlots = [#arcane]
+    , cdLevel = 4
+    }
+
+eyeOfChaos4 :: CardDef
+eyeOfChaos4 =
+  (asset "07227" "Eye of Chaos" 5 Mystic)
+    { cdCardTraits = setFromList [Spell, Cursed]
+    , cdSkills = [#willpower, #intellect]
+    , cdUses = uses Charge 3
+    , cdSlots = [#arcane]
+    , cdLevel = 4
+    }
+
+shroudOfShadows4 :: CardDef
+shroudOfShadows4 =
+  (asset "07228" "Eye of Chaos" 3 Mystic)
+    { cdCardTraits = setFromList [Spell, Cursed]
+    , cdSkills = [#willpower, #agility]
     , cdUses = uses Charge 3
     , cdSlots = [#arcane]
     , cdLevel = 4
@@ -4472,6 +4560,15 @@ blessedBlade4 =
     , cdSkills = [#willpower, #combat]
     , cdSlots = [#hand]
     , cdLevel = 4
+    }
+
+marinersCompass2 :: CardDef
+marinersCompass2 =
+  (asset "10122" "Mariner's Compass" 2 Survivor)
+    { cdCardTraits = setFromList [Item, Tool]
+    , cdSkills = [#intellect, #intellect]
+    , cdSlots = [#hand]
+    , cdLevel = 2
     }
 
 physicalTraining2 :: CardDef

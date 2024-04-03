@@ -12,7 +12,7 @@ import Arkham.Card.CardType
 import Arkham.Card.Cost
 import Arkham.ClassSymbol
 import Arkham.Cost
-import Arkham.Criteria (Criterion, exists)
+import Arkham.Criteria (Criterion, exists, notExists)
 import Arkham.Criteria qualified as Criteria
 import Arkham.Damage
 import Arkham.History.Types
@@ -72,6 +72,7 @@ allPlayerEventCards =
       , breakingAndEntering2
       , burningTheMidnightOil
       , buryThemDeep
+      , butterflyEffect1
       , callingInFavors
       , cheapShot
       , cheapShot2
@@ -145,6 +146,7 @@ allPlayerEventCards =
       , fortuitousDiscovery
       , fortuneOrFate2
       , galvanize1
+      , gazeOfOuraxsh2
       , getOverHere
       , getOverHere2
       , ghastlyRevelation
@@ -194,6 +196,7 @@ allPlayerEventCards =
       , lucky3
       , lure1
       , lure2
+      , manipulateDestiny2
       , manoAMano1
       , manoAMano2
       , marksmanship1
@@ -235,6 +238,7 @@ allPlayerEventCards =
       , preposterousSketches
       , preposterousSketches2
       , quantumFlux
+      , radiantSmite1
       , readTheSigns
       , recharge2
       , recharge4
@@ -277,6 +281,7 @@ allPlayerEventCards =
       , telescopicSight3
       , temptFate
       , thePaintedWorld
+      , theTruthBeckons
       , thinkOnYourFeet
       , thinkOnYourFeet2
       , tidesOfFate
@@ -288,6 +293,7 @@ allPlayerEventCards =
       , truthFromFiction
       , truthFromFiction2
       , uncageTheSoul
+      , underSurveillance1
       , unearthTheAncients
       , unearthTheAncients2
       , unsolvedCase
@@ -1191,7 +1197,7 @@ snareTrap2 =
   (event "03199" "Snare Trap" 2 Survivor)
     { cdSkills = [#willpower, #agility]
     , cdCardTraits = setFromList [Trap, Improvised]
-    , cdCriteria = Just $ Criteria.Negate $ exists $ AssetIs "03199" <> AssetAt YourLocation
+    , cdCriteria = Just $ Criteria.Negate $ exists $ "Snare Trap" <> AssetAt YourLocation
     , cdLevel = 2
     }
 
@@ -2460,6 +2466,68 @@ breakingAndEntering =
     , cdCardTraits = setFromList [Trick]
     , cdActions = [#investigate]
     , cdAttackOfOpportunityModifiers = [DoesNotProvokeAttacksOfOpportunity]
+    }
+
+radiantSmite1 :: CardDef
+radiantSmite1 =
+  (event "07153" "Radiant Smite" 1 Guardian)
+    { cdSkills = [#willpower, #combat]
+    , cdCardTraits = setFromList [Spirit, Spell, Blessed]
+    , cdActions = [#fight]
+    }
+
+theTruthBeckons :: CardDef
+theTruthBeckons =
+  (event "07154" "The Truth Beckons" 1 Seeker)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Insight]
+    , cdCriteria =
+        Just
+          $ notExists EnemyEngagedWithYou
+          <> exists (CanMoveCloserToLocation ThisCard You UnrevealedLocation)
+    }
+
+gazeOfOuraxsh2 :: CardDef
+gazeOfOuraxsh2 =
+  (event "07155" "Gaze of Ouraxsh" 2 Seeker)
+    { cdSkills = [#combat, #agility]
+    , cdCardTraits = setFromList [Spell, Cursed]
+    , cdAttackOfOpportunityModifiers = [DoesNotProvokeAttacksOfOpportunity]
+    , cdLevel = 2
+    }
+
+underSurveillance1 :: CardDef
+underSurveillance1 =
+  (event "07157" "Under Surveillance" 3 Rogue)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Tactic, Trap]
+    , cdCriteria = Just $ Criteria.Negate $ exists $ "Under Surveillance" <> AssetAt YourLocation
+    , cdLevel = 1
+    }
+
+butterflyEffect1 :: CardDef
+butterflyEffect1 =
+  (event "07158" "Butterfly Effect" 0 Survivor)
+    { cdSkills = [#wild]
+    , cdCardTraits = setFromList [Paradox, Blessed, Cursed]
+    , cdFastWindow = Just $ RevealChaosToken #when (affectsOthers Anyone) IsSymbol
+    , cdCriteria =
+        Just
+          $ Criteria.DuringSkillTest SkillTestAtYourLocation
+          <> oneOf
+            [ exists (CardIsCommittedBy (affectsOthers $ InvestigatorAt YourLocation))
+            , exists (affectsOthers $ InvestigatorAt YourLocation <> InvestigatorWithCommittableCard)
+            ]
+    , cdLevel = 1
+    }
+
+manipulateDestiny2 :: CardDef
+manipulateDestiny2 =
+  (event "07162" "Manipulate Destiny" 1 Neutral)
+    { cdSkills = [#combat, #agility]
+    , cdCardTraits = setFromList [Spell, Cursed]
+    , cdAttackOfOpportunityModifiers = [DoesNotProvokeAttacksOfOpportunity]
+    , cdLevel = 2
     }
 
 sweepingKick1 :: CardDef

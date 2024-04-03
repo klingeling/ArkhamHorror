@@ -386,6 +386,7 @@ library
       Arkham.Asset.Cards.AlyssaGraham
       Arkham.Asset.Cards.AnalyticalMind
       Arkham.Asset.Cards.AncestralKnowledge3
+      Arkham.Asset.Cards.AncientCovenant2
       Arkham.Asset.Cards.AncientStone1
       Arkham.Asset.Cards.AncientStoneKnowledgeOfTheElders4
       Arkham.Asset.Cards.AncientStoneMindsInHarmony4
@@ -435,6 +436,7 @@ library
       Arkham.Asset.Cards.BlasphemousCovenant2
       Arkham.Asset.Cards.BlessedBlade
       Arkham.Asset.Cards.BlessedBlade4
+      Arkham.Asset.Cards.BloodPact
       Arkham.Asset.Cards.BloodPact3
       Arkham.Asset.Cards.BloodstainedDagger
       Arkham.Asset.Cards.BookOfPsalms
@@ -532,6 +534,8 @@ library
       Arkham.Asset.Cards.EsotericAtlas2
       Arkham.Asset.Cards.EsotericFormula
       Arkham.Asset.Cards.ExpeditionJournal
+      Arkham.Asset.Cards.EyeOfChaos
+      Arkham.Asset.Cards.EyeOfChaos4
       Arkham.Asset.Cards.FalseCovenant2
       Arkham.Asset.Cards.FamiliarSpirit
       Arkham.Asset.Cards.FamilyInheritance
@@ -677,6 +681,8 @@ library
       Arkham.Asset.Cards.MagnifyingGlass1
       Arkham.Asset.Cards.ManagersKey
       Arkham.Asset.Cards.MariaDeSilva
+      Arkham.Asset.Cards.MarinersCompass
+      Arkham.Asset.Cards.MarinersCompass2
       Arkham.Asset.Cards.MaskedCarnevaleGoer_17
       Arkham.Asset.Cards.MaskedCarnevaleGoer_18
       Arkham.Asset.Cards.MaskedCarnevaleGoer_19
@@ -726,6 +732,7 @@ library
       Arkham.Asset.Cards.OtherworldlyCompass2
       Arkham.Asset.Cards.Painkillers
       Arkham.Asset.Cards.Pantalone
+      Arkham.Asset.Cards.ParadoxicalCovenant2
       Arkham.Asset.Cards.Pathfinder1
       Arkham.Asset.Cards.PatricesViolin
       Arkham.Asset.Cards.PendantOfTheQueen
@@ -744,6 +751,7 @@ library
       Arkham.Asset.Cards.PowderOfIbnGhazi
       Arkham.Asset.Cards.PreciousMementoFromAFormerLife4
       Arkham.Asset.Cards.PreciousMementoFromAFutureLife4
+      Arkham.Asset.Cards.PriestOfTwoFaiths1
       Arkham.Asset.Cards.ProfessorWarrenRice
       Arkham.Asset.Cards.ProtectiveIncantation1
       Arkham.Asset.Cards.PuzzleBox
@@ -804,6 +812,8 @@ library
       Arkham.Asset.Cards.Shrivelling
       Arkham.Asset.Cards.Shrivelling3
       Arkham.Asset.Cards.Shrivelling5
+      Arkham.Asset.Cards.ShroudOfShadows
+      Arkham.Asset.Cards.ShroudOfShadows4
       Arkham.Asset.Cards.SignMagick
       Arkham.Asset.Cards.SignMagick3
       Arkham.Asset.Cards.SilassNet
@@ -1325,6 +1335,7 @@ library
       Arkham.Event.Cards.BreakingAndEntering2
       Arkham.Event.Cards.BurningTheMidnightOil
       Arkham.Event.Cards.BuryThemDeep
+      Arkham.Event.Cards.ButterflyEffect1
       Arkham.Event.Cards.CallingInFavors
       Arkham.Event.Cards.CheapShot
       Arkham.Event.Cards.CheapShot2
@@ -1398,6 +1409,7 @@ library
       Arkham.Event.Cards.FortuitousDiscovery
       Arkham.Event.Cards.FortuneOrFate2
       Arkham.Event.Cards.Galvanize1
+      Arkham.Event.Cards.GazeOfOuraxsh2
       Arkham.Event.Cards.GetOverHere
       Arkham.Event.Cards.GetOverHere2
       Arkham.Event.Cards.GhastlyRevelation
@@ -1447,6 +1459,7 @@ library
       Arkham.Event.Cards.Lucky3
       Arkham.Event.Cards.Lure1
       Arkham.Event.Cards.Lure2
+      Arkham.Event.Cards.ManipulateDestiny2
       Arkham.Event.Cards.ManoAMano1
       Arkham.Event.Cards.ManoAMano2
       Arkham.Event.Cards.Marksmanship1
@@ -1488,6 +1501,7 @@ library
       Arkham.Event.Cards.PreposterousSketches
       Arkham.Event.Cards.PreposterousSketches2
       Arkham.Event.Cards.QuantumFlux
+      Arkham.Event.Cards.RadiantSmite1
       Arkham.Event.Cards.ReadTheSigns
       Arkham.Event.Cards.Recharge2
       Arkham.Event.Cards.Recharge4
@@ -1531,6 +1545,7 @@ library
       Arkham.Event.Cards.TemptFate
       Arkham.Event.Cards.ThePaintedWorld
       Arkham.Event.Cards.TheStarsAreRight
+      Arkham.Event.Cards.TheTruthBeckons
       Arkham.Event.Cards.ThinkOnYourFeet
       Arkham.Event.Cards.ThinkOnYourFeet2
       Arkham.Event.Cards.TidesOfFate
@@ -1542,6 +1557,7 @@ library
       Arkham.Event.Cards.TruthFromFiction
       Arkham.Event.Cards.TruthFromFiction2
       Arkham.Event.Cards.UncageTheSoul
+      Arkham.Event.Cards.UnderSurveillance1
       Arkham.Event.Cards.UnearthTheAncients
       Arkham.Event.Cards.UnearthTheAncients2
       Arkham.Event.Cards.UnsolvedCase

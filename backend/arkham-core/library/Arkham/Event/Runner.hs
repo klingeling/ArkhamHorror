@@ -45,7 +45,7 @@ instance RunMessage EventAttrs where
 runEventMessage :: Runner EventAttrs
 runEventMessage msg a@EventAttrs {..} = case msg of
   SetOriginalCardCode cardCode -> pure $ a & originalCardCodeL .~ cardCode
-  Msg.InvestigatorEliminated iid | eventAttachedTarget a == Just (InvestigatorTarget iid) -> do
+  Msg.InvestigatorEliminated iid | eventAttachedTarget a == Just (InvestigatorTarget iid) || iid == a.controller -> do
     push $ toDiscard GameSource eventId
     pure a
   Discard _ source (isTarget a -> True) -> do
@@ -92,6 +92,7 @@ runEventMessage msg a@EventAttrs {..} = case msg of
     pure $ a & beingPaidForL .~ False
   SealedChaosToken token card | toCardId card == toCardId a -> do
     pure $ a & sealedChaosTokensL %~ (token :)
+  ReturnChaosTokens tokens -> pure $ a & sealedChaosTokensL %~ filter (`notElem` tokens)
   UnsealChaosToken token -> pure $ a & sealedChaosTokensL %~ filter (/= token)
   RemoveAllChaosTokens face -> pure $ a & sealedChaosTokensL %~ filter ((/= face) . chaosTokenFace)
   PlaceEvent _ eid placement | eid == eventId -> do

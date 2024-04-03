@@ -495,24 +495,27 @@ instance RunMessage ChaosBag where
       returnAllBlessed <-
         getIsSkillTest >>= \case
           True -> hasModifier SkillTestTarget ReturnBlessedToChaosBag
-          False -> pure False
+          False -> pure True
 
-      let excludes = [CurseToken] <> [BlessToken | not returnAllBlessed]
+      returnAllCursed <-
+        getIsSkillTest >>= \case
+          True -> hasModifier SkillTestTarget ReturnCursedToChaosBag
+          False -> pure True
+
       -- TODO: We need to decide which tokens to keep, i.e. Blessed Blade (4)
-
       tokensToReturn <- forMaybeM chaosBagSetAsideChaosTokens \token -> do
         if
           | token.face == #bless -> do
               returnBlessed <- if returnAllBlessed then pure True else hasModifier token ReturnBlessedToChaosBag
               pure $ guard returnBlessed $> token
           | token.face == #curse -> do
-              returnCursed <- hasModifier token ReturnCursedToChaosBag
+              returnCursed <- if returnAllCursed then pure True else hasModifier token ReturnCursedToChaosBag
               pure $ guard returnCursed $> token
-          | otherwise -> pure $ guard (token.face `notElem` excludes) $> token
+          | otherwise -> pure $ Just token
 
       pure
         $ c
-        & (chaosTokensL <>~ tokensToReturn)
+        & (chaosTokensL <>~ map (\token -> token {chaosTokenRevealedBy = Nothing}) tokensToReturn)
         & (setAsideChaosTokensL .~ mempty)
         & (choiceL .~ Nothing)
     RequestChaosTokens source miid revealStrategy strategy -> do
@@ -601,27 +604,28 @@ instance RunMessage ChaosBag where
     RunDrawFromBag source miid strategy -> case chaosBagChoice of
       Nothing -> error "unexpected"
       Just choice' -> case choice' of
-        Resolved chaosTokenFaces' -> do
+        Resolved tokens -> do
+          let tokens' = map (\token -> token {chaosTokenRevealedBy = miid}) tokens
           checkWindowMsgs <- case miid of
             Nothing -> pure []
             Just iid ->
               pure
                 <$> checkWindows
                   [ mkWindow Timing.When (Window.RevealChaosToken iid token)
-                  | token <- chaosTokenFaces'
+                  | token <- tokens'
                   ]
           for_ miid $ \iid -> do
             investigator <- getAttrs @Investigator iid
             send
               $ format investigator
               <> " draws "
-              <> formatAsSentence chaosTokenFaces'
+              <> formatAsSentence tokens'
               <> " chaos "
-              <> (if length chaosTokenFaces' == 1 then "token" else "tokens")
+              <> (if length tokens' == 1 then "token" else "tokens")
           pushAll
-            ( FocusChaosTokens chaosTokenFaces'
+            ( FocusChaosTokens tokens'
                 : checkWindowMsgs
-                  <> [RequestedChaosTokens source miid chaosTokenFaces', UnfocusChaosTokens]
+                  <> [RequestedChaosTokens source miid tokens', UnfocusChaosTokens]
             )
           pure $ c & choiceL .~ Nothing
         _ -> do
@@ -669,9 +673,7 @@ instance RunMessage ChaosBag where
         & revealedChaosTokensL
         %~ filter (/= token)
     UnsealChaosToken token -> do
-      if chaosTokenFace token `elem` [CurseToken, BlessToken]
-        then pure c
-        else pure $ c & chaosTokensL %~ (token :)
+      pure $ c & chaosTokensL %~ (token :)
     RemoveAllChaosTokens face ->
       pure
         $ c
