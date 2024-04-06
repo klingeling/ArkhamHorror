@@ -32,11 +32,9 @@ import Arkham.CampaignStep
 import Arkham.Card
 import Arkham.ChaosBag.Base
 import Arkham.ChaosToken
-import Arkham.ClassSymbol
 import Arkham.Classes
 import Arkham.Classes.HasDistance
 import Arkham.Classes.HasGame
-import Arkham.CommitRestriction
 import Arkham.Cost qualified as Cost
 import Arkham.Damage
 import Arkham.Difficulty
@@ -191,32 +189,13 @@ class HasGameRef a where
 class HasStdGen a where
   genL :: Lens' a (IORef StdGen)
 
-newCampaign
-  :: CampaignId
-  -> Maybe ScenarioId
-  -> Int
-  -> Int
-  -> Difficulty
-  -> Bool
-  -> Game
+newCampaign :: CampaignId -> Maybe ScenarioId -> Int -> Int -> Difficulty -> Bool -> Game
 newCampaign cid msid = newGame (maybe (This cid) (These cid) msid)
 
-newScenario
-  :: ScenarioId
-  -> Int
-  -> Int
-  -> Difficulty
-  -> Bool
-  -> Game
+newScenario :: ScenarioId -> Int -> Int -> Difficulty -> Bool -> Game
 newScenario = newGame . That
 
-newGame
-  :: These CampaignId ScenarioId
-  -> Int
-  -> Int
-  -> Difficulty
-  -> Bool
-  -> Game
+newGame :: These CampaignId ScenarioId -> Int -> Int -> Difficulty -> Bool -> Game
 newGame scenarioOrCampaignId seed playerCount difficulty includeTarotReadings =
   let state = IsPending []
    in Game
@@ -1178,7 +1157,7 @@ abilityMatches a@Ability {..} = \case
   PerformableAbility modifiers' -> do
     let ab = applyAbilityModifiers a modifiers'
     iid <- view activeInvestigatorIdL <$> getGame
-    anyM (\w -> getCanPerformAbility iid w ab) (Window.defaultWindows iid)
+    getCanPerformAbility iid (Window.defaultWindows iid) ab
   AnyAbility -> pure True
   HauntedAbility -> pure $ abilityType == Haunted
   AssetAbility assetMatcher -> do
@@ -2058,16 +2037,12 @@ getAssetsMatching matcher = do
         otherDamageableAssetIds = flip mapMaybe modifiers' $ \case
           CanAssignDamageToAsset aid -> Just aid
           _ -> Nothing
-      assets <-
-        filterMatcher
-          as
-          ( AssetOneOf
-              $ AssetControlledBy (InvestigatorWithId iid)
-              : map AssetWithId otherDamageableAssetIds
-          )
+      assets <- filterMatcher as $ oneOf $ assetControlledBy iid : map AssetWithId otherDamageableAssetIds
+
+      -- We can damage if remaining health or if no health at all and the modifier specifically says we can
       let
         isHealthDamageable a =
-          fieldP AssetRemainingHealth (maybe False (> 0)) (toId a)
+          fieldP AssetRemainingHealth (maybe (toId a `elem` otherDamageableAssetIds) (> 0)) (toId a)
       filterM isHealthDamageable assets
     AssetCanBeAssignedHorrorBy iid -> do
       modifiers' <- getModifiers (InvestigatorTarget iid)
@@ -2082,12 +2057,21 @@ getAssetsMatching matcher = do
               $ AssetControlledBy (InvestigatorWithId iid)
               : map AssetWithId otherDamageableAssetIds
           )
+
+      -- We can horror if remaining sanity or if no sanity at all and the modifier specifically says we can
       let
         isSanityDamageable a =
-          fieldP AssetRemainingSanity (maybe False (> 0)) (toId a)
+          fieldP AssetRemainingSanity (maybe (toId a `elem` otherDamageableAssetIds) (> 0)) (toId a)
       filterM isSanityDamageable assets
     AssetWithoutSealedTokens -> do
       pure $ filter (null . attr assetSealedChaosTokens) as
+    AssetWithSealedChaosTokens n chaosTokenMatcher -> do
+      filterM
+        ( fmap (>= n)
+            . countM (`chaosTokenMatches` IncludeSealed chaosTokenMatcher)
+            . attr assetSealedChaosTokens
+        )
+        as
     AssetWithHighestPrintedCost matcher' -> do
       matches' <- getAssetsMatching matcher'
       maxes <$> forToSnd matches' (field AssetCost . toId)
@@ -2115,11 +2099,7 @@ getAssetsMatching matcher = do
       iid <- view activeInvestigatorIdL <$> getGame
       let adjustAbility ab = applyAbilityModifiers ab modifiers'
       abilities <- selectMap adjustAbility $ abilityMatcher <> AssetAbility (AssetWithId $ toId asset)
-      notNull
-        <$> filterM
-          ( \ab -> anyM (\w -> getCanPerformAbility iid w ab) (Window.defaultWindows iid)
-          )
-          abilities
+      notNull <$> filterM (getCanPerformAbility iid (Window.defaultWindows iid)) abilities
     ClosestAsset start assetMatcher -> flip filterM as $ \asset -> do
       aids <- select assetMatcher
       if toId asset `elem` aids
@@ -2585,7 +2565,7 @@ enemyMatcherFilter = \case
                 [ pure . (`abilityIs` Action.Fight)
                 , -- Because ChooseFightEnemy happens after taking a fight action we
                   -- need to decrement the action cost
-                  getCanPerformAbility iid window
+                  getCanPerformAbility iid [window]
                     . (`applyAbilityModifiers` [ActionCostModifier (-1)])
                     . overrideFunc
                 ]
@@ -2615,7 +2595,7 @@ enemyMatcherFilter = \case
                 [ pure . (`abilityIs` Action.Fight)
                 , -- Because ChooseFightEnemy happens after taking a fight action we
                   -- need to decrement the action cost
-                  getCanPerformAbility iid window
+                  getCanPerformAbility iid [window]
                     . (`applyAbilityModifiers` [ActionCostModifier (-1)])
                     . overrideAbilityCriteria override
                 ]
@@ -2658,7 +2638,7 @@ enemyMatcherFilter = \case
           ( andM
               . sequence
                 [ pure . (`abilityIs` Action.Evade)
-                , getCanPerformAbility iid window
+                , getCanPerformAbility iid [window]
                     . (`applyAbilityModifiers` [ActionCostModifier (-1)])
                     . overrideFunc
                 ]
@@ -2688,7 +2668,7 @@ enemyMatcherFilter = \case
                 [ pure . (`abilityIs` Action.Evade)
                 , -- Because ChooseEvadeEnemy happens after taking a fight action we
                   -- need to decrement the action cost
-                  getCanPerformAbility iid window
+                  getCanPerformAbility iid [window]
                     . (`applyAbilityModifiers` [ActionCostModifier (-1)])
                     . overrideAbilityCriteria override
                 ]
@@ -2731,7 +2711,7 @@ enemyMatcherFilter = \case
           ( andM
               . sequence
                 [ pure . (`abilityIs` Action.Engage)
-                , getCanPerformAbility iid window
+                , getCanPerformAbility iid [window]
                     . (`applyAbilityModifiers` [ActionCostModifier (-1)])
                     . overrideFunc
                 ]
@@ -2761,7 +2741,7 @@ enemyMatcherFilter = \case
                 [ pure . (`abilityIs` Action.Engage)
                 , -- Because ChooseEngageEnemy happens after taking a fight action we
                   -- need to decrement the action cost
-                  getCanPerformAbility iid window
+                  getCanPerformAbility iid [window]
                     . (`applyAbilityModifiers` [ActionCostModifier (-1)])
                     . overrideAbilityCriteria override
                 ]
@@ -2943,7 +2923,9 @@ instance Projection Asset where
         AsSwarm {} -> error "AssetLocation: AsSwarm"
       AssetCardCode -> pure assetCardCode
       AssetCardId -> pure assetCardId
-      AssetSlots -> pure assetSlots
+      AssetSlots -> do
+        mods <- getModifiers aid
+        pure $ assetSlots <> [s | AdditionalSlot s <- mods]
       AssetSealedChaosTokens -> pure assetSealedChaosTokens
       AssetCardsUnderneath -> pure assetCardsUnderneath
       -- virtual
@@ -3251,17 +3233,29 @@ instance Projection Investigator where
 
 instance Query ChaosTokenMatcher where
   select matcher = do
+    tokenPool <- if includeTokenPool matcher then getTokenPool else pure []
     tokens <-
-      if includeSealed
+      if includeSealed matcher
         then getAllChaosTokens
         else
           if isInfestation
             then getInfestationTokens
             else getBagChaosTokens
-    filterM (go matcher) tokens
+    filterM (go matcher) ((if inTokenPool matcher then [] else tokens) <> tokenPool)
    where
-    includeSealed = case matcher of
+    includeSealed = \case
       IncludeSealed _ -> True
+      IncludeTokenPool m -> includeSealed m
+      _ -> False
+    includeTokenPool = \case
+      IncludeSealed m -> includeTokenPool m
+      IncludeTokenPool _ -> True
+      InTokenPool _ -> True
+      _ -> False
+    inTokenPool = \case
+      IncludeSealed m -> inTokenPool m
+      IncludeTokenPool m -> inTokenPool m
+      InTokenPool _ -> True
       _ -> False
     isInfestation = case matcher of
       IsInfestationToken _ -> True
@@ -3278,6 +3272,8 @@ instance Query ChaosTokenMatcher where
             <> infestationSetAside bag
             <> maybeToList (infestationCurrentToken bag)
     go = \case
+      InTokenPool m -> go m
+      NotChaosToken m -> fmap not . go m
       WouldReduceYourSkillValueToZero -> \t -> do
         mSkillTest <- getSkillTest
         case mSkillTest of
@@ -3305,6 +3301,7 @@ instance Query ChaosTokenMatcher where
       ChaosTokenMatchesAny ms -> \t -> anyM (`go` t) ms
       ChaosTokenMatches ms -> \t -> allM (`go` t) ms
       IncludeSealed m -> go m
+      IncludeTokenPool m -> go m
       IsInfestationToken m -> go m
 
 instance Query AssetMatcher where
@@ -3374,9 +3371,7 @@ instance Query ExtendedCardMatcher where
         flip runReaderT (g {gameEntities = gameEntities g <> extraEntities}) $ do
           flip anyM abilities' $ \ab -> do
             let adjustedAbility = applyAbilityModifiers ab modifiers'
-            anyM
-              (\w -> getCanPerformAbility iid w adjustedAbility)
-              (Window.defaultWindows iid)
+            getCanPerformAbility iid (Window.defaultWindows iid) adjustedAbility
       HandCardWithDifferentTitleFromAtLeastOneAsset who assetMatcher cardMatcher ->
         do
           iids <- select who
@@ -3439,105 +3434,17 @@ instance Query ExtendedCardMatcher where
             results
         pure $ c `elem` playable
       CommittableCard iid matcher' -> do
-        mSkillTest <- getSkillTest
-        case mSkillTest of
-          Nothing -> pure False
-          Just skillTest -> do
-            modifiers' <- getModifiers (toTarget iid)
-            committedCards <- field InvestigatorCommittedCards iid
-            allCommittedCards <- selectAgg id InvestigatorCommittedCards Anyone
-            let
-              onlyCardComittedToTestCommitted =
-                any
-                  (elem OnlyCardCommittedToTest . cdCommitRestrictions . toCardDef)
-                  allCommittedCards
-              committedCardTitles = map toTitle allCommittedCards
-              skillDifficulty = skillTestDifficulty skillTest
-            cannotCommitCards <-
-              elem (CannotCommitCards AnyCard)
-                <$> getModifiers (InvestigatorTarget iid)
-            if cannotCommitCards || onlyCardComittedToTestCommitted
-              then pure False
-              else do
-                matchInitial <- c `matches'` matcher'
-                resources <- field InvestigatorResources iid
-                isScenarioAbility <- getIsScenarioAbility
-                mlid <- field InvestigatorLocation iid
-                skillIcons <- getSkillTestMatchingSkillIcons
-                case c of
-                  PlayerCard card -> do
-                    let
-                      passesCommitRestriction = \case
-                        CommittableTreachery -> error "unhandled"
-                        OnlyInvestigator imatcher -> iid <=~> imatcher
-                        OnlyCardCommittedToTest -> pure $ null committedCardTitles
-                        MaxOnePerTest ->
-                          pure $ toTitle card `notElem` committedCardTitles
-                        OnlyYourTest -> pure $ skillTestInvestigator skillTest == iid
-                        MustBeCommittedToYourTest -> pure True
-                        OnlyIfYourLocationHasClues -> case mlid of
-                          Nothing -> pure False
-                          Just lid -> fieldMap LocationClues (> 0) lid
-                        OnlyTestWithActions as ->
-                          pure $ maybe False (`elem` as) (skillTestAction skillTest)
-                        ScenarioAbility -> pure isScenarioAbility
-                        SelfCanCommitWhen matcher'' ->
-                          notNull <$> select (InvestigatorWithId iid <> matcher'')
-                        MinSkillTestValueDifference n ->
-                          case skillTestType skillTest of
-                            SkillSkillTest skillType -> do
-                              baseValue <- baseSkillValueFor skillType Nothing [] iid
-                              pure $ (skillDifficulty - baseValue) >= n
-                            AndSkillTest types -> do
-                              baseValue <- sum <$> traverse (\skillType -> baseSkillValueFor skillType Nothing [] iid) types
-                              pure $ (skillDifficulty - baseValue) >= n
-                            ResourceSkillTest ->
-                              pure $ (skillDifficulty - resources) >= n
-                      prevented = flip
-                        any
-                        modifiers'
-                        \case
-                          CanOnlyUseCardsInRole role ->
-                            null
-                              $ intersect
-                                (cdClassSymbols $ toCardDef card)
-                                (setFromList [Neutral, role])
-                          CannotCommitCards matcher'' -> cardMatch card matcher''
-                          _ -> False
-                    passesCommitRestrictions <-
-                      allM
-                        passesCommitRestriction
-                        (cdCommitRestrictions $ toCardDef card)
-                    pure
-                      $ PlayerCard card
-                      `notElem` committedCards
-                      && ( any (`member` skillIcons) (cdSkills (toCardDef card))
-                            || ( null (cdSkills $ toCardDef card)
-                                  && toCardType card
-                                  == SkillType
-                               )
-                         )
-                      && passesCommitRestrictions
-                      && not prevented
-                      && matchInitial
-                  EncounterCard card ->
-                    pure
-                      $ CommittableTreachery
-                      `elem` cdCommitRestrictions (toCardDef card)
-                      && matchInitial
-                  VengeanceCard _ -> error "vengeance card"
+        cards <- getCommittableCards iid
+        matchInitial <- c `matches'` matcher'
+        pure $ matchInitial && c `elem` cards
       BasicCardMatch cm -> pure $ c `cardMatch` cm
       InHandOf who -> do
         iids <- select who
-        cards <- concat <$> traverse (field InvestigatorHand) iids
+        cards <- concatMapM (field InvestigatorHand) iids
         pure $ c `elem` cards
       InDeckOf who -> do
         iids <- select who
-        cards <-
-          concat
-            <$> traverse
-              (fieldMap InvestigatorDeck (map PlayerCard . unDeck))
-              iids
+        cards <- concatMapM (fieldMap InvestigatorDeck (map PlayerCard . unDeck)) iids
         pure $ c `elem` cards
       TopOfDeckOf who -> do
         iids <- select who
@@ -3549,10 +3456,7 @@ instance Query ExtendedCardMatcher where
         pure $ c `elem` cards
       EligibleForCurrentSkillTest -> do
         skillIcons <- getSkillTestMatchingSkillIcons
-        pure
-          ( any (`member` skillIcons) (cdSkills (toCardDef c))
-              || (null (cdSkills $ toCardDef c) && toCardType c == SkillType)
-          )
+        pure $ any (`member` skillIcons) c.skills || (null c.skills && toCardType c == SkillType)
       CardWithCopyInHand who -> do
         let name = toName c
         iids <- select who

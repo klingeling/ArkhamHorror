@@ -170,8 +170,8 @@ getAsIfInHandCards iid = do
     <> cardsAddedViaModifiers
 
 getCanPerformAbility
-  :: HasGame m => InvestigatorId -> Window -> Ability -> m Bool
-getCanPerformAbility !iid !window !ability = do
+  :: HasGame m => InvestigatorId -> [Window] -> Ability -> m Bool
+getCanPerformAbility !iid !ws !ability = do
   -- can perform an ability means you can afford it
   -- it is in the right window
   -- passes restrictions
@@ -192,11 +192,11 @@ getCanPerformAbility !iid !window !ability = do
       _ -> id
 
   andM
-    [ getCanAffordCost iid (toSource ability) actions [window] cost
-    , meetsActionRestrictions iid window ability
-    , windowMatches iid (toSource ability) window (abilityWindow ability)
-    , passesCriteria iid Nothing (abilitySource ability) [window] criteria
-    , allM (getCanAffordCost iid (abilitySource ability) actions [window]) additionalCosts
+    [ getCanAffordCost iid (toSource ability) actions ws cost
+    , meetsActionRestrictions iid ws ability
+    , anyM (\window -> windowMatches iid (toSource ability) window (abilityWindow ability)) ws
+    , passesCriteria iid Nothing (abilitySource ability) ws criteria
+    , allM (getCanAffordCost iid (abilitySource ability) actions ws) additionalCosts
     , not <$> preventedByInvestigatorModifiers iid ability
     ]
 
@@ -224,7 +224,7 @@ preventedByInvestigatorModifiers iid ability = do
       _ -> pure False
 
 meetsActionRestrictions
-  :: HasGame m => InvestigatorId -> Window -> Ability -> m Bool
+  :: HasGame m => InvestigatorId -> [Window] -> Ability -> m Bool
 meetsActionRestrictions iid _ ab@Ability {..} = go abilityType
  where
   go = \case
@@ -316,9 +316,12 @@ canDoAction iid ab@Ability {abilitySource, abilityIndex} = \case
   Action.Circle -> pure True
 
 getCanAffordAbility
-  :: (HasCallStack, HasGame m) => InvestigatorId -> Ability -> Window -> m Bool
-getCanAffordAbility iid ability window =
-  andM [getCanAffordUse iid ability window, getCanAffordAbilityCost iid ability]
+  :: (HasCallStack, HasGame m) => InvestigatorId -> Ability -> [Window] -> m Bool
+getCanAffordAbility iid ability ws =
+  andM
+    [ getCanAffordUse iid ability ws
+    , getCanAffordAbilityCost iid ability
+    ]
 
 getCanAffordAbilityCost :: HasGame m => InvestigatorId -> Ability -> m Bool
 getCanAffordAbilityCost iid a@Ability {..} = do
@@ -406,7 +409,7 @@ getAbilityLimit iid ability = do
 -- limits for instance won't work if we have a group limit higher than one, for
 -- that we need to sum uses across all investigators. So we should fix this
 -- soon.
-getCanAffordUse :: (HasCallStack, HasGame m) => InvestigatorId -> Ability -> Window -> m Bool
+getCanAffordUse :: (HasCallStack, HasGame m) => InvestigatorId -> Ability -> [Window] -> m Bool
 getCanAffordUse = getCanAffordUseWith id CanIgnoreAbilityLimit
 
 -- Use `f` to modify use count, used for `getWindowSkippable` to exclude the current call
@@ -417,9 +420,9 @@ getCanAffordUseWith
   -> CanIgnoreAbilityLimit
   -> InvestigatorId
   -> Ability
-  -> Window
+  -> [Window]
   -> m Bool
-getCanAffordUseWith f canIgnoreAbilityLimit iid ability window = do
+getCanAffordUseWith f canIgnoreAbilityLimit iid ability ws = do
   usedAbilities <-
     fmap f . filterDepthSpecificAbilities =<< field InvestigatorUsedAbilities iid
   limit <- getAbilityLimit iid ability
@@ -483,16 +486,20 @@ getCanAffordUseWith f canIgnoreAbilityLimit iid ability window = do
         -- This is difficult and based on the window, so we need to match out the
         -- relevant investigator ids from the window. If this becomes more prevalent
         -- we may want a method from `Window -> Maybe InvestigatorId`
-        case windowType window of
-          Window.CommittedCard iid' _ -> do
-            let
-              matchingPerInvestigatorCount =
-                flip count usedAbilities $ \usedAbility' ->
-                  flip any (usedAbilityWindows usedAbility') $ \case
-                    (windowType -> Window.CommittedCard iid'' _) -> usedAbility usedAbility' == ability && iid' == iid''
-                    _ -> False
-            pure $ matchingPerInvestigatorCount < n
-          _ -> error "Unhandled per investigator limit"
+        anyM
+          ( \window ->
+              case windowType window of
+                Window.CommittedCard iid' _ -> do
+                  let
+                    matchingPerInvestigatorCount =
+                      flip count usedAbilities $ \usedAbility' ->
+                        flip any (usedAbilityWindows usedAbility') $ \case
+                          (windowType -> Window.CommittedCard iid'' _) -> usedAbility usedAbility' == ability && iid' == iid''
+                          _ -> False
+                  pure $ matchingPerInvestigatorCount < n
+                _ -> pure False
+          )
+          ws
       GroupLimit _ n -> do
         usedAbilities' <-
           fmap (map usedAbility)
@@ -502,16 +509,16 @@ getCanAffordUseWith f canIgnoreAbilityLimit iid ability window = do
         let total = count (== ability) usedAbilities'
         pure $ total < n
 
-getActions :: (HasGame m, HasCallStack) => InvestigatorId -> Window -> m [Ability]
-getActions iid window = getActionsWith iid window id
+getActions :: (HasGame m, HasCallStack) => InvestigatorId -> [Window] -> m [Ability]
+getActions iid ws = getActionsWith iid ws id
 
 getActionsWith
   :: (HasCallStack, HasGame m)
   => InvestigatorId
-  -> Window
+  -> [Window]
   -> (Ability -> Ability)
   -> m [Ability]
-getActionsWith iid window f = do
+getActionsWith iid ws f = do
   modifiersForFilter <- getModifiers iid
   let
     abilityFilters =
@@ -597,13 +604,17 @@ getActionsWith iid window f = do
           -- If the window is fast we only permit fast abilities, but forced
           -- abilities need to be everpresent so we include them
           needsToBeFast =
-            windowType window
-              == Window.FastPlayerWindow
-              && not
-                ( isFastAbility ability
-                    || isForced
-                    || isReactionAbility ability
-                )
+            all
+              ( \window ->
+                  windowType window
+                    == Window.FastPlayerWindow
+                    && not
+                      ( isFastAbility ability
+                          || isForced
+                          || isReactionAbility ability
+                      )
+              )
+              ws
 
         pure
           $ if any prevents investigatorModifiers
@@ -617,8 +628,8 @@ getActionsWith iid window f = do
     filterM
       ( \action ->
           andM
-            [ getCanPerformAbility iid window action
-            , getCanAffordAbility iid action window
+            [ getCanPerformAbility iid ws action
+            , getCanAffordAbility iid action ws
             ]
       )
       actions''
@@ -699,7 +710,7 @@ sourceToTarget = \case
   ProxySource _ source -> sourceToTarget source
   EffectSource eid -> EffectTarget eid
   ResourceSource -> ResourceTarget
-  AbilitySource {} -> error "not implemented"
+  AbilitySource s _ -> sourceToTarget s
   ActDeckSource -> ActDeckTarget
   AgendaDeckSource -> AgendaDeckTarget
   ActMatcherSource {} -> error "not converted"
@@ -724,7 +735,7 @@ hasFightActions
   -> [Window]
   -> m Bool
 hasFightActions iid window windows' =
-  anyM (\a -> anyM (\w -> getCanPerformAbility iid w $ decreaseAbilityActionCost a 1) windows')
+  anyM (\a -> getCanPerformAbility iid windows' $ decreaseAbilityActionCost a 1)
     =<< select (Matcher.AbilityIsAction #fight <> Matcher.AbilityWindow window)
 
 hasEvadeActions
@@ -734,7 +745,7 @@ hasEvadeActions
   -> [Window]
   -> m Bool
 hasEvadeActions iid window windows' =
-  anyM (\a -> anyM (\w -> getCanPerformAbility iid w a) windows')
+  anyM (getCanPerformAbility iid windows')
     =<< select
       (Matcher.AbilityIsAction Action.Evade <> Matcher.AbilityWindow window)
 
@@ -1155,17 +1166,22 @@ passesCriteria iid mcard source windows' = \case
       fieldP InvestigatorLocation (== Just lid) iid
     _ -> pure False
   Criteria.HasSupply s -> fieldP InvestigatorSupplies (elem s) iid
-  Criteria.ControlsThis -> case source of
-    AssetSource aid ->
-      elem aid
-        <$> select (Matcher.AssetControlledBy $ Matcher.InvestigatorWithId iid)
-    EventSource eid ->
-      elem eid
-        <$> select (Matcher.EventControlledBy $ Matcher.InvestigatorWithId iid)
-    SkillSource sid ->
-      elem sid
-        <$> select (Matcher.SkillControlledBy $ Matcher.InvestigatorWithId iid)
-    _ -> pure False
+  Criteria.ControlsThis ->
+    let
+      go = \case
+        ProxySource s _ -> go s
+        AssetSource aid ->
+          elem aid
+            <$> select (Matcher.AssetControlledBy $ Matcher.InvestigatorWithId iid)
+        EventSource eid ->
+          elem eid
+            <$> select (Matcher.EventControlledBy $ Matcher.InvestigatorWithId iid)
+        SkillSource sid ->
+          elem sid
+            <$> select (Matcher.SkillControlledBy $ Matcher.InvestigatorWithId iid)
+        _ -> pure False
+     in
+      go source
   Criteria.DuringSkillTest skillTestMatcher -> do
     mSkillTest <- getSkillTest
     case mSkillTest of
@@ -1518,7 +1534,7 @@ cardInFastWindows iid source _ windows' matcher =
   anyM (\window -> windowMatches iid source window matcher) windows'
 
 windowMatches
-  :: HasGame m
+  :: (HasGame m, HasCallStack)
   => InvestigatorId
   -> Source
   -> Window
@@ -1575,6 +1591,9 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
           , deckMatch iid deck
               $ Matcher.replaceThatInvestigator who deckMatcher
           ]
+      _ -> noMatch
+    Matcher.TokensWouldBeRemovedFromChaosBag timing matcher -> guardTiming timing $ \case
+      Window.TokensWouldBeRemovedFromChaosBag tokens' -> anyM (`chaosTokenMatches` Matcher.InTokenPool matcher) tokens'
       _ -> noMatch
     Matcher.WouldTriggerChaosTokenRevealEffectOnCard whoMatcher cardMatcher tokens ->
       guardTiming Timing.AtIf $ \case
@@ -1948,6 +1967,21 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
             , gameValueMatches n valueMatcher
             ]
         _ -> noMatch
+    Matcher.PlacedCounterOnAsset timing assetMatcher sourceMatcher counterMatcher valueMatcher ->
+      guardTiming timing $ \case
+        Window.PlacedHorror source' (AssetTarget assetId) n | counterMatcher == Matcher.HorrorCounter -> do
+          andM
+            [ assetId <=~> assetMatcher
+            , sourceMatches source' sourceMatcher
+            , gameValueMatches n valueMatcher
+            ]
+        Window.PlacedDamage source' (AssetTarget assetId) n | counterMatcher == Matcher.DamageCounter -> do
+          andM
+            [ assetId <=~> assetMatcher
+            , sourceMatches source' sourceMatcher
+            , gameValueMatches n valueMatcher
+            ]
+        _ -> noMatch
     Matcher.RevealLocation timing whoMatcher locationMatcher ->
       guardTiming timing $ \case
         Window.RevealLocation who locationId ->
@@ -2276,7 +2310,10 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
       _ -> noMatch
     Matcher.RevealChaosToken timing whoMatcher tokenMatcher -> guardTiming timing $ \case
       Window.RevealChaosToken who token ->
-        andM [matchWho iid who whoMatcher, matchChaosToken who token tokenMatcher]
+        andM
+          [ matchWho iid who whoMatcher
+          , matchChaosToken who token tokenMatcher
+          ]
       _ -> noMatch
     Matcher.ResolvesChaosToken timing whoMatcher tokenMatcher -> guardTiming timing $ \case
       Window.ResolvesChaosToken who token ->
@@ -2860,7 +2897,15 @@ skillTestMatches iid source st = \case
   Matcher.SkillTestSourceMatches sourceMatcher ->
     sourceMatches (skillTestSource st) sourceMatcher
   Matcher.SkillTestWithRevealedChaosToken matcher ->
-    anyM (`chaosTokenMatches` matcher) $ skillTestRevealedChaosTokens st
+    anyM (`chaosTokenMatches` Matcher.IncludeSealed matcher) $ skillTestRevealedChaosTokens st
+  Matcher.SkillTestWithRevealedChaosTokenCount n matcher ->
+    (>= n)
+      <$> countM (`chaosTokenMatches` Matcher.IncludeSealed matcher) (skillTestRevealedChaosTokens st)
+  Matcher.SkillTestWithResolvedChaosTokenBy whoMatcher matcher -> do
+    iids <- select whoMatcher
+    anyM (`chaosTokenMatches` Matcher.IncludeSealed matcher)
+      . filter (maybe False (`elem` iids) . chaosTokenRevealedBy)
+      $ skillTestRevealedChaosTokens st
   Matcher.SkillTestFromRevelation -> pure $ skillTestIsRevelation st
   Matcher.SkillTestForAction actionMatcher -> case skillTestAction st of
     Just action -> actionMatches iid action actionMatcher
@@ -2897,6 +2942,7 @@ skillTestMatches iid source st = \case
     case (mlid1, mlid2) of
       (Just lid1, Just lid2) -> pure $ lid1 == lid2 && (canAffectOthers || iid == st.investigator)
       _ -> pure False
+  Matcher.SkillTestOfInvestigator whoMatcher -> st.investigator <=~> whoMatcher
   Matcher.SkillTestMatches ms -> allM (skillTestMatches iid source st) ms
 
 matchPhase :: Monad m => Phase -> Matcher.PhaseMatcher -> m Bool
@@ -2970,7 +3016,7 @@ actionMatches iid a (Matcher.ActionOneOf as) = anyM (actionMatches iid a) as
 actionMatches iid a Matcher.RepeatableAction = do
   a' <- getAttrs @Investigator iid
   actions <- withModifiers iid (toModifiers GameSource [ActionCostModifier (-1)]) $ do
-    concatMapM (getActions iid) (defaultWindows iid)
+    getActions iid (defaultWindows iid)
 
   playableCards <- withModifiers iid (toModifiers GameSource [ActionCostOf IsAnyAction (-1)]) $ do
     filter (`cardMatch` Matcher.NotCard Matcher.FastCard)

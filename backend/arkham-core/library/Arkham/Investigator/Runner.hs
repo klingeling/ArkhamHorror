@@ -129,7 +129,7 @@ getWindowSkippable _ _ w@(windowType -> Window.ActivateAbility iid _ ab) = do
         else uab {usedTimes = usedTimes uab - 1} : xs
     excludeOne (uab : xs) = uab : excludeOne xs
   andM
-    [ getCanAffordUseWith excludeOne CanNotIgnoreAbilityLimit iid ab w
+    [ getCanAffordUseWith excludeOne CanNotIgnoreAbilityLimit iid ab [w]
     , withAlteredGame withoutCanModifiers
         $ passesCriteria iid Nothing (abilitySource ab) [w] (abilityCriteria ab)
     ]
@@ -1878,7 +1878,8 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
       assetCard <- field AssetCard assetId
       mods <- getModifiers assetId
       let slotFilter sType = DoNotTakeUpSlot sType `notElem` mods
-      pure $ (assetId,assetCard,) <$> filter slotFilter (cdSlots $ toCardDef assetCard)
+      slots <- field AssetSlots assetId
+      pure $ (assetId,assetCard,) <$> filter slotFilter slots
 
     let allSlots :: [(SlotType, Slot)] = concatMap (\(k, vs) -> (k,) . emptySlot <$> vs) $ Map.assocs (a ^. slotsL)
 
@@ -2273,15 +2274,19 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
           )
           cards
     pure $ a & update & foundCardsL %~ Map.map (filter (`notElem` cards))
-  ChaosTokenCanceled iid _ token | iid == investigatorId -> do
+  ChaosTokenCanceled iid source token | iid == investigatorId -> do
     whenWindow <- checkWindows [mkWhen (Window.CancelChaosToken iid token)]
+    whenWindow2 <- checkWindows [mkWhen (Window.CancelledOrIgnoredCardOrGameEffect source)]
     afterWindow <- checkWindows [mkAfter (Window.CancelChaosToken iid token)]
-    pushAll [whenWindow, afterWindow]
+    afterWindow2 <- checkWindows [mkAfter (Window.CancelledOrIgnoredCardOrGameEffect source)]
+    pushAll [whenWindow, whenWindow2, afterWindow2, afterWindow]
     pure a
-  ChaosTokenIgnored iid _ token | iid == toId a -> do
+  ChaosTokenIgnored iid source token | iid == toId a -> do
     whenWindow <- checkWindows [mkWhen (Window.IgnoreChaosToken iid token)]
+    whenWindow2 <- checkWindows [mkWhen (Window.CancelledOrIgnoredCardOrGameEffect source)]
     afterWindow <- checkWindows [mkAfter (Window.IgnoreChaosToken iid token)]
-    pushAll [whenWindow, afterWindow]
+    afterWindow2 <- checkWindows [mkAfter (Window.CancelledOrIgnoredCardOrGameEffect source)]
+    pushAll [whenWindow, whenWindow2, afterWindow2, afterWindow]
     pure a
   BeforeSkillTest skillTest | skillTestInvestigator skillTest == toId a -> do
     skillTestModifiers' <- getModifiers SkillTestTarget
@@ -2293,9 +2298,9 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
   CommitToSkillTest skillTest triggerMessage' | skillTestInvestigator skillTest == toId a -> do
     let iid = skillTestInvestigator skillTest
     committedCards <- field InvestigatorCommittedCards iid
-    mustBeCommited <- filterM (`hasModifier` MustBeCommitted) committedCards
+    uncommittableCards <- filterM (`withoutModifier` MustBeCommitted) committedCards
     let window = mkWhen (Window.SkillTest $ skillTestType skillTest)
-    actions <- getActions iid window
+    actions <- getActions iid [window]
 
     skillTestModifiers' <- getModifiers SkillTestTarget
     committableCards <- getCommittableCards (toId a)
@@ -2307,7 +2312,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
         ]
       beginMessage = CommitToSkillTest skillTest triggerMessage'
     player <- getPlayer iid
-    if notNull committableCards || notNull committedCards || notNull actions
+    if notNull committableCards || notNull uncommittableCards || notNull actions
       then
         push
           $ SkillTestAsk
@@ -2316,8 +2321,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
             (\card -> targetLabel (toCardId card) [SkillTestCommitCard iid card, beginMessage])
             committableCards
           <> [ targetLabel (toCardId card) [SkillTestUncommitCard iid card, beginMessage]
-             | card <- committedCards
-             , card `notElem` mustBeCommited
+             | card <- uncommittableCards
              ]
           <> map
             (\action -> AbilityLabel iid action [window] [beginMessage])
@@ -2332,23 +2336,24 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
     committedCards <- field InvestigatorCommittedCards investigatorId
     let beginMessage = CommitToSkillTest skillTest triggerMessage
     committableCards <- getCommittableCards a.id
+    uncommittableCards <- filterM (`withoutModifier` MustBeCommitted) committedCards
     player <- getPlayer investigatorId
-    pushWhen (notNull committableCards || notNull committedCards)
+    pushWhen (notNull committableCards || notNull uncommittableCards)
       $ SkillTestAsk
       $ chooseOne player
       $ map
         (\card -> targetLabel (toCardId card) [SkillTestCommitCard investigatorId card, beginMessage])
         committableCards
-      <> map
-        (\card -> targetLabel (toCardId card) [SkillTestUncommitCard investigatorId card, beginMessage])
-        committedCards
+      <> [ targetLabel (toCardId card) [SkillTestUncommitCard investigatorId card, beginMessage]
+         | card <- uncommittableCards
+         ]
     pure a
   CheckWindow iids windows | investigatorId `elem` iids -> do
     a <$ push (RunWindow investigatorId windows)
   RunWindow iid windows
     | iid == toId a
     , not (investigatorDefeated || investigatorResigned) || Window.hasEliminatedWindow windows -> do
-        actions <- nub . concat <$> traverse (getActions iid) windows
+        actions <- getActions iid windows
         playableCards <- getPlayableCards a UnpaidCost windows
         runWindow a windows actions playableCards
         pure a
@@ -2709,8 +2714,8 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
           filter
             ((`notElem` findWithDefault [] Zone.FromDeck foundCards) . PlayerCard)
             (unDeck investigatorDeck)
-      pushBatch batchId $ EndSearch iid source target cardSources
-      pushBatch batchId $ ResolveSearch iid
+      pushBatch batchId $ EndSearch investigatorId source target cardSources
+      pushBatch batchId $ ResolveSearch investigatorId
 
       when (searchType == Searching) $ do
         pushBatch batchId
@@ -2722,10 +2727,10 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
         ?~ InvestigatorSearch searchType iid source target cardSources cardMatcher foundStrategy foundCards
         & deckL
         .~ Deck deck
-  ResolveSearch iid | iid == investigatorId -> do
+  ResolveSearch x | x == investigatorId -> do
     case investigatorSearch of
       Just
-        (InvestigatorSearch _ _ source (InvestigatorTarget iid') _ cardMatcher foundStrategy foundCards) -> do
+        (InvestigatorSearch _ iid source (InvestigatorTarget iid') _ cardMatcher foundStrategy foundCards) -> do
           mods <- getModifiers iid
           let
             applyMod (AdditionalTargets n) = over biplate (+ n)
@@ -2997,7 +3002,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
   PlayerWindow iid additionalActions isAdditional | iid == investigatorId -> do
     let
       windows = [mkWhen (Window.DuringTurn iid), mkWhen Window.FastPlayerWindow, mkWhen Window.NonFast]
-    actions <- nub <$> concatMapM (getActions iid) windows
+    actions <- getActions iid windows
     anyForced <- anyM (isForcedAbility iid) actions
     if anyForced
       then do
@@ -3061,7 +3066,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
     pure a
   PlayerWindow iid additionalActions isAdditional | iid /= investigatorId -> do
     let windows = [mkWhen (Window.DuringTurn iid), mkWhen Window.FastPlayerWindow]
-    actions <- nub <$> concatMapM (getActions investigatorId) windows
+    actions <- getActions investigatorId windows
     anyForced <- anyM (isForcedAbility investigatorId) actions
     unless anyForced $ do
       playableCards <- getPlayableCards a UnpaidCost windows

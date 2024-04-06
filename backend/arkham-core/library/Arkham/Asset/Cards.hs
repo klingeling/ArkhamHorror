@@ -170,6 +170,7 @@ allPlayerAssetCards =
       , blasphemousCovenant2
       , blessedBlade
       , blessedBlade4
+      , blessingOfIsis3
       , bloodPact
       , bloodPact3
       , bloodstainedDagger
@@ -207,11 +208,14 @@ allPlayerAssetCards =
       , coltVestPocket2
       , cornered2
       , combatTraining1
+      , crypticGrimoireTextOfTheElderGuardian4
+      , crypticGrimoireTextOfTheElderHerald4
       , crypticGrimoireUntranslated
       , cryptographicCipher
       , crystalPendulum
       , crystallineElderSign3
       , crystallizerOfDreams
+      , curseOfAeons3
       , daisysToteBag
       , daisysToteBagAdvanced
       , darioElAmin
@@ -229,6 +233,7 @@ allPlayerAssetCards =
       , deVermisMysteriis2
       , digDeep
       , digDeep2
+      , digDeep4
       , discOfItzamna
       , discOfItzamna2
       , doubleDouble4
@@ -256,6 +261,7 @@ allPlayerAssetCards =
       , empowerSelfAlacrity2
       , empowerSelfStamina2
       , emptyVessel4
+      , enchantedArmor2
       , enchantedBlade
       , enchantedBladeGuardian3
       , enchantedBladeMystic3
@@ -267,10 +273,13 @@ allPlayerAssetCards =
       , expeditionJournal
       , eyeOfChaos
       , eyeOfChaos4
+      , eyeOfTheDjinnVesselOfGoodAndEvil2
       , falseCovenant2
       , familiarSpirit
       , familyInheritance
       , farsight4
+      , favorOfTheMoon1
+      , favorOfTheSun1
       , feedTheMind
       , feedTheMind3
       , fence1
@@ -322,6 +331,7 @@ allPlayerAssetCards =
       , guardDog
       , guardDog2
       , guardianAngel
+      , guidedByTheUnseen3
       , guidingSpirit1
       , hallowedMirror
       , hallowedMirror3
@@ -347,6 +357,7 @@ allPlayerAssetCards =
       , hope
       , hyperawareness
       , hyperawareness2
+      , hyperawareness4
       , hypnoticTherapy
       , ichtacaTheForgottenGuardian
       , inTheKnow1
@@ -396,6 +407,8 @@ allPlayerAssetCards =
       , luckyCigaretteCase
       , luckyCigaretteCase3
       , luckyDice2
+      , luckyDice3
+      , luckyPennyOmenOfMisfortune2
       , lupara3
       , m1918Bar4
       , machete
@@ -432,6 +445,7 @@ allPlayerAssetCards =
       , moxie1
       , mrRook
       , mysteriousRaven
+      , nephthysHuntressOfBast4
       , newspaper
       , newspaper2
       , nightmareBauble3
@@ -522,6 +536,7 @@ allPlayerAssetCards =
       , sergeantMonroe
       , shardsOfTheVoid3
       , sharpshooter3
+      , shieldOfFaith2
       , shiningTrapezohedron4
       , shotgun4
       , showmanship
@@ -550,6 +565,7 @@ allPlayerAssetCards =
       , streetwise3
       , studious3
       , songOfTheDead2
+      , spiritOfHumanity2
       , spiritSpeaker
       , spiritualResolve5
       , springfieldM19034
@@ -611,6 +627,7 @@ allPlayerAssetCards =
       , treasureHunter1
       , trenchCoat
       , trenchKnife
+      , tristanBotleyFixerForHire2
       , trueGrit
       , tryAndTryAgain1
       , tryAndTryAgain3
@@ -4285,6 +4302,63 @@ abyssalTome2 =
     , cdLevel = 2
     }
 
+enchantedArmor2 :: CardDef
+enchantedArmor2 =
+  (asset "07189" "Enchanted Armor" 1 Guardian)
+    { cdSkills = [#willpower, #agility]
+    , cdCardTraits = setFromList [Ritual, Armor]
+    , cdSlots = [#body, #arcane]
+    , cdLevel = 2
+    }
+
+blessingOfIsis3 :: CardDef
+blessingOfIsis3 =
+  (asset "07190" "Blessing of Isis" 2 Guardian)
+    { cdSkills = [#wild]
+    , cdCardTraits = setFromList [Ritual, Blessed]
+    , cdLevel = 3
+    }
+
+crypticGrimoireTextOfTheElderHerald4 :: CardDef
+crypticGrimoireTextOfTheElderHerald4 =
+  (asset "07191" ("Cryptic Grimoire" <:> "Text of the Elder Herald") 3 Seeker)
+    { cdCardTraits = setFromList [Item, Tome, Cursed]
+    , cdSkills = [#intellect, #agility]
+    , cdSlots = [#hand]
+    , cdLevel = 4
+    , cdKeywords = singleton $ Keyword.Researched YouHaveTranslatedTheGrimoire
+    }
+
+crypticGrimoireTextOfTheElderGuardian4 :: CardDef
+crypticGrimoireTextOfTheElderGuardian4 =
+  (asset "07192" ("Cryptic Grimoire" <:> "Text of the Elder Guardian") 3 Seeker)
+    { cdCardTraits = setFromList [Item, Tome, Blessed]
+    , cdSkills = [#willpower, #intellect]
+    , cdSlots = [#hand]
+    , cdLevel = 4
+    , cdKeywords = singleton $ Keyword.Researched YouHaveTranslatedTheGrimoire
+    }
+
+tristanBotleyFixerForHire2 :: CardDef
+tristanBotleyFixerForHire2 =
+  (asset "07194" ("Tristan Botley" <:> "Fixer for Hire") 5 Rogue)
+    { cdCardTraits = setFromList [Ally, Criminal, Cursed]
+    , cdSkills = [#wild]
+    , cdSlots = [#ally]
+    , cdLevel = 2
+    , cdKeywords = singleton $ Keyword.Researched YouHaveTranslatedTheGrimoire
+    , cdCardInHandEffects = True
+    , cdUnique = True
+    }
+
+curseOfAeons3 :: CardDef
+curseOfAeons3 =
+  (asset "07195" "Curse of Aeons" 2 Mystic)
+    { cdCardTraits = setFromList [Ritual, Cursed]
+    , cdSkills = [#wild]
+    , cdLevel = 3
+    }
+
 holyRosary2 :: CardDef
 holyRosary2 =
   (asset "07220" "Holy Rosary" 2 Guardian)
@@ -4292,6 +4366,48 @@ holyRosary2 =
     , cdCardTraits = setFromList [Item, Charm, Blessed]
     , cdSlots = [#accessory]
     , cdLevel = 2
+    }
+
+shieldOfFaith2 :: CardDef
+shieldOfFaith2 =
+  (asset "07221" "Shield of Faith" 2 Guardian)
+    { cdSkills = [#willpower, #willpower]
+    , cdCardTraits = setFromList [Spell, Blessed]
+    , cdSlots = [#arcane]
+    , cdLevel = 2
+    , cdKeywords = singleton $ seal $ SealUpTo 5 #bless
+    }
+
+guidedByTheUnseen3 :: CardDef
+guidedByTheUnseen3 =
+  (asset "07223" "Guided by the Unseen" 2 Seeker)
+    { cdSkills = [#willpower, #intellect]
+    , cdCardTraits = setFromList [Ritual]
+    , cdSlots = [#arcane]
+    , cdLevel = 3
+    , cdUses = uses Secret 4
+    }
+
+luckyPennyOmenOfMisfortune2 :: CardDef
+luckyPennyOmenOfMisfortune2 =
+  (asset "07224" ("\"Lucky\" Penny" <:> "Omen of Misfortune") 2 Rogue)
+    { cdSkills = [#willpower, #agility]
+    , cdCardTraits = setFromList [Item, Charm, Cursed]
+    , cdSlots = [#accessory]
+    , cdLevel = 2
+    , cdKeywords = setFromList [Keyword.Exceptional]
+    , cdUnique = True
+    }
+
+eyeOfTheDjinnVesselOfGoodAndEvil2 :: CardDef
+eyeOfTheDjinnVesselOfGoodAndEvil2 =
+  (asset "07225" ("Eye of the Djinn" <:> "Vessel of Good and Evil") 2 Rogue)
+    { cdSkills = [#intellect, #intellect]
+    , cdCardTraits = setFromList [Item, Relic, Blessed, Cursed]
+    , cdSlots = [#hand]
+    , cdLevel = 2
+    , cdKeywords = setFromList [Keyword.Exceptional]
+    , cdUnique = True
     }
 
 armageddon4 :: CardDef
@@ -4316,11 +4432,39 @@ eyeOfChaos4 =
 
 shroudOfShadows4 :: CardDef
 shroudOfShadows4 =
-  (asset "07228" "Eye of Chaos" 3 Mystic)
+  (asset "07228" "Shroud of Shadows" 3 Mystic)
     { cdCardTraits = setFromList [Spell, Cursed]
     , cdSkills = [#willpower, #agility]
     , cdUses = uses Charge 3
     , cdSlots = [#arcane]
+    , cdLevel = 4
+    }
+
+spiritOfHumanity2 :: CardDef
+spiritOfHumanity2 =
+  (asset "07229" "Spirit of Humanity" 2 Survivor)
+    { cdSkills = [#willpower]
+    , cdCardTraits = setFromList [Ritual, Blessed, Cursed]
+    , cdSlots = [#arcane]
+    , cdLevel = 2
+    }
+
+nephthysHuntressOfBast4 :: CardDef
+nephthysHuntressOfBast4 =
+  (asset "07262" ("Nephthys" <:> "Huntress of Bast") 3 Guardian)
+    { cdSkills = [#willpower, #combat, #combat]
+    , cdCardTraits = setFromList [Ally, Blessed]
+    , cdSlots = [#ally]
+    , cdUnique = True
+    , cdLevel = 4
+    }
+
+hyperawareness4 :: CardDef
+hyperawareness4 =
+  (asset "07264" "Hyperawareness" 2 Seeker)
+    { cdSkills = [#intellect, #intellect, #agility, #agility]
+    , cdCardTraits = setFromList [Talent]
+    , cdUses = uses Resource 2
     , cdLevel = 4
     }
 
@@ -4332,6 +4476,35 @@ hardKnocks4 =
     , cdUses = uses Resource 2
     , cdLevel = 4
     }
+
+digDeep4 :: CardDef
+digDeep4 =
+  (asset "07270" "Dig Deep" 2 Survivor)
+    { cdSkills = [#willpower, #willpower, #agility, #agility]
+    , cdCardTraits = setFromList [Talent]
+    , cdUses = uses Resource 2
+    , cdLevel = 4
+    }
+
+favorOfTheMoon1 :: CardDef
+favorOfTheMoon1 =
+  fast
+    $ (asset "07271" "Favor of the Moon" 1 Neutral)
+      { cdCardTraits = setFromList [Pact, Cursed]
+      , cdSkills = [#intellect, #combat]
+      , cdKeywords = singleton $ seal $ SealUpTo 3 #curse
+      , cdLevel = 1
+      }
+
+favorOfTheSun1 :: CardDef
+favorOfTheSun1 =
+  fast
+    $ (asset "07272" "Favor of the Sun" 1 Neutral)
+      { cdCardTraits = setFromList [Pact, Blessed]
+      , cdSkills = [#willpower, #agility]
+      , cdKeywords = singleton $ seal $ SealUpTo 3 #bless
+      , cdLevel = 1
+      }
 
 ancestralKnowledge3 :: CardDef
 ancestralKnowledge3 =
@@ -4352,6 +4525,16 @@ twentyFiveAutomatic2 =
       , cdUses = uses Ammo 4
       , cdLevel = 2
       }
+
+luckyDice3 :: CardDef
+luckyDice3 =
+  (asset "07307" ("Lucky Dice" <:> "...Or Are They?") 2 Rogue)
+    { cdCardTraits = setFromList [Item, Relic]
+    , cdSkills = [#willpower, #agility]
+    , cdExceptional = True
+    , cdLevel = 3
+    , cdSlots = [#accessory]
+    }
 
 livreDeibon :: CardDef
 livreDeibon =

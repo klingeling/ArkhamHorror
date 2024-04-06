@@ -97,9 +97,10 @@ instance FromJSON (Field Enemy Int) where
     "EnemyClues" -> pure EnemyClues
     "EnemyDamage" -> pure EnemyDamage
     "EnemyRemainingHealth" -> pure EnemyForcedRemainingHealth
+    "EnemyForcedRemainingHealth" -> pure EnemyForcedRemainingHealth
     "EnemyHealthDamage" -> pure EnemyHealthDamage
     "EnemySanityDamage" -> pure EnemySanityDamage
-    _ -> error "no such int field"
+    other -> error $ "no such int field: " <> show other
 
 instance FromJSON (SomeField Enemy) where
   parseJSON = withText "Field Enemy" $ \case

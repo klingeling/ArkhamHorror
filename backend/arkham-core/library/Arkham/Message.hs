@@ -453,7 +453,7 @@ data Message
   | HandleOption CampaignOption
   | CampaignStep CampaignStep
   | CancelEachNext Source [MessageType]
-  | CancelSkillEffects
+  | CancelSkillEffects -- used by scenarios to cancel skill cards
   | CancelHorror InvestigatorId Int
   | CancelDamage InvestigatorId Int
   | CheckAttackOfOpportunity InvestigatorId Bool
@@ -825,6 +825,7 @@ data Message
   | ResetInvestigators
   | ResetGame
   | ResetChaosTokens Source
+  | ReturnChaosTokensToPool [ChaosToken]
   | Resign InvestigatorId
   | ResignWith Target
   | ResolveAmounts InvestigatorId [(Text, Int)] Target
@@ -937,6 +938,7 @@ data Message
   | UnfocusChaosTokens
   | SealChaosToken ChaosToken
   | SealedChaosToken ChaosToken Card
+  | SetChaosTokenAside ChaosToken -- see: Favor of the Moon (1)
   | UnsealChaosToken ChaosToken
   | ChaosTokenIgnored InvestigatorId Source ChaosToken
   | ChaosTokenCanceled InvestigatorId Source ChaosToken

@@ -659,6 +659,8 @@ allAssets =
     , SomeAssetCard crypticGrimoireUntranslated
     , --- rogue [tic]
       SomeAssetCard twentyFiveAutomatic
+    , SomeAssetCard darkRitual
+    , SomeAssetCard obfuscation
     , --- mystic [tic]
       SomeAssetCard swordCane
     , --- survivor [tic]
@@ -688,23 +690,50 @@ allAssets =
     , --- mystic [def]
       SomeAssetCard bloodPact
     , SomeAssetCard abyssalTome2
+    , -- Horror in High Geat
+      --- guardian [hhg]
+      SomeAssetCard enchantedArmor2
+    , SomeAssetCard blessingOfIsis3
+    , --- seeker [hhg]
+      SomeAssetCard crypticGrimoireTextOfTheElderHerald4
+    , SomeAssetCard crypticGrimoireTextOfTheElderGuardian4
+    , --- rogue [hhg]
+      SomeAssetCard tristanBotleyFixerForHire2
+    , --- mystic [hhg]
+      SomeAssetCard curseOfAeons3
     , -- A Light in the Fog
       --- guardian [lif]
       SomeAssetCard holyRosary2
+    , SomeAssetCard shieldOfFaith2
+    , --- seeker [lif]
+      SomeAssetCard guidedByTheUnseen3
+    , --- rogue [lif]
+      SomeAssetCard luckyPennyOmenOfMisfortune2
+    , SomeAssetCard eyeOfTheDjinnVesselOfGoodAndEvil2
     , --- mystic [lif]
       SomeAssetCard armageddon4
     , SomeAssetCard eyeOfChaos4
     , SomeAssetCard shroudOfShadows4
+    , --- survivor [lif]
+      SomeAssetCard spiritOfHumanity2
     , -- The Lair of Dagon
-      --- rogue [lod]
+      --- guardian [lod]
+      SomeAssetCard nephthysHuntressOfBast4
+    , --- seeker [lod]
+      SomeAssetCard hyperawareness4
+    , --- rogue [lod]
       SomeAssetCard hardKnocks4
+    , --- survivor [lod]
+      SomeAssetCard digDeep4
+    , --- neutral [lod]
+      SomeAssetCard favorOfTheMoon1
+    , SomeAssetCard favorOfTheSun1
     , -- Into the Maelstrom
       --- seeker [itm]
       SomeAssetCard ancestralKnowledge3
     , --- rogue [itm]
       SomeAssetCard twentyFiveAutomatic2
-    , SomeAssetCard darkRitual
-    , SomeAssetCard obfuscation
+    , SomeAssetCard luckyDice3
     , -- Edge of the Earth
       --- signature [eote]
       SomeAssetCard livreDeibon

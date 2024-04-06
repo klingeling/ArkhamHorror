@@ -50,6 +50,7 @@ import Arkham.Asset.Assets (
   empiricalHypothesisEffect,
   eyeOfChaos4Effect,
   eyeOfChaosEffect,
+  eyeOfTheDjinnVesselOfGoodAndEvil2Effect,
   fence1Effect,
   fieldworkEffect,
   fireExtinguisher1Effect,
@@ -65,6 +66,7 @@ import Arkham.Asset.Assets (
   lockpicks1Effect,
   lockpicksEffect,
   luckyDice2Effect,
+  luckyDice3Effect,
   meatCleaverEffect,
   miskatonicArchaeologyFunding4Effect,
   mistsOfRlyeh2Effect,
@@ -125,6 +127,7 @@ import Arkham.Event.Events (
   stormOfSpiritsEffect,
   telescopicSight3Effect,
   thePaintedWorldEffect,
+  thirdTimesACharm2Effect,
   tidesOfFateEffect,
   uncageTheSoulEffect,
   vantagePointEffect,
@@ -155,6 +158,7 @@ import Arkham.Skill.Skills (
   deduction2Effect,
   defiance2Effect,
   defianceEffect,
+  fey1Effect,
   hatchetManEffect,
   momentum1Effect,
   prescientEffect,
@@ -398,9 +402,13 @@ allEffects =
     , ("07117", SomeEffect armageddonEffect)
     , ("07118", SomeEffect eyeOfChaosEffect)
     , ("07119", SomeEffect shroudOfShadowsEffect)
+    , ("07161", SomeEffect thirdTimesACharm2Effect)
+    , ("07222", SomeEffect fey1Effect)
+    , ("07225", SomeEffect eyeOfTheDjinnVesselOfGoodAndEvil2Effect)
     , ("07226", SomeEffect armageddon4Effect)
     , ("07227", SomeEffect eyeOfChaos4Effect)
     , ("07228", SomeEffect shroudOfShadows4Effect)
+    , ("07307", SomeEffect luckyDice3Effect)
     , ("09041", SomeEffect empiricalHypothesisEffect)
     , ("50013", SomeEffect twilightBladeEffect)
     , ("50044", SomeEffect jeremiahPierceEffect)

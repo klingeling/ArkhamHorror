@@ -53,12 +53,14 @@ allPlayerSkillCards =
       , expeditiousRetreat1
       , fearless
       , fearless2
+      , fey1
       , guts
       , guts2
       , hatchetMan
       , inquiringMind
       , inspiringPresence
       , intrepid
+      , justifyTheMeans3
       , lastChance
       , leadership
       , leadership2
@@ -92,6 +94,7 @@ allPlayerSkillCards =
       , sealOfTheElderSign5
       , selfSacrifice
       , sharpVision1
+      , signumCrucis2
       , skeptic1
       , steadfast
       , strokeOfLuck2
@@ -609,6 +612,25 @@ unrelenting1 =
   (skill "07196" "Unrelenting" [#wild] Survivor)
     { cdCardTraits = singleton Practiced
     , cdCommitRestrictions = [MaxOnePerTest]
+    }
+
+signumCrucis2 :: CardDef
+signumCrucis2 =
+  (skill "07197" "Signum Crucis" [#wild] Survivor)
+    { cdCardTraits = singleton Practiced
+    , cdCommitRestrictions = [OnlyYourTest, MinSkillTestValueDifference 1]
+    }
+
+fey1 :: CardDef
+fey1 =
+  (skill "07222" "Fey" [#willpower, #wild, #wild] Seeker)
+    { cdCardTraits = setFromList [Innate, Cursed]
+    }
+
+justifyTheMeans3 :: CardDef
+justifyTheMeans3 =
+  (skill "07306" "Justify the Means" [] Rogue)
+    { cdCardTraits = setFromList [Practiced, Cursed]
     }
 
 defensiveStance1 :: CardDef

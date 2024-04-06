@@ -8,9 +8,10 @@ import { MessageType } from '@/arkham/types/Message';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n()
-const props = defineProps<{
+const props = withDefaults(defineProps<{
  ability: AbilityLabel | FightLabel | EvadeLabel | EngageLabel
-}>()
+ tooltipIsButtonText?: boolean
+}>(), { tooltipIsButtonText: false })
 
 const ability = computed<Ability | null>(() => "ability" in props.ability ? props.ability.ability : null)
 
@@ -137,6 +138,10 @@ const isHaunted = computed(() => ability.value && ability.value.type.tag === "Ha
 const isNeutralAbility = computed(() => !(isInvestigate.value || isFight.value || isEvade.value || isEngage.value))
 
 const abilityLabel = computed(() => {
+  if (props.tooltipIsButtonText && tooltip.value) {
+    return tooltip.value.content
+  }
+
   if (props.ability.tag === MessageType.ABILITY_LABEL) {
     if (props.ability.ability.displayAsAction ?? false) {
       return ""
@@ -182,6 +187,9 @@ const abilityLabel = computed(() => {
 })
 
 const classObject = computed(() => {
+  if (props.tooltipIsButtonText && tooltip.value) {
+    return {}
+  }
   return {
     'zeroed-ability-button': isZeroedActionAbility.value && isNeutralAbility.value,
     'ability-button': isSingleActionAbility.value && isNeutralAbility.value,
@@ -206,7 +214,7 @@ const classObject = computed(() => {
     class="button"
     :class="classObject"
     @click="$emit('choose', ability)"
-    v-tooltip="tooltip"
+    v-tooltip="!tooltipIsButtonText && tooltip"
     >{{$t(abilityLabel)}}</button>
 </template>
 

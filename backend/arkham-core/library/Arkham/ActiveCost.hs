@@ -32,7 +32,7 @@ import Arkham.Helpers
 import Arkham.Helpers.ChaosBag
 import Arkham.Helpers.Message
 import Arkham.Helpers.Ref
-import Arkham.Helpers.SkillTest (beginSkillTest)
+import Arkham.Helpers.SkillTest (beginSkillTest, getSkillTestDifficulty)
 import Arkham.Id
 import Arkham.Investigator.Types (Field (..))
 import Arkham.Location.Types (Field (..))
@@ -159,7 +159,7 @@ nonAttackOfOpportunityActions = [#fight, #evade, #resign, #parley]
 
 payCost
   :: forall m
-   . (HasGame m, HasQueue Message m)
+   . (HasGame m, HasQueue Message m, HasCallStack)
   => Message
   -> ActiveCost
   -> InvestigatorId
@@ -170,11 +170,7 @@ payCost msg c iid skipAdditionalCosts cost = do
   let acId = c.id
   let withPayment payment = pure $ c & costPaymentsL <>~ payment
   let source = c.source
-  let
-    actions =
-      case c.actions of
-        [] -> error "action expected"
-        as -> as
+  let actions = c.actions
   player <- getPlayer iid
   case cost of
     SkillTestCost stsource sType n -> do
@@ -228,6 +224,7 @@ payCost msg c iid skipAdditionalCosts cost = do
         ResourceCost resources -> do
           availableResources <- getSpendableResources iid
           pure $ min n (availableResources `div` resources)
+        SealCost matcher -> selectCount matcher
         _ -> pure n
       name <- fieldMap InvestigatorName toTitle iid
       pushWhen canAfford
@@ -457,6 +454,13 @@ payCost msg c iid skipAdditionalCosts cost = do
       x <- min shroud <$> getRemainingCurseTokens
       pushAll $ replicate x $ AddChaosToken CurseToken
       pure c
+    AddCurseTokensEqualToSkillTestDifficulty -> do
+      getSkillTestDifficulty >>= \case
+        Nothing -> error "Not valid"
+        Just difficulty -> do
+          x <- min difficulty <$> getRemainingCurseTokens
+          pushAll $ replicate x $ AddChaosToken CurseToken
+          pure c
     ResourceCost x -> do
       case activeCostTarget c of
         ForAbility {} -> push $ SpendResources iid x
@@ -859,9 +863,7 @@ instance RunMessage ActiveCost where
     PayCost acId iid skipAdditionalCosts cost | acId == c.id -> do
       let
         source = c.source
-        actions = case c.actions of
-          [] -> error "action expected"
-          as -> as
+        actions = c.actions
 
       canStillAfford <- getCanAffordCost iid source actions c.windows cost
       if canStillAfford

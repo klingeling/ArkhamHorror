@@ -23,6 +23,7 @@ import Arkham.Helpers.Modifiers (ModifierType)
 import Arkham.Helpers.Modifiers qualified as Msg
 import Arkham.Helpers.Query
 import Arkham.Helpers.SkillTest qualified as Msg
+import Arkham.Helpers.Window qualified as Msg
 import Arkham.Helpers.Xp
 import Arkham.Id
 import Arkham.Matcher
@@ -368,6 +369,32 @@ chooseOne iid msgs = do
   player <- getPlayer iid
   push $ Msg.chooseOne player msgs
 
+chooseAmounts
+  :: (Targetable target, ReverseQueue m)
+  => InvestigatorId
+  -> Text
+  -> AmountTarget
+  -> [(Text, (Int, Int))]
+  -> target
+  -> m ()
+chooseAmounts iid label total choiceMap target = do
+  player <- getPlayer iid
+  push $ Msg.chooseAmounts player label total choiceMap target
+
+chooseAmount
+  :: (Targetable target, ReverseQueue m)
+  => InvestigatorId
+  -> Text
+  -> Text
+  -> Int
+  -> Int
+  -> target
+  -> m ()
+chooseAmount iid label choiceLabel minVal maxVal target = do
+  player <- getPlayer iid
+  push
+    $ Msg.chooseAmounts player label (MaxAmountTarget maxVal) [(choiceLabel, (minVal, maxVal))] target
+
 chooseN :: ReverseQueue m => InvestigatorId -> Int -> [UI Message] -> m ()
 chooseN iid n msgs = do
   player <- getPlayer iid
@@ -415,6 +442,16 @@ skillTestModifiers
 skillTestModifiers (toSource -> source) (toTarget -> target) mods =
   push $ Msg.skillTestModifiers source target mods
 
+skillTestModifier
+  :: forall target source m
+   . (ReverseQueue m, Sourceable source, Targetable target)
+  => source
+  -> target
+  -> ModifierType
+  -> m ()
+skillTestModifier (toSource -> source) (toTarget -> target) x =
+  push $ Msg.skillTestModifier source target x
+
 chooseFightEnemy :: (ReverseQueue m, Sourceable source) => InvestigatorId -> source -> m ()
 chooseFightEnemy iid = mkChooseFight iid >=> push . toMessage
 
@@ -424,3 +461,59 @@ mapQueue = lift . Msg.mapQueue
 toDiscardBy
   :: (ReverseQueue m, Sourceable source, Targetable target) => InvestigatorId -> source -> target -> m ()
 toDiscardBy iid source target = push $ Msg.toDiscardBy iid source target
+
+putCardIntoPlay :: (ReverseQueue m, IsCard card) => InvestigatorId -> card -> m ()
+putCardIntoPlay iid card = push $ Msg.putCardIntoPlay iid card
+
+gainResourcesIfCan :: (ReverseQueue m, Sourceable source) => InvestigatorId -> source -> Int -> m ()
+gainResourcesIfCan iid source n = do
+  mmsg <- Msg.gainResourcesIfCan iid source n
+  for_ mmsg push
+
+drawCardsIfCan
+  :: (ReverseQueue m, Sourceable source)
+  => InvestigatorId
+  -> source
+  -> Int
+  -> m ()
+drawCardsIfCan iid source n = do
+  mmsg <- Msg.drawCardsIfCan iid source n
+  for_ mmsg push
+
+focusChaosTokens :: ReverseQueue m => [ChaosToken] -> (Message -> m ()) -> m ()
+focusChaosTokens tokens f = do
+  push $ FocusChaosTokens tokens
+  f UnfocusChaosTokens
+
+focusCards :: ReverseQueue m => [Card] -> (Message -> m ()) -> m ()
+focusCards cards f = do
+  push $ FocusCards cards
+  f UnfocusCards
+
+checkWindows :: ReverseQueue m => [Window] -> m ()
+checkWindows = Msg.pushM . Msg.checkWindows
+
+cancelTokenDraw :: (MonadTrans t, HasQueue Message m) => t m ()
+cancelTokenDraw = lift Msg.cancelTokenDraw
+
+search
+  :: (Targetable target, Sourceable source, ReverseQueue m)
+  => InvestigatorId
+  -> source
+  -> target
+  -> [(Zone, ZoneReturnStrategy)]
+  -> CardMatcher
+  -> FoundCardsStrategy
+  -> m ()
+search iid source target zones matcher strategy = Msg.push $ Msg.search iid source target zones matcher strategy
+
+lookAt
+  :: (Targetable target, Sourceable source, ReverseQueue m)
+  => InvestigatorId
+  -> source
+  -> target
+  -> [(Zone, ZoneReturnStrategy)]
+  -> CardMatcher
+  -> FoundCardsStrategy
+  -> m ()
+lookAt iid source target zones matcher strategy = Msg.push $ Msg.lookAt iid source target zones matcher strategy

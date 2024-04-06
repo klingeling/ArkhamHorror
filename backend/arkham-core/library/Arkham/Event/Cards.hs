@@ -126,6 +126,7 @@ allPlayerEventCards =
       , emergencyCache
       , emergencyCache2
       , emergencyCache3
+      , enchantWeapon3
       , etherealForm
       , eucatastrophe3
       , everVigilant1
@@ -156,6 +157,7 @@ allPlayerEventCards =
       , gritYourTeeth
       , guidance
       , handOfFate
+      , harmonyRestored2
       , heroicRescue
       , heroicRescue2
       , hidingSpot
@@ -243,6 +245,7 @@ allPlayerEventCards =
       , recharge2
       , recharge4
       , reliable1
+      , riastrad1
       , righteousHunt1
       , sacrifice1
       , sceneOfTheCrime
@@ -281,9 +284,11 @@ allPlayerEventCards =
       , telescopicSight3
       , temptFate
       , thePaintedWorld
+      , theStygianEye3
       , theTruthBeckons
       , thinkOnYourFeet
       , thinkOnYourFeet2
+      , thirdTimesACharm2
       , tidesOfFate
       , timeWarp2
       , trialByFire
@@ -1545,7 +1550,7 @@ truthFromFiction =
     , cdCriteria =
         Just
           $ Criteria.ClueOnLocation
-          <> exists (AssetControlledBy You <> AssetWithUseType Uses.Secret)
+          <> exists (AssetControlledBy You <> AssetCanHaveUses Uses.Secret)
     }
 
 customAmmunition3 :: CardDef
@@ -2507,7 +2512,7 @@ underSurveillance1 =
 
 butterflyEffect1 :: CardDef
 butterflyEffect1 =
-  (event "07158" "Butterfly Effect" 0 Survivor)
+  (event "07160" "Butterfly Effect" 0 Survivor)
     { cdSkills = [#wild]
     , cdCardTraits = setFromList [Paradox, Blessed, Cursed]
     , cdFastWindow = Just $ RevealChaosToken #when (affectsOthers Anyone) IsSymbol
@@ -2521,6 +2526,16 @@ butterflyEffect1 =
     , cdLevel = 1
     }
 
+thirdTimesACharm2 :: CardDef
+thirdTimesACharm2 =
+  (event "07161" "Third Time's a Charm" 1 Survivor)
+    { cdSkills = [#willpower, #combat, #agility]
+    , cdCardTraits = setFromList [Spirit]
+    , cdFastWindow = Just $ InitiatedSkillTest #when (affectsOthers Anyone) #any #any #any
+    , cdCriteria = Just $ Criteria.DuringSkillTest SkillTestAtYourLocation
+    , cdLevel = 1
+    }
+
 manipulateDestiny2 :: CardDef
 manipulateDestiny2 =
   (event "07162" "Manipulate Destiny" 1 Neutral)
@@ -2528,6 +2543,51 @@ manipulateDestiny2 =
     , cdCardTraits = setFromList [Spell, Cursed]
     , cdAttackOfOpportunityModifiers = [DoesNotProvokeAttacksOfOpportunity]
     , cdLevel = 2
+    }
+
+riastrad1 :: CardDef
+riastrad1 =
+  (event "07193" "Ríastrad" 0 Rogue)
+    { cdSkills = [#combat, #combat]
+    , cdCardTraits = setFromList [Spell, Spirit, Cursed]
+    , cdActions = [#fight]
+    , cdLevel = 1
+    }
+
+harmonyRestored2 :: CardDef
+harmonyRestored2 =
+  (event "07230" "Harmony Restored" 3 Survivor)
+    { cdSkills = [#willpower, #willpower]
+    , cdCardTraits = setFromList [Fortune, Blessed]
+    , cdCriteria =
+        Just
+          $ Criteria.ChaosTokenCountIs #bless (atLeast 1)
+          <> Criteria.ChaosTokenCountIs #curse (atLeast 1)
+    , cdLevel = 2
+    }
+
+enchantWeapon3 :: CardDef
+enchantWeapon3 =
+  (event "07261" "Enchant Weapon" 3 Guardian)
+    { cdSkills = [#willpower, #willpower, #combat]
+    , cdCardTraits = setFromList [Spell, Upgrade]
+    , cdCriteria =
+        Just
+          $ exists
+          $ AssetControlledBy (affectsOthers $ InvestigatorAt YourLocation)
+          <> AssetWithTrait Weapon
+          <> not_ (AssetWithAttachedEvent $ EventIs "07261")
+    , cdLevel = 3
+    }
+
+theStygianEye3 :: CardDef
+theStygianEye3 =
+  (event "07263" "The Stygian Eye" 10 Seeker)
+    { cdSkills = [#willpower, #willpower, #willpower]
+    , cdCardTraits = setFromList [Insight, Cursed]
+    , cdFastWindow = Just $ DuringTurn You
+    , cdCardInHandEffects = True
+    , cdLevel = 3
     }
 
 sweepingKick1 :: CardDef
@@ -2747,7 +2807,7 @@ truthFromFiction2 =
         Just
           $ exists
           $ AssetControlledBy (affectsOthers $ InvestigatorAt YourLocation)
-          <> AssetWithUseType Uses.Secret
+          <> AssetCanHaveUses Uses.Secret
     }
 
 alterFate1 :: CardDef

@@ -166,6 +166,11 @@ data PreyMatcher
   | RestrictedBearerOf EnemyId InvestigatorMatcher
   deriving stock (Show, Eq, Ord, Data)
 
+pattern AssetCanHaveUses :: UseType -> AssetMatcher
+pattern AssetCanHaveUses uType <- AssetOneOf [AssetWithUseType uType, AssetWithoutUses]
+  where
+    AssetCanHaveUses uType = AssetOneOf [AssetWithUseType uType, AssetWithoutUses]
+
 data AssetMatcher
   = AssetWithTitle Text
   | AssetWithFullTitle Text Text
@@ -195,6 +200,7 @@ data AssetMatcher
   | AssetWithClues ValueMatcher
   | AssetWithTokens ValueMatcher Token
   | AssetWithHighestPrintedCost AssetMatcher
+  | AssetWithSealedChaosTokens Int ChaosTokenMatcher
   | AssetWithoutSealedTokens
   | AssetInSlot SlotType
   | AssetInTwoHandSlots
@@ -871,6 +877,7 @@ data WindowMatcher
   | EnemyAttacked Timing Who SourceMatcher EnemyMatcher
   | EnemyAttackedSuccessfully Timing Who EnemyMatcher
   | RevealChaosToken Timing Who ChaosTokenMatcher
+  | TokensWouldBeRemovedFromChaosBag Timing ChaosTokenMatcher
   | ResolvesChaosToken Timing Who ChaosTokenMatcher
   | CancelChaosToken Timing Who ChaosTokenMatcher
   | IgnoreChaosToken Timing Who ChaosTokenMatcher
@@ -891,6 +898,7 @@ data WindowMatcher
   | PlacedCounterOnLocation Timing Where SourceMatcher CounterMatcher ValueMatcher
   | PlacedCounterOnEnemy Timing EnemyMatcher SourceMatcher CounterMatcher ValueMatcher
   | PlacedCounterOnAgenda Timing AgendaMatcher SourceMatcher CounterMatcher ValueMatcher
+  | PlacedCounterOnAsset Timing AssetMatcher SourceMatcher CounterMatcher ValueMatcher
   | WouldHaveSkillTestResult Timing Who SkillTestMatcher SkillTestResultMatcher
   | SuccessfullyInvestigatedWithNoClues Timing Who Where
   | EnemyAttemptsToSpawnAt Timing EnemyMatcher LocationMatcher
@@ -983,6 +991,7 @@ data SkillTestMatcher
   | SkillTestWasFailed
   | YourSkillTest SkillTestMatcher
   | SkillTestAtYourLocation
+  | SkillTestOfInvestigator InvestigatorMatcher
   | SkillTestOnTreachery TreacheryMatcher
   | UsingThis
   | SkillTestSourceMatches SourceMatcher
@@ -990,7 +999,12 @@ data SkillTestMatcher
   | NotSkillTest SkillTestMatcher
   | SkillTestFromRevelation
   | SkillTestWithRevealedChaosToken ChaosTokenMatcher
+  | SkillTestWithRevealedChaosTokenCount Int ChaosTokenMatcher
+  | SkillTestWithResolvedChaosTokenBy InvestigatorMatcher ChaosTokenMatcher
   deriving stock (Show, Eq, Ord, Data)
+
+instance IsLabel "any" SkillTestMatcher where
+  fromLabel = AnySkillTest
 
 data SourceMatcher
   = SourceWithTrait Trait
@@ -1099,11 +1113,20 @@ data ChaosTokenMatcher
   | ChaosTokenMatchesAny [ChaosTokenMatcher]
   | AnyChaosToken
   | IsSymbol
+  | InTokenPool ChaosTokenMatcher
   | ChaosTokenMatches [ChaosTokenMatcher]
   | IncludeSealed ChaosTokenMatcher
+  | IncludeTokenPool ChaosTokenMatcher
   | WouldReduceYourSkillValueToZero
   | IsInfestationToken ChaosTokenMatcher
+  | NotChaosToken ChaosTokenMatcher
   deriving stock (Show, Eq, Ord, Data)
+
+instance Not ChaosTokenMatcher where
+  not_ = NotChaosToken
+
+instance IsLabel "any" ChaosTokenMatcher where
+  fromLabel = AnyChaosToken
 
 instance IsLabel "skull" ChaosTokenMatcher where
   fromLabel = ChaosTokenFaceIs Skull
@@ -1143,6 +1166,9 @@ instance Monoid ChaosTokenMatcher where
 data PhaseMatcher = AnyPhase | IsMythosPhase | IsEnemyPhase | IsInvestigationPhase | IsUpkeepPhase
   deriving stock (Show, Eq, Ord, Data)
 
+instance IsLabel "any" PhaseMatcher where
+  fromLabel = AnyPhase
+
 instance IsLabel "mythos" PhaseMatcher where
   fromLabel = IsMythosPhase
 
@@ -1162,6 +1188,12 @@ data WindowMythosStepMatcher
 
 data CounterMatcher = HorrorCounter | DamageCounter | ClueCounter | DoomCounter | ResourceCounter
   deriving stock (Show, Eq, Ord, Data)
+
+instance IsLabel "horror" CounterMatcher where
+  fromLabel = HorrorCounter
+
+instance IsLabel "damage" CounterMatcher where
+  fromLabel = DamageCounter
 
 instance IsLabel "clue" CounterMatcher where
   fromLabel = ClueCounter

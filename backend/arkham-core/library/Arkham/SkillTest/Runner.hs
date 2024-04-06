@@ -29,7 +29,7 @@ import Arkham.SkillType
 import Arkham.Source
 import Arkham.Target
 import Arkham.Timing qualified as Timing
-import Arkham.Window (Window (..), mkAfter, mkWindow)
+import Arkham.Window (Window (..), mkAfter, mkWhen, mkWindow)
 import Arkham.Window qualified as Window
 import Control.Lens (each)
 import Data.Map.Strict qualified as Map
@@ -226,7 +226,7 @@ instance RunMessage SkillTest where
       pure s
     RequestedChaosTokens SkillTestSource (Just iid) chaosTokenFaces -> do
       skillTestModifiers' <- getModifiers SkillTestTarget
-      windowMsg <- checkWindows [mkWindow Timing.When Window.FastPlayerWindow]
+      windowMsg <- checkWindows [mkWhen Window.FastPlayerWindow]
       push
         $ if RevealChaosTokensBeforeCommittingCards `elem` skillTestModifiers'
           then
@@ -245,29 +245,28 @@ instance RunMessage SkillTest where
           ]
       pure $ s & (setAsideChaosTokensL %~ (chaosTokenFaces <>))
     RevealChaosToken SkillTestSource {} iid token -> do
-      push $ CheckWindow [iid] [mkAfter $ Window.RevealChaosToken iid token]
+      pushM $ checkWindows [mkAfter $ Window.RevealChaosToken iid token]
       pure $ s & revealedChaosTokensL %~ (token :) & toResolveChaosTokensL %~ nub . (token :)
     RevealSkillTestChaosTokens iid -> do
       -- NOTE: this exists here because of Sacred Covenant (2), we want to
       -- cancel the modifiers but retain the effects so the effects are queued,
       -- but if the token is returned it will no longer be counted. If we need
       -- to move this window we will need an alternate solution.
-      afterMsg <- checkWindows [mkAfter $ Window.SkillTestStep RevealChaosTokenStep]
+      afterRevealMsg <- checkWindows [mkAfter $ Window.SkillTestStep RevealChaosTokenStep]
+      afterResolveMsg <- checkWindows [mkAfter $ Window.SkillTestStep ResolveChaosSymbolEffectsStep]
       revealedChaosTokenFaces <- flip
         concatMapM
         skillTestToResolveChaosTokens
         \token -> do
           faces <- getModifiedChaosTokenFaces [token]
           pure [(token, face) | face <- faces]
-      pushAll $ afterMsg
+      pushAll $ afterRevealMsg
         : [ Will (ResolveChaosToken drawnChaosToken chaosTokenFace iid)
           | (drawnChaosToken, chaosTokenFace) <- revealedChaosTokenFaces
           ]
+          <> [afterResolveMsg]
       pure
         $ s
-        & ( subscribersL
-              %~ (nub . (<> [ChaosTokenTarget token' | token' <- skillTestRevealedChaosTokens]))
-          )
         & toResolveChaosTokensL
         .~ mempty
         & resolvedChaosTokensL
@@ -289,6 +288,13 @@ instance RunMessage SkillTest where
         (`notNullOr` [skillTestInvestigator])
           <$> select (InvestigatorWithModifier ResolvesFailedEffects)
 
+      tokenSubscribers <- concatForM skillTestRevealedChaosTokens \token -> do
+        faces <- getModifiedChaosTokenFaces [token]
+        pure
+          [ ChaosTokenTarget (token {chaosTokenFace = face})
+          | face <- faces
+          ]
+
       let needsChoice = skillTestResolveFailureInvestigator `notElem` investigatorsToResolveFailure
       let
         handleChoice resolver player =
@@ -302,7 +308,7 @@ instance RunMessage SkillTest where
                     skillTestType
                     difficulty
                 )
-              | target <- skillTestSubscribers
+              | target <- skillTestSubscribers <> tokenSubscribers
               ]
               <> [ Will
                     ( FailedSkillTest
@@ -448,6 +454,14 @@ instance RunMessage SkillTest where
           SucceededBy b m -> SucceededBy b (max 0 (m + n))
           FailedBy b m -> FailedBy b (max 0 (m + n))
         modifySkillTestResult r _ = r
+
+      tokenSubscribers <- concatForM skillTestRevealedChaosTokens \token -> do
+        faces <- getModifiedChaosTokenFaces [token]
+        pure
+          [ ChaosTokenTarget (token {chaosTokenFace = face})
+          | face <- faces
+          ]
+
       case modifiedSkillTestResult of
         SucceededBy _ n ->
           pushAll
@@ -460,7 +474,7 @@ instance RunMessage SkillTest where
                     skillTestType
                     n
                 )
-              | target <- skillTestSubscribers
+              | target <- skillTestSubscribers <> tokenSubscribers
               ]
                 <> [ Will
                       ( PassedSkillTest
@@ -491,7 +505,7 @@ instance RunMessage SkillTest where
                     skillTestType
                     n
                 )
-              | target <- skillTestSubscribers
+              | target <- skillTestSubscribers <> tokenSubscribers
               ]
                 <> [ Will
                       ( FailedSkillTest
@@ -538,6 +552,13 @@ instance RunMessage SkillTest where
           SucceededBy b m -> SucceededBy b (max 0 (m + n))
           FailedBy b m -> FailedBy b (max 0 (m + n))
         modifySkillTestResult r _ = r
+
+      tokenSubscribers <- concatForM skillTestRevealedChaosTokens \token -> do
+        faces <- getModifiedChaosTokenFaces [token]
+        pure
+          [ ChaosTokenTarget (token {chaosTokenFace = face})
+          | face <- faces
+          ]
       case modifiedSkillTestResult of
         SucceededBy _ n ->
           pushAll
@@ -550,7 +571,7 @@ instance RunMessage SkillTest where
                     skillTestType
                     n
                 )
-              | target <- skillTestSubscribers
+              | target <- skillTestSubscribers <> tokenSubscribers
               ]
                 <> [ After
                       ( PassedSkillTest
@@ -581,7 +602,7 @@ instance RunMessage SkillTest where
                     skillTestType
                     n
                 )
-              | target <- skillTestSubscribers
+              | target <- skillTestSubscribers <> tokenSubscribers
               ]
                 <> [ After
                       ( FailedSkillTest
@@ -624,6 +645,13 @@ instance RunMessage SkillTest where
           SucceededBy b m -> SucceededBy b (max 0 (m + n))
           FailedBy b m -> FailedBy b (max 0 (m + n))
         modifySkillTestResult r _ = r
+
+      tokenSubscribers <- concatForM skillTestRevealedChaosTokens \token -> do
+        faces <- getModifiedChaosTokenFaces [token]
+        pure
+          [ ChaosTokenTarget (token {chaosTokenFace = face})
+          | face <- faces
+          ]
       case modifiedSkillTestResult of
         SucceededBy _ n -> do
           pushAll
@@ -636,7 +664,7 @@ instance RunMessage SkillTest where
                     skillTestType
                     n
                 )
-              | target <- skillTestSubscribers
+              | target <- skillTestSubscribers <> tokenSubscribers
               ]
             <> [ When
                   ( PassedSkillTest
@@ -657,7 +685,7 @@ instance RunMessage SkillTest where
                   target
                   skillTestType
                   n
-                | target <- skillTestSubscribers
+                | target <- skillTestSubscribers <> tokenSubscribers
                 ]
                   <> [ PassedSkillTest
                         skillTestInvestigator
@@ -693,10 +721,10 @@ instance RunMessage SkillTest where
                     )
                 ]
                   <> [ When (FailedSkillTest resolver skillTestAction skillTestSource target skillTestType n)
-                     | target <- skillTestSubscribers
+                     | target <- skillTestSubscribers <> tokenSubscribers
                      ]
                   <> [ FailedSkillTest resolver skillTestAction skillTestSource target skillTestType n
-                     | target <- skillTestSubscribers
+                     | target <- skillTestSubscribers <> tokenSubscribers
                      ]
                   <> [ FailedSkillTest
                         resolver

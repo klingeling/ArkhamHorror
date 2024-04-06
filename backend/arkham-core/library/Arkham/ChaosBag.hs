@@ -26,7 +26,7 @@ import Arkham.RequestedChaosTokenStrategy
 import Arkham.Source
 import Arkham.Target
 import Arkham.Timing qualified as Timing
-import Arkham.Window (Window (..), mkWindow)
+import Arkham.Window (Window (..), mkWhen)
 import Arkham.Window qualified as Window
 import Control.Monad.State.Strict (StateT, gets, modify', runStateT)
 
@@ -326,7 +326,7 @@ decideFirstUndecided source iid strategy f = \case
       ,
         [ CheckWindow
             [iid]
-            [mkWindow Timing.When (Window.WouldRevealChaosToken source iid)]
+            [mkWhen (Window.WouldRevealChaosToken source iid)]
         , NextChaosBagStep source (Just iid) strategy
         ]
       )
@@ -490,7 +490,19 @@ instance RunMessage ChaosBag where
       pure $ c & forceDrawL ?~ face
     SetChaosTokens tokens' -> do
       tokens'' <- traverse createChaosToken tokens'
-      pure $ c & chaosTokensL .~ tokens'' & setAsideChaosTokensL .~ mempty
+      blessTokens <- replicateM 10 $ createChaosToken #bless
+      curseTokens <- replicateM 10 $ createChaosToken #curse
+      pure
+        $ c
+        & (chaosTokensL .~ tokens'')
+        & (setAsideChaosTokensL .~ mempty)
+        & (tokenPoolL .~ blessTokens <> curseTokens)
+    ReturnChaosTokensToPool tokensToPool -> do
+      pure
+        $ c
+        & (chaosTokensL %~ filter (`notElem` tokensToPool))
+        & (setAsideChaosTokensL %~ filter (`notElem` tokensToPool))
+        & (tokenPoolL <>~ filter ((`elem` [#bless, #curse]) . (.face)) tokensToPool)
     ResetChaosTokens _source -> do
       returnAllBlessed <-
         getIsSkillTest >>= \case
@@ -503,20 +515,37 @@ instance RunMessage ChaosBag where
           False -> pure True
 
       -- TODO: We need to decide which tokens to keep, i.e. Blessed Blade (4)
-      tokensToReturn <- forMaybeM chaosBagSetAsideChaosTokens \token -> do
+      (tokensToReturn, tokensToPool) <- flip partitionM chaosBagSetAsideChaosTokens \token -> do
         if
           | token.face == #bless -> do
-              returnBlessed <- if returnAllBlessed then pure True else hasModifier token ReturnBlessedToChaosBag
-              pure $ guard returnBlessed $> token
+              if returnAllBlessed then pure True else hasModifier token ReturnBlessedToChaosBag
           | token.face == #curse -> do
-              returnCursed <- if returnAllCursed then pure True else hasModifier token ReturnCursedToChaosBag
-              pure $ guard returnCursed $> token
-          | otherwise -> pure $ Just token
+              if returnAllCursed then pure True else hasModifier token ReturnCursedToChaosBag
+          | otherwise -> pure True
+
+      when (notNull tokensToPool) do
+        for_ tokensToPool \token -> do
+          mods <- getModifiers token
+          let iids = [iid | MayChooseToRemoveChaosToken iid <- mods]
+          removeWindow <- checkWindows [mkWhen $ Window.TokensWouldBeRemovedFromChaosBag tokensToPool]
+          case iids of
+            [] -> push removeWindow
+            (iid : _) -> do
+              player <- getPlayer iid
+              pushAll
+                [ FocusChaosTokens [token]
+                , chooseOne
+                    player
+                    [ Label "Remove to Token Pool" [UnfocusChaosTokens, removeWindow]
+                    , Label "Return to Bag" [UnfocusChaosTokens, ReturnChaosTokens [token]]
+                    ]
+                ]
 
       pure
         $ c
         & (chaosTokensL <>~ map (\token -> token {chaosTokenRevealedBy = Nothing}) tokensToReturn)
         & (setAsideChaosTokensL .~ mempty)
+        & (tokenPoolL <>~ map (\token -> token {chaosTokenRevealedBy = Nothing}) tokensToPool)
         & (choiceL .~ Nothing)
     RequestChaosTokens source miid revealStrategy strategy -> do
       case revealStrategy of
@@ -611,7 +640,7 @@ instance RunMessage ChaosBag where
             Just iid ->
               pure
                 <$> checkWindows
-                  [ mkWindow Timing.When (Window.RevealChaosToken iid token)
+                  [ mkWhen (Window.RevealChaosToken iid token)
                   | token <- tokens'
                   ]
           for_ miid $ \iid -> do
@@ -653,9 +682,13 @@ instance RunMessage ChaosBag where
         & (chaosTokensL %~ (<> tokens'))
         & (setAsideChaosTokensL %~ (\\ tokens'))
         & (choiceL .~ Nothing)
+        & (tokenPoolL %~ (\\ tokens'))
     AddChaosToken chaosTokenFace -> do
-      token <- createChaosToken chaosTokenFace
-      pure $ c & chaosTokensL %~ (token :)
+      token <- case chaosTokenFace of
+        BlessToken -> pure $ fromMaybe (error "no more bless tokens") $ find ((== #bless) . (.face)) chaosBagTokenPool
+        CurseToken -> pure $ fromMaybe (error "no more curse tokens") $ find ((== #curse) . (.face)) chaosBagTokenPool
+        _ -> createChaosToken chaosTokenFace
+      pure $ c & chaosTokensL %~ (token :) & tokenPoolL %~ delete token
     SwapChaosToken originalFace newFace -> do
       let
         replaceToken [] = []
@@ -672,6 +705,8 @@ instance RunMessage ChaosBag where
         %~ filter (/= token)
         & revealedChaosTokensL
         %~ filter (/= token)
+    SetChaosTokenAside token -> do
+      pure $ c & setAsideChaosTokensL %~ (token :)
     UnsealChaosToken token -> do
       pure $ c & chaosTokensL %~ (token :)
     RemoveAllChaosTokens face ->

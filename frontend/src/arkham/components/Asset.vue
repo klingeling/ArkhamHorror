@@ -42,7 +42,7 @@ const hasPool = computed(() => {
     keys,
   } = props.asset;
 
-  return Object.values(tokens).some((v) => v > 0) || sealedChaosTokens.length > 0 || keys.length > 0 || uses || sanity || health
+  return cardCode.value == 'c07189' || (Object.values(tokens).some((v) => v > 0) || sealedChaosTokens.length > 0 || keys.length > 0 || uses || sanity || health)
 })
 
 const exhausted = computed(() => props.asset.exhausted)
@@ -121,6 +121,8 @@ const debug = useDebug()
 const doom = computed(() => props.asset.tokens[TokenType.Doom])
 const clues = computed(() => props.asset.tokens[TokenType.Clue])
 const resources = computed(() => props.asset.tokens[TokenType.Resource])
+const charges = computed(() => props.asset.tokens[TokenType.Charge])
+const secrets = computed(() => props.asset.tokens[TokenType.Secret])
 const offerings = computed(() => props.asset.tokens[TokenType.Offering])
 
 const damage = computed(() => props.asset.tokens[TokenType.Damage])
@@ -185,14 +187,14 @@ const assetStory = computed(() => {
             />
           </template>
           <PoolItem
-            v-if="asset.health !== null || (damage || 0) > 0"
+            v-if="cardCode == 'c07189' || (asset.health !== null || (damage || 0) > 0)"
             type="health"
             :amount="damage || 0"
             :class="{ 'health--can-interact': healthAction !== -1 }"
             @choose="choose(healthAction)"
           />
           <PoolItem
-            v-if="asset.sanity !== null || (horror || 0) > 0"
+            v-if="cardCode == 'c07189' || (asset.sanity !== null || (horror || 0) > 0)"
             type="sanity"
             :amount="horror || 0"
             :class="{ 'sanity--can-interact': sanityAction !== -1 }"
@@ -201,6 +203,8 @@ const assetStory = computed(() => {
           <PoolItem v-if="doom && doom > 0" type="doom" :amount="doom" />
           <PoolItem v-if="clues && clues > 0" type="clue" :amount="clues" />
           <PoolItem v-if="resources && resources > 0" type="resource" :amount="resources" />
+          <PoolItem v-if="charges && charges > 0" type="resource" :amount="charges" />
+          <PoolItem v-if="secrets && secrets > 0" type="resource" :amount="secrets" />
           <PoolItem v-if="offerings && offerings > 0" type="resource" :amount="offerings" />
           <Token v-for="(sealedToken, index) in asset.sealedChaosTokens" :key="index" :token="sealedToken" :playerId="playerId" :game="game" @choose="choose" />
         </div>
@@ -235,6 +239,7 @@ const assetStory = computed(() => {
       <template v-if="debug.active">
         <button v-if="!asset.owner" @click="debug.send(game.id, {tag: 'TakeControlOfAsset', contents: [investigatorId, id]})">{{$t('takeControl')}}</button>
         <button v-if="asset.owner" @click="debug.send(game.id, {tag: 'Discard', contents: [null, { tag: 'GameSource' }, { tag: 'AssetTarget', contents: id}]})">{{$t('discard')}}</button>
+        <button v-if="asset.owner && asset.exhausted" @click="debug.send(game.id, {tag: 'Ready', contents: { tag: 'AssetTarget', contents: id}})">{{$t('ready')}}</button>
       </template>
       <Asset
         v-for="assetId in asset.assets"

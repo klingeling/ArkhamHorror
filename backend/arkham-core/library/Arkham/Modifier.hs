@@ -44,6 +44,7 @@ data ModifierType
   | AddSkillIcons [SkillIcon]
   | AddSkillToOtherSkill SkillType SkillType
   | AddSkillValue SkillType
+  | AddSkillValueOf SkillType InvestigatorId
   | AddTrait Trait
   | AdditionalActions Text Source Int
   | AdditionalCost Cost
@@ -125,6 +126,7 @@ data ModifierType
   | CannotCancelOrIgnoreChaosToken ChaosTokenFace
   | ReturnBlessedToChaosBag
   | ReturnCursedToChaosBag
+  | MayChooseToRemoveChaosToken InvestigatorId
   | CannotCommitCards CardMatcher
   | CannotCommitToOtherInvestigatorsSkillTests
   | CannotDealDamage
@@ -205,6 +207,7 @@ data ModifierType
   | FailTies
   | FewerActions Int
   | FewerSlots SlotType Int
+  | AdditionalSlot SlotType
   | ForcePrey PreyMatcher
   | ForceSpawnLocation LocationMatcher
   | ChangeSpawnLocation LocationMatcher LocationMatcher
@@ -303,6 +306,21 @@ data ModifierType
     Ethereal -- from Ethereal Form
   | Explosion -- from Dyanamite Blast
   deriving stock (Show, Eq, Ord, Data)
+
+instance IsLabel "combat" (Int -> ModifierType) where
+  fromLabel = SkillModifier #combat
+
+instance IsLabel "agility" (Int -> ModifierType) where
+  fromLabel = SkillModifier #agility
+
+instance IsLabel "intellect" (Int -> ModifierType) where
+  fromLabel = SkillModifier #intellect
+
+instance IsLabel "willpower" (Int -> ModifierType) where
+  fromLabel = SkillModifier #willpower
+
+instance IsLabel "damage" (Int -> ModifierType) where
+  fromLabel = DamageDealt
 
 _UpkeepResources :: Prism' ModifierType Int
 _UpkeepResources = prism' UpkeepResources $ \case

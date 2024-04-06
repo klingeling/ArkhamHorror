@@ -430,8 +430,20 @@ allEvents =
       SomeEventCard underSurveillance1
     , --- survivor [def]
       SomeEventCard butterflyEffect1
+    , SomeEventCard thirdTimesACharm2
     , --- neutral [def]
       SomeEventCard manipulateDestiny2
+    , -- Horror in High Gear
+      --- rogue [hhg]
+      SomeEventCard riastrad1
+    , --  A Light in the Fog
+      --- survivor [hhg]
+      SomeEventCard harmonyRestored2
+    , --  The Lair of Dagon
+      --- guardian [lod]
+      SomeEventCard enchantWeapon3
+    , --- seeker [lod]
+      SomeEventCard theStygianEye3
     , -- Edge of the Earth
       --- guardian [eote]
       SomeEventCard sweepingKick1
