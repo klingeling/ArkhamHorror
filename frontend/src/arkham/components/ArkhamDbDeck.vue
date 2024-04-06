@@ -9,8 +9,19 @@ const deckUrl = ref<string | null>(null)
 function loadDeck() {
   model.value = null
   const matches = deck.value.match(/\/(deck(list)?)(\/view)?\/([^/]+)/)
+  const language = localStorage.getItem('language') || 'en'
   if (matches) {
-    deckUrl.value = `https://arkhamdb.com/api/public/${matches[1]}/${matches[4]}`
+    switch (language) {
+      case 'it': {
+        deckUrl.value = `https://it.arkhamdb.com/api/public/${matches[1]}/${matches[4]}`
+        break;
+      }
+      case 'zh': {
+        deckUrl.value = `https://zh.arkhamdb.com/api/public/${matches[1]}/${matches[4]}`
+        break;
+      }
+      default: deckUrl.value = `https://arkhamdb.com/api/public/${matches[1]}/${matches[4]}`
+    }
     fetch(deckUrl.value)
       .then((response) => response.json(), () => model.value = null)
       .then((data) => model.value = {...data, url: deckUrl.value}, () => model.value = null)
@@ -31,7 +42,7 @@ function pasteDeck(evt: ClipboardEvent) {
     v-model="deck"
     @change="loadDeck"
     @paste.prevent="pasteDeck($event)"
-    placeholder="ArkhamDB deck url"
+    :placeholder="$t('arkhamDBDeckUrl')"
   />
 </template>
 

@@ -891,5 +891,8 @@
   " chaos token": " chaos token",
   " draws ": " draws ",
   "removeClues": "Remove Clues",
-  "shuffleBackIn": "Shuffle Back In"
+  "shuffleBackIn": "Shuffle Back In",
+  "ready": "Ready",
+  "addBlessToken": "Add Bless Token",
+  "addCurseToken": "Add Curse Token"
 }

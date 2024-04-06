@@ -891,5 +891,8 @@
   " chaos token": "混乱标记",
   "victoryPoint": "胜利 {0}.",
   "removeClues": "移除线索",
-  "shuffleBackIn": "混洗回去"
+  "shuffleBackIn": "混洗回去",
+  "ready": "准备",
+  "addBlessToken": "增加祝福标记",
+  "addCurseToken": "增加诅咒标记"
 }

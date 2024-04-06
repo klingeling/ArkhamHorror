@@ -104,7 +104,7 @@ function loadDeck() {
       investigator.value = deckList.value.investigator_code
     }
   } else {
-    investigatorError.value = `${deckList.value.investigator_name} is not yet implemented, please use a different deck`
+    investigatorError.value = t('notYetImplemented', [t(data.investigator_name)])
   }
   deckId.value = String(deckList.value.id)
   deckName.value = deckList.value.name
