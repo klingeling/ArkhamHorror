@@ -7,6 +7,7 @@ module Arkham.Cost (
 
 import Arkham.Prelude
 
+import Arkham.Classes.GameLogger
 import Arkham.Cost.Status as X
 import Arkham.Zone as X
 
@@ -86,6 +87,7 @@ data Payment
   | Payments [Payment]
   | SealChaosTokenPayment ChaosToken
   | ReleaseChaosTokenPayment ChaosToken
+  | ReturnChaosTokenToPoolPayment ChaosToken
   | ReturnToHandPayment Card
   | NoPayment
   | SupplyPayment Supply
@@ -142,12 +144,15 @@ data Cost
   | UseCostUpTo AssetMatcher UseType Int Int -- (e.g. Spend 1-5 ammo, see M1918 BAR)
   | UpTo Int Cost
   | SealCost ChaosTokenMatcher
+  | SealMultiCost Int ChaosTokenMatcher
   | AddCurseTokenCost Int
   | AddCurseTokensEqualToShroudCost
   | AddCurseTokensEqualToSkillTestDifficulty
   | ReleaseChaosTokenCost ChaosToken
-  | ReleaseChaosTokensCost Int
+  | ReleaseChaosTokensCost Int ChaosTokenMatcher
   | SealChaosTokenCost ChaosToken -- internal to track sealed token
+  | ReturnChaosTokensToPoolCost Int ChaosTokenMatcher
+  | ReturnChaosTokenToPoolCost ChaosToken
   | SupplyCost LocationMatcher Supply
   | ResolveEachHauntedAbility LocationId -- the circle undone, see TrappedSpirits
   | ShuffleBondedCost Int CardCode
@@ -156,6 +161,7 @@ data Cost
   | OptionalCost Cost
   | UnpayableCost
   | AsIfAtLocationCost LocationId Cost
+  | DrawEncounterCardsCost Int
   deriving stock (Show, Eq, Ord, Data)
 
 assetUseCost :: (Entity a, EntityId a ~ AssetId) => a -> UseType -> Int -> Cost
@@ -177,6 +183,7 @@ displayCostType :: Cost -> Text
 displayCostType = \case
   UnpayableCost -> "Unpayable"
   OptionalCost c -> "Optional: " <> displayCostType c
+  DrawEncounterCardsCost n -> "Draw " <> pluralize n "Encounter Card"
   AsIfAtLocationCost _ c -> displayCostType c
   ShuffleAttachedCardIntoDeckCost _ _ -> "Shuffle attached card into deck"
   AddCurseTokenCost n -> "Add " <> tshow n <> " {curse} " <> pluralize n "token" <> "to the chaos bag"
@@ -316,20 +323,26 @@ displayCostType = \case
     Evidence -> tshow n <> "-" <> tshow m <> " Evidence"
   UpTo n c -> displayCostType c <> " up to " <> pluralize n "time"
   SealCost _ -> "Seal token"
+  SealMultiCost n _ -> "Seal " <> tshow n <> " matching tokens"
   SealChaosTokenCost _ -> "Seal token"
   ReleaseChaosTokenCost _ -> "Release a chaos token sealed here"
-  ReleaseChaosTokensCost 1 -> "Release a chaos token sealed here"
-  ReleaseChaosTokensCost _ -> "Release chaos tokens sealed here"
+  ReleaseChaosTokensCost 1 _ -> "Release a chaos token sealed here"
+  ReleaseChaosTokensCost _ _ -> "Release chaos tokens sealed here"
+  ReturnChaosTokensToPoolCost n (IncludeSealed _) ->
+    "Search the chaos bag and/or cards in play for a total of "
+      <> tshow n
+      <> " matching tokens and return them to the token pool"
+  ReturnChaosTokensToPoolCost n _ ->
+    "Search the chaos bag for a total of "
+      <> tshow n
+      <> " matching tokens and return them to the token pool"
+  ReturnChaosTokenToPoolCost token ->
+    "Return " <> format token <> " to the token pool"
   FieldResourceCost {} -> "X"
   MaybeFieldResourceCost {} -> "X"
   SupplyCost _ supply ->
     "An investigator crosses off " <> tshow supply <> " from their supplies"
   IncreaseCostOfThis _ n -> "Increase its cost by " <> tshow n
- where
-  pluralize n a = if n == 1 then "1 " <> a else tshow n <> " " <> a <> "s"
-  irregular n singular plural = case n of
-    1 -> "1 " <> singular
-    _ -> tshow n <> " " <> plural
 
 instance Semigroup Cost where
   Free <> a = a

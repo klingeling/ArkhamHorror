@@ -45,6 +45,7 @@ allPlayerEventCards =
       , aTestOfWill
       , aTestOfWill1
       , aTestOfWill2
+      , aWatchfulPeace3
       , aceInTheHole3
       , actOfDesperation
       , againstAllOdds2
@@ -156,6 +157,7 @@ allPlayerEventCards =
       , glory
       , gritYourTeeth
       , guidance
+      , hallow3
       , handOfFate
       , harmonyRestored2
       , heroicRescue
@@ -2588,6 +2590,25 @@ theStygianEye3 =
     , cdFastWindow = Just $ DuringTurn You
     , cdCardInHandEffects = True
     , cdLevel = 3
+    }
+
+aWatchfulPeace3 :: CardDef
+aWatchfulPeace3 =
+  (event "07269" "A Watchful Peace" 1 Survivor)
+    { cdSkills = [#willpower, #willpower]
+    , cdCardTraits = setFromList [Spirit, Blessed]
+    , cdFastWindow = Just $ MythosStep WhenAllDrawEncounterCard
+    , cdCriteria = Just $ exists $ You <> can.target.encounterDeck
+    , cdAdditionalCost = Just $ ReturnChaosTokensToPoolCost 5 #bless
+    }
+
+hallow3 :: CardDef
+hallow3 =
+  (event "07301" "Hallow" 3 Guardian)
+    { cdSkills = [#willpower, #wild]
+    , cdCardTraits = setFromList [Spell, Blessed]
+    , cdCriteria = Just $ Criteria.CardWithDoomExists
+    , cdAdditionalCost = Just $ ReturnChaosTokensToPoolCost 10 (IncludeSealed #bless)
     }
 
 sweepingKick1 :: CardDef

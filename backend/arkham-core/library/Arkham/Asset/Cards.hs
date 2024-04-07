@@ -296,6 +296,7 @@ allPlayerAssetCards =
       , flamethrower5
       , flashlight
       , fleshWard
+      , fluteOfTheOuterGods4
       , forbiddenKnowledge
       , forbiddenTome
       , forbiddenTomeDarkKnowledge3
@@ -312,6 +313,7 @@ allPlayerAssetCards =
       , garroteWire2
       , gateBox
       , gavriellaMizrah
+      , geas2
       , geneBeauregard3
       , gildedVolto
       , grannyOrne
@@ -354,12 +356,14 @@ allPlayerAssetCards =
       , hiredMuscle1
       , holyRosary
       , holyRosary2
+      , holySpear5
       , hope
       , hyperawareness
       , hyperawareness2
       , hyperawareness4
       , hypnoticTherapy
       , ichtacaTheForgottenGuardian
+      , ikiaqTheCouncilsChosen3
       , inTheKnow1
       , inTheThickOfIt
       , ineffableTruth
@@ -488,6 +492,7 @@ allPlayerAssetCards =
       , priestOfTwoFaiths1
       , professorWarrenRice
       , protectiveIncantation1
+      , purifyingCorruption4
       , puzzleBox
       , quickLearner4
       , quickStudy2
@@ -4468,12 +4473,50 @@ hyperawareness4 =
     , cdLevel = 4
     }
 
+geas2 :: CardDef
+geas2 =
+  (asset "07265" "Geas" 2 Rogue)
+    { cdCardTraits = setFromList [Pact]
+    , cdKeywords = setFromList [Keyword.Exceptional]
+    , cdLevel = 2
+    }
+
 hardKnocks4 :: CardDef
 hardKnocks4 =
   (asset "07266" "Hard Knocks" 2 Rogue)
     { cdSkills = [#combat, #combat, #agility, #agility]
     , cdCardTraits = setFromList [Talent]
     , cdUses = uses Resource 2
+    , cdLevel = 4
+    }
+
+ikiaqTheCouncilsChosen3 :: CardDef
+ikiaqTheCouncilsChosen3 =
+  (asset "07267" ("Ikiaq" <:> "The Council's Chosen") 3 Mystic)
+    { cdCardTraits = setFromList [Ally, Sorcerer]
+    , cdSkills = [#willpower, #intellect]
+    , cdUnique = True
+    , cdSlots = [#ally]
+    , cdLevel = 3
+    }
+
+fluteOfTheOuterGods4 :: CardDef
+fluteOfTheOuterGods4 =
+  (asset "07268" "Flute of the Outer Gods" 0 Mystic)
+    { cdCardTraits = setFromList [Item, Instrument, Relic, Cursed]
+    , cdSkills = [#willpower, #combat, #agility]
+    , cdUnique = True
+    , cdSlots = [#hand]
+    , cdKeywords = setFromList [Keyword.Exceptional, seal $ SealUpToX #curse]
+    , cdLevel = 4
+    , cdCost = Just DynamicCost
+    }
+
+purifyingCorruption4 :: CardDef
+purifyingCorruption4 =
+  (asset "07273" "Purifying Corruption" 4 Neutral)
+    { cdCardTraits = setFromList [Ritual, Blessed, Cursed]
+    , cdSkills = [#wild]
     , cdLevel = 4
     }
 
@@ -4505,6 +4548,15 @@ favorOfTheSun1 =
       , cdKeywords = singleton $ seal $ SealUpTo 3 #bless
       , cdLevel = 1
       }
+
+holySpear5 :: CardDef
+holySpear5 =
+  (asset "07302" "Holy Spear" 4 Guardian)
+    { cdCardTraits = setFromList [Item, Weapon, Melee, Blessed]
+    , cdSkills = [#willpower, #combat, #combat]
+    , cdSlots = [#hand, #hand]
+    , cdLevel = 5
+    }
 
 ancestralKnowledge3 :: CardDef
 ancestralKnowledge3 =

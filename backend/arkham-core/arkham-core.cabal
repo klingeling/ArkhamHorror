@@ -566,6 +566,7 @@ library
       Arkham.Asset.Cards.Flamethrower5
       Arkham.Asset.Cards.Flashlight
       Arkham.Asset.Cards.FleshWard
+      Arkham.Asset.Cards.FluteOfTheOuterGods4
       Arkham.Asset.Cards.ForbiddenKnowledge
       Arkham.Asset.Cards.ForbiddenTome
       Arkham.Asset.Cards.ForbiddenTomeDarkKnowledge3
@@ -582,6 +583,7 @@ library
       Arkham.Asset.Cards.GarroteWire2
       Arkham.Asset.Cards.GateBox
       Arkham.Asset.Cards.GavriellaMizrah
+      Arkham.Asset.Cards.Geas2
       Arkham.Asset.Cards.GeneBeauregard3
       Arkham.Asset.Cards.GildedVolto
       Arkham.Asset.Cards.GrannyOrne
@@ -626,12 +628,14 @@ library
       Arkham.Asset.Cards.HiredMuscle1
       Arkham.Asset.Cards.HolyRosary
       Arkham.Asset.Cards.HolyRosary2
+      Arkham.Asset.Cards.HolySpear5
       Arkham.Asset.Cards.Hope
       Arkham.Asset.Cards.Hyperawareness
       Arkham.Asset.Cards.Hyperawareness2
       Arkham.Asset.Cards.Hyperawareness4
       Arkham.Asset.Cards.HypnoticTherapy
       Arkham.Asset.Cards.IchtacaTheForgottenGuardian
+      Arkham.Asset.Cards.IkiaqTheCouncilsChosen3
       Arkham.Asset.Cards.IneffableTruth
       Arkham.Asset.Cards.IneffableTruth3
       Arkham.Asset.Cards.IneffableTruth5
@@ -768,6 +772,7 @@ library
       Arkham.Asset.Cards.PriestOfTwoFaiths1
       Arkham.Asset.Cards.ProfessorWarrenRice
       Arkham.Asset.Cards.ProtectiveIncantation1
+      Arkham.Asset.Cards.PurifyingCorruption4
       Arkham.Asset.Cards.PuzzleBox
       Arkham.Asset.Cards.QuickLearner4
       Arkham.Asset.Cards.QuickStudy2
@@ -1334,6 +1339,7 @@ library
       Arkham.Event.Cards.ATestOfWill
       Arkham.Event.Cards.ATestOfWill1
       Arkham.Event.Cards.ATestOfWill2
+      Arkham.Event.Cards.AWatchfulPeace3
       Arkham.Event.Cards.Backstab
       Arkham.Event.Cards.Backstab3
       Arkham.Event.Cards.BaitAndSwitch
@@ -1436,6 +1442,7 @@ library
       Arkham.Event.Cards.Glory
       Arkham.Event.Cards.GritYourTeeth
       Arkham.Event.Cards.Guidance
+      Arkham.Event.Cards.Hallow3
       Arkham.Event.Cards.HandOfFate
       Arkham.Event.Cards.HarmonyRestored2
       Arkham.Event.Cards.HeroicRescue

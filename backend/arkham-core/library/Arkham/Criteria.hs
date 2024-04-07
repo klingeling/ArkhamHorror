@@ -117,6 +117,7 @@ pattern DuringAnySkillTest <- DuringSkillTest AnySkillTest
 data Criterion
   = AssetExists AssetMatcher
   | DifferentAssetsExist AssetMatcher AssetMatcher
+  | DifferentEnemiesExist EnemyMatcher EnemyMatcher
   | EventExists EventMatcher
   | ExcludeWindowAssetExists AssetMatcher
   | AgendaExists AgendaMatcher
@@ -159,6 +160,7 @@ data Criterion
   | CanAffordCostIncrease Int
   | OnSameLocation
   | OwnCardWithDoom
+  | CardWithDoomExists
   | ControlsThis -- really controls this
   | PlayableCardExists CostStatus ExtendedCardMatcher
   | PlayableCardExistsWithCostReduction Int ExtendedCardMatcher

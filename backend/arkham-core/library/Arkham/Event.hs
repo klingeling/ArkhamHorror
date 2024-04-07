@@ -444,6 +444,11 @@ allEvents =
       SomeEventCard enchantWeapon3
     , --- seeker [lod]
       SomeEventCard theStygianEye3
+    , --- survivor [lod]
+      SomeEventCard aWatchfulPeace3
+    , --  Into the Maelstrom
+      --- guardian [itm]
+      SomeEventCard hallow3
     , -- Edge of the Earth
       --- guardian [eote]
       SomeEventCard sweepingKick1

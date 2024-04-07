@@ -70,6 +70,7 @@ getCanAffordCost iid (toSource -> source) actions windows' = \case
     case target of
       AssetTarget aid -> fieldMap AssetCardsUnderneath (any (`cardMatch` cardMatcher)) aid
       _ -> error "Unhandled shuffle attached card into deck cost"
+  DrawEncounterCardsCost _n -> can.target.encounterDeck iid
   ShuffleIntoDeckCost target -> case target of
     TreacheryTarget tid ->
       andM
@@ -225,20 +226,24 @@ getCanAffordCost iid (toSource -> source) actions windows' = \case
     pure $ length discards >= n
   HandDiscardCost n cardMatcher -> do
     cards <- mapMaybe (preview _PlayerCard) <$> field InvestigatorHand iid
-    pure $ length (filter (`cardMatch` cardMatcher) cards) >= n
+    pure $ count (`cardMatch` cardMatcher) cards >= n
   HandDiscardAnyNumberCost cardMatcher -> do
     cards <- mapMaybe (preview _PlayerCard) <$> field InvestigatorHand iid
-    pure $ length (filter (`cardMatch` cardMatcher) cards) > 0
+    pure $ count (`cardMatch` cardMatcher) cards > 0
   ReturnMatchingAssetToHandCost assetMatcher -> selectAny assetMatcher
   ReturnAssetToHandCost assetId -> selectAny $ Matcher.AssetWithId assetId
   SealCost tokenMatcher -> do
     tokens <- scenarioFieldMap ScenarioChaosBag chaosBagChaosTokens
     anyM (\token -> matchChaosToken iid token tokenMatcher) tokens
+  SealMultiCost n tokenMatcher -> do
+    tokens <- scenarioFieldMap ScenarioChaosBag chaosBagChaosTokens
+    (>= n) <$> countM (\token -> matchChaosToken iid token tokenMatcher) tokens
   SealChaosTokenCost _ -> pure True
-  ReleaseChaosTokensCost n -> do
+  ReleaseChaosTokensCost n tokenMatcher -> do
     let
       handleSource = \case
-        AssetSource aid -> fieldMap AssetSealedChaosTokens ((>= n) . length) aid
+        AssetSource aid ->
+          fmap (>= n) . countM (<=~> Matcher.IncludeSealed tokenMatcher) =<< field AssetSealedChaosTokens aid
         AbilitySource t _ -> handleSource t
         _ -> error $ "Unhandled release token cost source: " <> show source
     handleSource source
@@ -249,6 +254,9 @@ getCanAffordCost iid (toSource -> source) actions windows' = \case
         AbilitySource u _ -> handleSource u
         _ -> error "Unhandled release token cost source"
     handleSource source
+  ReturnChaosTokensToPoolCost n matcher -> do
+    (>= n) <$> selectCount matcher
+  ReturnChaosTokenToPoolCost _ -> pure True
   FieldResourceCost (FieldCost mtchr fld) -> do
     ns <- selectFields fld mtchr
     resources <- getSpendableResources iid
