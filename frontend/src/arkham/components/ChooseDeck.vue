@@ -77,11 +77,15 @@ const needsReply = computed(() => {
   const question = props.game.question[props.playerId]
   return question !== null && question !== undefined
 })
+
+const showPortraits = computed(() => {
+  return Object.values(investigators.value).length + empties.value.length > 0
+})
 </script>
 
 <template>
   <div class="container">
-    <div v-if="Object.entries(investigators).length > 1" class="investigators">
+    <div v-if="showPortraits" class="investigators">
       <h2>{{$t('chosenPlayers')}}</h2>
       <div class="portraits">
         <img

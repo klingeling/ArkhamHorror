@@ -614,11 +614,14 @@ data Message
   | SpendXP InvestigatorId Int
   | GameOver
   | HandlePointOfFailure InvestigatorId Target Int -- Really do x n times, does not have to be failure
+  | ApplyHealing Source
   | HealAllDamage Target Source
   | HealAllHorror Target Source
   | HealAllDamageAndHorror Target Source
   | HealDamage Target Source Int
   | HealHorror Target Source Int
+  | HealDamageDelayed Target Source Int
+  | HealHorrorDelayed Target Source Int
   | MovedHorror Source Target Int
   | MovedDamage Source Target Int
   | MovedClues Source Target Int
@@ -904,6 +907,7 @@ data Message
   | SpendClues Int [InvestigatorId]
   | SpendResources InvestigatorId Int
   | SpendUses Target UseType Int
+  | MoveUses Source Target UseType Int
   | SpentAllUses Target
   | StartCampaign
   | StartScenario ScenarioId

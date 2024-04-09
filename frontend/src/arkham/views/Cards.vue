@@ -229,6 +229,7 @@ const cardTraits = (card: Arkham.CardDef) => {
 }
 
 const levelText = (card: Arkham.CardDef) => {
+  if (!card.level) return ''
   if (card.level === 0) return ''
   return ` (${card.level})`
 }

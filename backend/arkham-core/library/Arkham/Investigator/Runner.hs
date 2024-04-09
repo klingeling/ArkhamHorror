@@ -1362,16 +1362,14 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
             assignRestOfHealthDamage =
               InvestigatorDoAssignDamage investigatorId source strategy matcher (health - 1) sanity
             damageAsset aid =
-              ComponentLabel
-                (AssetComponent aid DamageToken)
+              AssetDamageLabel
+                aid
                 [ Msg.AssetDamageWithCheck aid source 1 0 False
-                , assignRestOfHealthDamage
-                    (AssetTarget aid : damageTargets)
-                    horrorTargets
+                , assignRestOfHealthDamage (AssetTarget aid : damageTargets) horrorTargets
                 ]
             damageInvestigator =
-              ComponentLabel
-                (InvestigatorComponent investigatorId DamageToken)
+              DamageLabel
+                investigatorId
                 [ Msg.InvestigatorDamage investigatorId source 1 0
                 , assignRestOfHealthDamage (toTarget investigatorId : damageTargets) horrorTargets
                 ]
@@ -1405,14 +1403,14 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
             assignRestOfSanityDamage =
               InvestigatorDoAssignDamage investigatorId source strategy matcher health (sanity - 1)
             damageInvestigator =
-              ComponentLabel
-                (InvestigatorComponent investigatorId HorrorToken)
+              HorrorLabel
+                investigatorId
                 [ Msg.InvestigatorDamage investigatorId source 0 1
                 , assignRestOfSanityDamage damageTargets (toTarget investigatorId : horrorTargets)
                 ]
             damageAsset aid =
-              ComponentLabel
-                (AssetComponent aid HorrorToken)
+              AssetHorrorLabel
+                aid
                 [ Msg.AssetDamageWithCheck aid source 0 1 False
                 , assignRestOfSanityDamage damageTargets (toTarget aid : horrorTargets)
                 ]
@@ -1733,10 +1731,22 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
       $ a
       & (assignedHealthDamageL %~ max 0 . subtract damageReduction)
       & (assignedSanityDamageL %~ max 0 . subtract horrorReduction)
+  ApplyHealing source -> do
+    cannotHealHorror <- hasModifier a CannotHealHorror
+    let health = findWithDefault 0 source investigatorAssignedHealthHeal
+    let sanity = if cannotHealHorror then 0 else findWithDefault 0 source investigatorAssignedSanityHeal
+    when (health > 0 || sanity > 0) do
+      pushM
+        $ checkWindows
+        $ [mkAfter (Window.Healed DamageType (toTarget a) source health) | health > 0]
+        <> [mkAfter (Window.Healed DamageType (toTarget a) source sanity) | sanity > 0]
+    pure $ a & tokensL %~ subtractTokens Token.Damage health . subtractTokens Token.Horror sanity
   HealDamage (InvestigatorTarget iid) source amount | iid == investigatorId -> do
     afterWindow <- checkWindows [mkAfter $ Window.Healed DamageType (toTarget a) source amount]
     push afterWindow
     pure $ a & tokensL %~ subtractTokens Token.Damage amount
+  HealDamageDelayed (isTarget a -> True) source n -> do
+    pure $ a & assignedHealthHealL %~ insertWith (+) source n
   HealHorrorWithAdditional (InvestigatorTarget iid) _ amount | iid == investigatorId -> do
     -- exists to have no callbacks, and to be resolved with AdditionalHealHorror
     cannotHealHorror <- hasModifier a CannotHealHorror
@@ -1773,6 +1783,8 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
         afterWindow <- checkWindows [mkAfter $ Window.Healed #horror (toTarget a) source amount]
         push afterWindow
         pure $ a & tokensL %~ subtractTokens #horror amount
+  HealHorrorDelayed (isTarget a -> True) source n -> do
+    pure $ a & assignedSanityHealL %~ insertWith (+) source n
   MovedClues _ (isTarget a -> True) amount -> do
     pure $ a & tokensL %~ addTokens #clue amount
   MovedClues (isSource a -> True) _ amount -> do
@@ -2509,6 +2521,10 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
         & (foundCardsL . each %~ filter (/= PlayerCard pc))
     EncounterCard _ -> pure a
     VengeanceCard _ -> pure a
+  MoveUses (ProxySource (isSource a -> True) ResourceSource) _ _ n -> do
+    pure $ a & tokensL %~ subtractTokens Resource n
+  MoveUses _ (ProxyTarget (isTarget a -> True) ResourceTarget) _ n -> do
+    pure $ a & tokensL %~ addTokens Resource n
   AddToHand iid cards | iid == investigatorId -> do
     let
       choices = mapMaybe cardChoice cards

@@ -340,6 +340,7 @@ withAssetMetadata a = do
 withSkillTestMetadata :: HasGame m => SkillTest -> m (With SkillTest SkillTestMetadata)
 withSkillTestMetadata st = do
   stmModifiedSkillValue <- getSkillTestModifiedSkillValue
+  stmSkills <- getSkillTestSkillTypes
   pure $ st `with` SkillTestMetadata {..}
 
 withInvestigatorConnectionData
@@ -2904,6 +2905,8 @@ instance Projection Asset where
             _ -> Nothing
         pure $ mcontroller <|> assetController
       AssetOwner -> pure assetOwner
+      AssetAssignedHealthHeal -> pure assetAssignedHealthHeal
+      AssetAssignedSanityHeal -> pure assetAssignedSanityHeal
       AssetCustomizations -> pure assetCustomizations
       AssetLocation -> case assetPlacement of
         AtLocation lid -> pure $ Just lid
@@ -3189,7 +3192,9 @@ instance Projection Investigator where
       InvestigatorHorror -> pure $ investigatorSanityDamage attrs
       InvestigatorDamage -> pure $ investigatorHealthDamage attrs
       InvestigatorAssignedHorror -> pure investigatorAssignedSanityDamage
+      InvestigatorAssignedHealHorror -> pure investigatorAssignedSanityHeal
       InvestigatorAssignedDamage -> pure investigatorAssignedHealthDamage
+      InvestigatorAssignedHealDamage -> pure investigatorAssignedHealthHeal
       InvestigatorMentalTrauma -> pure investigatorMentalTrauma
       InvestigatorPhysicalTrauma -> pure investigatorPhysicalTrauma
       InvestigatorBondedCards -> pure investigatorBondedCards
@@ -3715,6 +3720,7 @@ eventField e fld = do
   case fld of
     EventCardId -> pure eventCardId
     EventSealedChaosTokens -> pure eventSealedChaosTokens
+    EventUses -> pure eventUses
     EventPlacement -> pure eventPlacement
     EventTraits -> pure $ cdCardTraits cdef
     EventAbilities -> pure $ getAbilities e

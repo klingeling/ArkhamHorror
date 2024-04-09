@@ -36,6 +36,7 @@ import Arkham.Location.Brazier
 import Arkham.LocationSymbol
 import Arkham.Modifier
 import {-# SOURCE #-} Arkham.Placement
+import Arkham.ScenarioLogKey
 import Arkham.SkillTest.Step
 import Arkham.SkillType
 import Arkham.SlotType
@@ -692,6 +693,7 @@ data CardMatcher
   | CardWithTrait Trait
   | CardWithId CardId
   | CardWithLevel Int
+  | CardWithMaxLevel Int
   | CardWithoutKeyword Keyword
   | CardWithKeyword Keyword
   | CardWithClass ClassSymbol
@@ -952,6 +954,7 @@ data WindowMatcher
   | Exhausts Timing Who TargetMatcher
   | EnemyExhausts Timing EnemyMatcher
   | EntersThreatArea Timing Who CardMatcher
+  | ScenarioCountIncremented Timing ScenarioCountKey
   deriving stock (Show, Eq, Ord, Data)
 
 data PhaseStepMatcher = EnemiesAttackStep | HuntersMoveStep

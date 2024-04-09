@@ -283,7 +283,7 @@ library
       Arkham.Agenda.Cards.SecretsBetterLeftHidden
       Arkham.Agenda.Cards.SettingSun
       Arkham.Agenda.Cards.ShadowsDeepen
-      Arkham.Agenda.Cards.SilentStiring
+      Arkham.Agenda.Cards.SilentStirring
       Arkham.Agenda.Cards.SnappedThreads
       Arkham.Agenda.Cards.SomethingStirs
       Arkham.Agenda.Cards.SpecialInvestigation
@@ -408,6 +408,7 @@ library
       Arkham.Asset.Cards.ArchaicGlyphsGuidingStones3
       Arkham.Asset.Cards.ArchaicGlyphsMarkingsOfIsis3
       Arkham.Asset.Cards.ArchaicGlyphsProphecyForetold3
+      Arkham.Asset.Cards.AriadnesTwine3
       Arkham.Asset.Cards.Armageddon
       Arkham.Asset.Cards.Armageddon4
       Arkham.Asset.Cards.ArmorOfArdennes5
@@ -645,6 +646,7 @@ library
       Arkham.Asset.Cards.Intrepid
       Arkham.Asset.Cards.Investments
       Arkham.Asset.Cards.IshimaruHaruko
+      Arkham.Asset.Cards.JacobMorrisonCostGuardCaptain3
       Arkham.Asset.Cards.JakeWilliams
       Arkham.Asset.Cards.JazzMulligan
       Arkham.Asset.Cards.JennysTwin45s
@@ -1534,6 +1536,7 @@ library
       Arkham.Event.Cards.Reliable1
       Arkham.Event.Cards.Riastrad1
       Arkham.Event.Cards.RighteousHunt1
+      Arkham.Event.Cards.RiteOfEquilibrium5
       Arkham.Event.Cards.Sacrifice1
       Arkham.Event.Cards.SceneOfTheCrime
       Arkham.Event.Cards.ScroungeForSupplies
@@ -1543,6 +1546,7 @@ library
       Arkham.Event.Cards.SeekingAnswers2
       Arkham.Event.Cards.Shortcut
       Arkham.Event.Cards.Shortcut2
+      Arkham.Event.Cards.ShrineOfTheMoirai3
       Arkham.Event.Cards.SleightOfHand
       Arkham.Event.Cards.SlipAway
       Arkham.Event.Cards.SlipAway2

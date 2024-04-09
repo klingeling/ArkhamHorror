@@ -6,6 +6,7 @@ import Arkham.Card.CardType
 import Arkham.ClassSymbol
 import Arkham.CommitRestriction
 import Arkham.GameValue
+import Arkham.Id
 import Arkham.Keyword qualified as Keyword
 import Arkham.Matcher
 import Arkham.Name
@@ -19,6 +20,9 @@ skill cardCode name icons classSymbol =
     { cdClassSymbols = singleton classSymbol
     , cdSkills = icons
     }
+
+signature :: InvestigatorId -> CardDef -> CardDef
+signature iid cd = cd {cdDeckRestrictions = [Signature iid], cdLevel = Nothing}
 
 allPlayerSkillCards :: Map CardCode CardDef
 allPlayerSkillCards =
@@ -206,7 +210,7 @@ deduction2 :: CardDef
 deduction2 =
   (skill "02150" "Deduction" [#intellect, #intellect] Seeker)
     { cdCardTraits = setFromList [Practiced, Expert]
-    , cdLevel = 2
+    , cdLevel = Just 2
     }
 
 defiance :: CardDef
@@ -241,14 +245,14 @@ opportunist2 =
   (skill "02231" "Opportunist" [#wild] Rogue)
     { cdCardTraits = setFromList [Innate, Developed]
     , cdCommitRestrictions = [OnlyYourTest]
-    , cdLevel = 2
+    , cdLevel = Just 2
     }
 
 survivalInstinct2 :: CardDef
 survivalInstinct2 =
   (skill "02235" "Survival Instinct" [#agility, #agility] Survivor)
     { cdCardTraits = setFromList [Innate, Developed]
-    , cdLevel = 2
+    , cdLevel = Just 2
     }
 
 leadership :: CardDef
@@ -261,14 +265,14 @@ fearless2 :: CardDef
 fearless2 =
   (skill "02268" "Fearless" [#willpower, #willpower] Mystic)
     { cdCardTraits = setFromList [Innate, Developed]
-    , cdLevel = 2
+    , cdLevel = Just 2
     }
 
 strokeOfLuck2 :: CardDef
 strokeOfLuck2 =
   (skill "02271" "Stroke of Luck" [#wild] Survivor)
     { cdCardTraits = setFromList [Innate, Fortune]
-    , cdLevel = 2
+    , cdLevel = Just 2
     , cdCommitRestrictions = [OnlyYourTest]
     }
 
@@ -276,15 +280,15 @@ viciousBlow2 :: CardDef
 viciousBlow2 =
   (skill "02299" "Vicious Blow" [#combat, #combat] Guardian)
     { cdCardTraits = setFromList [Practiced, Expert]
-    , cdLevel = 2
+    , cdLevel = Just 2
     }
 
 theHomeFront :: CardDef
 theHomeFront =
-  (skill "03007" "The Home Front" (replicate 4 #combat) Neutral)
-    { cdCardTraits = setFromList [Practiced, Expert]
-    , cdDeckRestrictions = [Signature "03001"]
-    }
+  signature "03001"
+    $ (skill "03007" "The Home Front" (replicate 4 #combat) Neutral)
+      { cdCardTraits = setFromList [Practiced, Expert]
+      }
 
 resourceful :: CardDef
 resourceful =
@@ -368,7 +372,7 @@ sealOfTheElderSign5 :: CardDef
 sealOfTheElderSign5 =
   (skill "03312" "Seal of the Elder Sign" [#wild] Mystic)
     { cdCardTraits = setFromList [Spell, Expert]
-    , cdLevel = 5
+    , cdLevel = Just 5
     }
 
 lastChance :: CardDef
@@ -420,7 +424,7 @@ defiance2 :: CardDef
 defiance2 =
   (skill "04198" "Defiance" [#wild] Mystic)
     { cdCardTraits = setFromList [Innate, Developed]
-    , cdLevel = 2
+    , cdLevel = Just 2
     }
 
 takeHeart :: CardDef
@@ -436,7 +440,7 @@ allIn5 =
   (skill "04309" "All In" [#wild, #wild] Rogue)
     { cdCardTraits = singleton Fortune
     , cdCommitRestrictions = [MaxOnePerTest]
-    , cdLevel = 5
+    , cdLevel = Just 5
     }
 
 steadfast :: CardDef
@@ -481,13 +485,14 @@ essenceOfTheDream =
   (skill "06113" "Essence of the Dream" [#wild, #wild] Seeker)
     { cdCardTraits = setFromList [Practiced, Expert]
     , cdKeywords = singleton (Keyword.Bonded 1 "06112")
+    , cdLevel = Nothing
     }
 
 momentum1 :: CardDef
 momentum1 =
   (skill "06115" "Momentum" [#wild] Rogue)
     { cdCardTraits = singleton Practiced
-    , cdLevel = 1
+    , cdLevel = Just 1
     }
 
 selfSacrifice :: CardDef
@@ -502,7 +507,7 @@ bruteForce1 =
   (skill "06166" "Brute Force" [#combat] Survivor)
     { cdCardTraits = setFromList [Innate, Developed]
     , cdCommitRestrictions = [MaxOnePerTest]
-    , cdLevel = 1
+    , cdLevel = Just 1
     }
 
 threeAces1 :: CardDef
@@ -510,7 +515,7 @@ threeAces1 =
   (skill "06199" "Three Aces" [#wild] Rogue)
     { cdKeywords = singleton Keyword.Myriad
     , cdCardTraits = setFromList [Fortune, Practiced]
-    , cdLevel = 1
+    , cdLevel = Just 1
     }
 
 sharpVision1 :: CardDef
@@ -518,21 +523,21 @@ sharpVision1 =
   (skill "06204" "Sharp Vision" [#intellect] Survivor)
     { cdCardTraits = setFromList [Innate, Developed]
     , cdCommitRestrictions = [MaxOnePerTest]
-    , cdLevel = 1
+    , cdLevel = Just 1
     }
 
 leadership2 :: CardDef
 leadership2 =
   (skill "06235" "Leadership" [#wild] Guardian)
     { cdCardTraits = singleton Practiced
-    , cdLevel = 2
+    , cdLevel = Just 2
     }
 
 daredevil2 :: CardDef
 daredevil2 =
   (skill "06240" "Daredevil" [#wild] Rogue)
     { cdCardTraits = setFromList [Fortune, Practiced]
-    , cdLevel = 2
+    , cdLevel = Just 2
     }
 
 expeditiousRetreat1 :: CardDef
@@ -540,7 +545,7 @@ expeditiousRetreat1 =
   (skill "06246" "Expeditious Retreat" [#agility] Survivor)
     { cdCardTraits = setFromList [Innate, Developed]
     , cdCommitRestrictions = [MaxOnePerTest]
-    , cdLevel = 1
+    , cdLevel = Just 1
     }
 
 surprisingFind1 :: CardDef
@@ -548,7 +553,7 @@ surprisingFind1 =
   (skill "06278" "Surprising Find" [#wild] Seeker)
     { cdCardTraits = setFromList [Fortune, Research]
     , cdKeywords = singleton Keyword.Myriad
-    , cdLevel = 1
+    , cdLevel = Just 1
     , cdCardInSearchEffects = True
     }
 
@@ -556,7 +561,7 @@ theEyeOfTruth5 :: CardDef
 theEyeOfTruth5 =
   (skill "06325" "The Eye of Truth" [#wild, #wild, #wild, #wild] Seeker)
     { cdCardTraits = setFromList [Spell, Practiced]
-    , cdLevel = 5
+    , cdLevel = Just 5
     }
 
 dreamParasite :: CardDef
@@ -566,6 +571,7 @@ dreamParasite =
     , cdCardSubType = Just Weakness
     , cdCommitRestrictions = [MustBeCommittedToYourTest]
     , cdKeywords = singleton (Keyword.Bonded 3 "06330")
+    , cdLevel = Nothing
     }
 
 whispersFromTheDeep :: CardDef
@@ -573,6 +579,7 @@ whispersFromTheDeep =
   (skill "07009" "Whispers from the Deep" [#wildMinus] Neutral)
     { cdCardTraits = singleton Curse
     , cdCardSubType = Just Weakness
+    , cdLevel = Nothing
     , cdCardInHandEffects = True
     }
 
@@ -605,6 +612,7 @@ skeptic1 :: CardDef
 skeptic1 =
   (skill "07115" "Skeptic" [#wild] Rogue)
     { cdCardTraits = setFromList [Practiced]
+    , cdLevel = Just 1
     }
 
 unrelenting1 :: CardDef
@@ -612,32 +620,36 @@ unrelenting1 =
   (skill "07196" "Unrelenting" [#wild] Survivor)
     { cdCardTraits = singleton Practiced
     , cdCommitRestrictions = [MaxOnePerTest]
+    , cdLevel = Just 1
     }
 
 signumCrucis2 :: CardDef
 signumCrucis2 =
   (skill "07197" "Signum Crucis" [#wild] Survivor)
-    { cdCardTraits = singleton Practiced
+    { cdCardTraits = setFromList [Practiced, Blessed]
     , cdCommitRestrictions = [OnlyYourTest, MinSkillTestValueDifference 1]
+    , cdLevel = Just 2
     }
 
 fey1 :: CardDef
 fey1 =
   (skill "07222" "Fey" [#willpower, #wild, #wild] Seeker)
     { cdCardTraits = setFromList [Innate, Cursed]
+    , cdLevel = Just 1
     }
 
 justifyTheMeans3 :: CardDef
 justifyTheMeans3 =
   (skill "07306" "Justify the Means" [] Rogue)
     { cdCardTraits = setFromList [Practiced, Cursed]
+    , cdLevel = Just 3
     }
 
 defensiveStance1 :: CardDef
 defensiveStance1 =
   (skill "08024" "Defensive Stance" [] Guardian)
     { cdCardTraits = setFromList [Practiced, Expert]
-    , cdLevel = 1
+    , cdLevel = Just 1
     , cdCardInHandEffects = True
     }
 
@@ -645,7 +657,7 @@ surveyTheArea1 :: CardDef
 surveyTheArea1 =
   (skill "08037" "Survey the Area" [] Seeker)
     { cdCardTraits = setFromList [Practiced, Expert]
-    , cdLevel = 1
+    , cdLevel = Just 1
     , cdCardInHandEffects = True
     }
 
@@ -653,7 +665,7 @@ occultTheory1 :: CardDef
 occultTheory1 =
   (skill "08065" "Occult Theory" [] Mystic)
     { cdCardTraits = setFromList [Practiced, Expert]
-    , cdLevel = 1
+    , cdLevel = Just 1
     , cdCardInHandEffects = True
     }
 
@@ -661,7 +673,7 @@ dauntlessSpirit1 :: CardDef
 dauntlessSpirit1 =
   (skill "08078" "Dauntless Spirit" [] Survivor)
     { cdCardTraits = setFromList [Innate, Developed]
-    , cdLevel = 1
+    , cdLevel = Just 1
     , cdCardInHandEffects = True
     }
 
@@ -675,7 +687,7 @@ riseToTheOccasion3 =
   )
     { cdCardTraits = singleton Innate
     , cdCommitRestrictions = [OnlyYourTest, MinSkillTestValueDifference 1]
-    , cdLevel = 3
+    , cdLevel = Just 3
     }
 
 overpower2 :: CardDef
@@ -683,7 +695,7 @@ overpower2 =
   (skill "60126" "Overpower" [#combat, #combat, #combat] Guardian)
     { cdCardTraits = setFromList [Practiced, Expert]
     , cdCommitRestrictions = [MaxOnePerTest]
-    , cdLevel = 2
+    , cdLevel = Just 2
     }
 
 perception2 :: CardDef
@@ -691,27 +703,28 @@ perception2 =
   (skill "60228" "Perception" [#intellect, #intellect, #intellect] Seeker)
     { cdCardTraits = setFromList [Practiced, Expert]
     , cdCommitRestrictions = [MaxOnePerTest]
-    , cdLevel = 2
+    , cdLevel = Just 2
     }
 
 anythingYouCanDoBetter :: CardDef
 anythingYouCanDoBetter =
-  ( skill
-      "60302"
-      "Anything You Can Do, Better"
-      [#wild, #wild, #wild, #wild, #wild, #wild]
-      Rogue
-  )
-    { cdCardTraits = setFromList [Innate, Developed]
-    , cdCommitRestrictions = [OnlyYourTest]
-    , cdDeckRestrictions = [Signature "60301"]
-    }
+  signature "60301"
+    $ ( skill
+          "60302"
+          "Anything You Can Do, Better"
+          [#wild, #wild, #wild, #wild, #wild, #wild]
+          Rogue
+      )
+      { cdCardTraits = setFromList [Innate, Developed]
+      , cdCommitRestrictions = [OnlyYourTest]
+      }
 
 arrogance :: CardDef
 arrogance =
   (skill "60303" "Arrogance" [#wildMinus] Neutral)
     { cdCardTraits = singleton Flaw
     , cdCardSubType = Just Weakness
+    , cdLevel = Nothing
     , cdCommitRestrictions = [MustBeCommittedToYourTest]
     }
 
@@ -720,6 +733,7 @@ reckless =
   (skill "60304" "Reckless" [] Neutral)
     { cdCardTraits = singleton Flaw
     , cdCardSubType = Just Weakness
+    , cdLevel = Nothing
     , cdCommitRestrictions = [OnlyYourTest, OnlyCardCommittedToTest]
     , cdCardInHandEffects = True
     }
@@ -741,14 +755,14 @@ manualDexterity2 =
   (skill "60325" "Manual Dexterity" [#agility, #agility, #agility] Rogue)
     { cdCardTraits = setFromList [Innate, Developed]
     , cdCommitRestrictions = [MaxOnePerTest]
-    , cdLevel = 2
+    , cdLevel = Just 2
     }
 
 copycat3 :: CardDef
 copycat3 =
   (skill "60330" "Copycat" [#wild] Rogue)
     { cdCardTraits = singleton Gambit
-    , cdLevel = 3
+    , cdLevel = Just 3
     }
 
 prescient :: CardDef
@@ -763,36 +777,36 @@ guts2 =
   (skill "60424" "Guts" [#willpower, #willpower, #willpower] Mystic)
     { cdCardTraits = setFromList [Innate, Developed]
     , cdCommitRestrictions = [MaxOnePerTest]
-    , cdLevel = 2
+    , cdLevel = Just 2
     }
 
 neitherRainNorSnow :: CardDef
 neitherRainNorSnow =
-  (skill "60502" "Neither Rain nor Snow" [#wild, #wild, #wild] Survivor)
-    { cdCardTraits = setFromList [Innate, Developed]
-    , cdDeckRestrictions = [Signature "60501"]
-    }
+  signature "60501"
+    $ (skill "60502" "Neither Rain nor Snow" [#wild, #wild, #wild] Survivor)
+      { cdCardTraits = setFromList [Innate, Developed]
+      }
 
 unexpectedCourage2 :: CardDef
 unexpectedCourage2 =
   (skill "60526" "Unexpected Courage" [#wild, #wild] Survivor)
     { cdCardTraits = setFromList [Innate, Developed]
     , cdCommitRestrictions = [MaxOnePerTest]
-    , cdLevel = 2
+    , cdLevel = Just 2
     }
 
 nauticalProwess :: CardDef
 nauticalProwess =
-  (skill "98014" "Nautical Prowess" [#willpower, #intellect, #wild] Neutral)
-    { cdCardTraits = setFromList [Innate, Developed]
-    , cdDeckRestrictions = [Signature "07005"]
-    }
+  signature "07005"
+    $ (skill "98014" "Nautical Prowess" [#willpower, #intellect, #wild] Neutral)
+      { cdCardTraits = setFromList [Innate, Developed]
+      }
 
 dreamsOfTheDeepTheDeepGate :: CardDef
 dreamsOfTheDeepTheDeepGate =
   (skill "98015" ("Dreams of the Deep" <:> "The Deep Gate") [#wildMinus, #wildMinus] Neutral)
     { cdCardTraits = setFromList [Curse]
-    , cdDeckRestrictions = [Signature "07005"]
+    , cdLevel = Nothing
     , cdCardSubType = Just Weakness
     , cdCardInHandEffects = True
     }
