@@ -8,7 +8,7 @@ import Arkham.Ability.Types
 import Arkham.Action (Action)
 import Arkham.Agenda.AdvancementReason (AgendaAdvancementReason)
 import Arkham.Asset.Uses
-import Arkham.Attack
+import Arkham.Attack.Types
 import Arkham.Card (Card)
 import Arkham.ChaosToken (ChaosToken)
 import Arkham.Damage
@@ -19,7 +19,7 @@ import Arkham.Id
 import Arkham.Matcher (LocationMatcher, MovesVia)
 import Arkham.Phase (Phase)
 import Arkham.ScenarioLogKey
-import Arkham.SkillTest.Base
+import {-# SOURCE #-} Arkham.SkillTest.Base
 import Arkham.SkillTest.Step
 import Arkham.SkillTest.Type
 import Arkham.Source (Source)
@@ -39,7 +39,7 @@ data Window = Window
   , windowType :: WindowType
   , windowBatchId :: Maybe BatchId
   }
-  deriving stock (Show, Eq, Ord)
+  deriving stock (Show, Eq)
 
 instance HasField "timing" Window Timing where
   getField = windowTiming
@@ -201,7 +201,9 @@ data WindowType
   | DeckWouldRunOutOfCards InvestigatorId
   | DeckRanOutOfCards InvestigatorId
   | WouldSearchDeck InvestigatorId DeckSignifier
+  | WouldLookAtDeck InvestigatorId DeckSignifier
   | SearchedDeck InvestigatorId DeckSignifier
+  | LookedAtDeck InvestigatorId DeckSignifier
   | PlacedBreaches Target -- BEGIN Breaches
   | PlacedBreach Target
   | WouldPlaceBreaches Target
@@ -258,7 +260,7 @@ data WindowType
   | ScenarioCountIncremented ScenarioCountKey
   | -- used to avoid checking a window
     DoNotCheckWindow
-  deriving stock (Show, Ord, Eq)
+  deriving stock (Show, Eq)
 
 $( do
     result <- deriveJSON defaultOptions ''Result

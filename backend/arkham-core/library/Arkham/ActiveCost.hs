@@ -32,8 +32,9 @@ import Arkham.Helpers
 import Arkham.Helpers.ChaosBag
 import Arkham.Helpers.Message
 import Arkham.Helpers.Ref
-import Arkham.Helpers.SkillTest (beginSkillTest, getSkillTestDifficulty)
+import Arkham.Helpers.SkillTest (beginSkillTest, getSkillTestDifficulty, getSkillTestTarget)
 import Arkham.Id
+import Arkham.Investigator.Cards qualified as Investigators
 import Arkham.Investigator.Types (Field (..))
 import Arkham.Location.Types (Field (..))
 import Arkham.Matcher hiding (
@@ -174,6 +175,24 @@ payCost msg c iid skipAdditionalCosts cost = do
   let pay = PayCost acId iid skipAdditionalCosts
   player <- getPlayer iid
   case cost of
+    GloriaCost -> do
+      mtarget <- getSkillTestTarget
+      case mtarget of
+        Nothing -> error "not in skill test"
+        Just t -> do
+          gloria <- selectJust $ investigatorIs Investigators.gloriaGoldberg
+          cardsUnderneath <- field InvestigatorCardsUnderneath gloria
+          traits <- targetTraits t
+          let cards = filter (\card -> any (\trait -> card `cardMatch` CardWithTrait trait) traits) cardsUnderneath
+          pushAll
+            [ FocusCards cards
+            , chooseOne
+                player
+                [ targetLabel (CardIdTarget $ toCardId card) [ObtainCard card, AddToEncounterDiscard ec]
+                | card@(EncounterCard ec) <- cards
+                ]
+            ]
+      pure c
     DrawEncounterCardsCost n -> do
       pushAll $ replicate n $ InvestigatorDrawEncounterCard iid
       pure c
@@ -495,27 +514,33 @@ payCost msg c iid skipAdditionalCosts cost = do
             then push (SpendResources iid x)
             else do
               iidsWithResources <-
-                for (iid : map fst canHelpPay) \iid' -> do
+                forMaybeM (iid : map fst canHelpPay) \iid' -> do
                   resources <- getSpendableResources iid'
                   name <- toTitle <$> field InvestigatorName iid'
-                  pure (iid', name, resources)
+                  pure $ guard (resources > 0) $> (iid', name, resources)
 
-              push
-                $ Ask player
-                $ ChoosePaymentAmounts ("Pay " <> tshow x <> " resources") (Just $ TotalAmountTarget x)
-                $ map
-                  (\(iid', name, resources) -> PaymentAmountChoice iid' 0 resources name (SpendResources iid' 1))
-                  iidsWithResources
-                <> map
-                  ( \(iid', assetId, uType, name, total) ->
-                      PaymentAmountChoice
-                        iid'
-                        0
-                        total
-                        (tshow uType <> " from " <> name)
-                        (SpendUses (toTarget assetId) uType 1)
-                  )
-                  resourcesFromAssets
+              case iidsWithResources of
+                [(iid', _, z)] | z >= x -> push $ SpendResources iid' x
+                _
+                  | sum (map (\(_, _, z) -> z) iidsWithResources) == x ->
+                      pushAll $ map (\(iid', _, z) -> SpendResources iid' z) iidsWithResources
+                _ ->
+                  push
+                    $ Ask player
+                    $ ChoosePaymentAmounts ("Pay " <> tshow x <> " resources") (Just $ TotalAmountTarget x)
+                    $ map
+                      (\(iid', name, resources) -> PaymentAmountChoice iid' 0 resources name (SpendResources iid' 1))
+                      iidsWithResources
+                    <> map
+                      ( \(iid', assetId, uType, name, total) ->
+                          PaymentAmountChoice
+                            iid'
+                            0
+                            total
+                            (tshow uType <> " from " <> name)
+                            (SpendUses (toTarget assetId) uType 1)
+                      )
+                      resourcesFromAssets
       withPayment $ ResourcePayment x
     AdditionalActionsCost -> do
       actionRemainingCount <- field InvestigatorRemainingActions iid
@@ -852,7 +877,22 @@ instance RunMessage ActiveCost where
         source = c.source
         actions = c.actions
 
-      canStillAfford <- getCanAffordCost iid source actions c.windows cost
+      extraResources <- case activeCostTarget c of
+        ForCard _ card -> do
+          iids <- getInvestigatorIds
+          sum <$> for iids \iid' -> do
+            modifiers <- getModifiers (InvestigatorTarget iid')
+            sum <$> for modifiers \case
+              CanSpendResourcesOnCardFromInvestigator iMatcher cMatcher -> do
+                canGive <-
+                  andM [elem iid <$> select iMatcher, pure $ cardMatch card cMatcher, pure $ iid /= iid']
+                if canGive then getSpendableResources iid' else pure 0
+              _ -> pure 0
+        _ -> pure 0
+
+      canStillAfford <-
+        withModifiers iid (toModifiers source [ExtraResources extraResources])
+          $ getCanAffordCost iid source actions c.windows cost
       if canStillAfford
         then payCost msg c iid skipAdditionalCosts cost
         else do

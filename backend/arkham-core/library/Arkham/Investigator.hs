@@ -122,12 +122,17 @@ allInvestigators =
       , SomeInvestigatorCard trishScarborough
       , SomeInvestigatorCard dexterDrake
       , SomeInvestigatorCard silasMarsh
+      , SomeInvestigatorCard danielaReyes
       , SomeInvestigatorCard normanWithers
+      , SomeInvestigatorCard montereyJack
+      , SomeInvestigatorCard lilyChen
+      , SomeInvestigatorCard bobJenkins
       , SomeInvestigatorCard nathanielCho
       , SomeInvestigatorCard harveyWalters
       , SomeInvestigatorCard winifredHabbamock
       , SomeInvestigatorCard stellaClark
       , SomeInvestigatorCard jacquelineFine
+      , SomeInvestigatorCard gloriaGoldberg
       , SomeInvestigatorCard daisyWalkerParallel
       ]
 

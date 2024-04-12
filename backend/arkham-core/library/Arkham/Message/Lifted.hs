@@ -10,6 +10,7 @@ import Arkham.Classes.HasQueue
 import Arkham.Classes.HasQueue as X (runQueueT)
 import Arkham.Classes.Query
 import Arkham.DamageEffect
+import Arkham.Deck (IsDeck (..))
 import Arkham.EffectMetadata (EffectMetadata)
 import Arkham.Enemy.Creation
 import Arkham.Fight
@@ -32,6 +33,7 @@ import Arkham.Movement
 import Arkham.Prelude
 import Arkham.Query
 import Arkham.ScenarioLogKey
+import Arkham.SkillTest.Base (SkillTestDifficulty)
 import Arkham.SkillType qualified as SkillType
 import Arkham.Source
 import Arkham.Target
@@ -212,7 +214,7 @@ beginSkillTest
   -> source
   -> target
   -> SkillType.SkillType
-  -> Int
+  -> SkillTestDifficulty
   -> m ()
 beginSkillTest iid source target sType n = push $ Msg.beginSkillTest iid source target sType n
 
@@ -452,8 +454,22 @@ skillTestModifier
 skillTestModifier (toSource -> source) (toTarget -> target) x =
   push $ Msg.skillTestModifier source target x
 
+searchModifier
+  :: forall target source m
+   . (ReverseQueue m, Sourceable source, Targetable target)
+  => source
+  -> target
+  -> ModifierType
+  -> m ()
+searchModifier (toSource -> source) (toTarget -> target) modifier =
+  push $ Msg.searchModifier source target modifier
+
 chooseFightEnemy :: (ReverseQueue m, Sourceable source) => InvestigatorId -> source -> m ()
 chooseFightEnemy iid = mkChooseFight iid >=> push . toMessage
+
+chooseFightEnemyMatch
+  :: (ReverseQueue m, Sourceable source) => InvestigatorId -> source -> EnemyMatcher -> m ()
+chooseFightEnemyMatch iid source = mkChooseFightMatch iid source >=> push . toMessage
 
 mapQueue :: (MonadTrans t, HasQueue Message m) => (Message -> Message) -> t m ()
 mapQueue = lift . Msg.mapQueue
@@ -517,3 +533,33 @@ lookAt
   -> FoundCardsStrategy
   -> m ()
 lookAt iid source target zones matcher strategy = Msg.push $ Msg.lookAt iid source target zones matcher strategy
+
+revealing
+  :: (Targetable target, Sourceable source, ReverseQueue m)
+  => InvestigatorId
+  -> source
+  -> target
+  -> Zone
+  -> m ()
+revealing iid (toSource -> source) (toTarget -> target) zone = Msg.push $ Msg.revealing iid source target zone
+
+shuffleIntoDeck :: (ReverseQueue m, IsDeck deck, Targetable target) => deck -> target -> m ()
+shuffleIntoDeck deck target = push $ Msg.shuffleIntoDeck deck target
+
+cardResolutionModifier
+  :: (ReverseQueue m, IsCard card, Sourceable source, Targetable target)
+  => card
+  -> source
+  -> target
+  -> ModifierType
+  -> m ()
+cardResolutionModifier card source target modifier = push $ Msg.cardResolutionModifier card source target modifier
+
+cardResolutionModifiers
+  :: (ReverseQueue m, IsCard card, Sourceable source, Targetable target)
+  => card
+  -> source
+  -> target
+  -> [ModifierType]
+  -> m ()
+cardResolutionModifiers card source target modifiers = push $ Msg.cardResolutionModifiers card source target modifiers

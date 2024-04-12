@@ -1,13 +1,11 @@
 module Arkham.Event.Cards.Dodge2 (dodge2, Dodge2) where
 
-import Arkham.Prelude
-
-import Arkham.Attack
 import Arkham.Classes
 import Arkham.DamageEffect
 import Arkham.Event.Cards qualified as Cards
 import Arkham.Event.Runner
 import Arkham.Id
+import Arkham.Prelude
 import Arkham.SkillType
 
 newtype Metadata = Metadata {selectedEnemy :: Maybe EnemyId}
@@ -28,11 +26,11 @@ instance RunMessage Dodge2 where
   runMessage msg e@(Dodge2 (attrs `With` meta)) = case msg of
     InvestigatorPlayEvent iid eid _ _ _ | eid == toId attrs -> do
       enemyId <- fromQueue $ \queue -> case dropUntilAttack queue of
-        PerformEnemyAttack details : _ -> attackEnemy details
+        PerformEnemyAttack enemy : _ -> enemy
         _ -> error "unhandled"
       pushAll
         [ CancelNext (toSource attrs) AttackMessage
-        , beginSkillTest iid (toSource attrs) (InvestigatorTarget iid) SkillAgility 1
+        , beginSkillTest iid (toSource attrs) (InvestigatorTarget iid) SkillAgility (Fixed 1)
         ]
       pure $ Dodge2 (attrs `with` Metadata (Just enemyId))
     PassedSkillTest _ _ (isSource attrs -> True) SkillTestInitiatorTarget {} _ _ -> do

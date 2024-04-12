@@ -38,6 +38,15 @@ getModifiers (toTarget -> target) = do
     filterF = if ignoreCanModifiers then notCanModifier else const True
   filter filterF . map modifierType <$> getModifiers' target
 
+getFullModifiers :: forall a m. (HasGame m, Targetable a) => a -> m [Modifier]
+getFullModifiers (toTarget -> target) = do
+  ignoreCanModifiers <- getIgnoreCanModifiers
+  let
+    notCanModifier CanModify {} = False
+    notCanModifier _ = True
+    filterF = if ignoreCanModifiers then notCanModifier else const True
+  filter (filterF . modifierType) <$> getModifiers' target
+
 getModifiers' :: (HasGame m, Targetable a) => a -> m [Modifier]
 getModifiers' (toTarget -> target) =
   findWithDefault [] target <$> getAllModifiers
@@ -164,12 +173,23 @@ phaseModifiers
 phaseModifiers source target modifiers = createWindowModifierEffect EffectPhaseWindow source target modifiers
 
 cardResolutionModifier
-  :: (Sourceable source, Targetable target) => source -> target -> ModifierType -> Message
-cardResolutionModifier source target modifier = createWindowModifierEffect EffectCardResolutionWindow source target [modifier]
+  :: (Sourceable source, Targetable target, IsCard card)
+  => card
+  -> source
+  -> target
+  -> ModifierType
+  -> Message
+cardResolutionModifier card source target modifier =
+  createWindowModifierEffect (EffectCardResolutionWindow $ toCardId card) source target [modifier]
 
 cardResolutionModifiers
-  :: (Sourceable source, Targetable target) => source -> target -> [ModifierType] -> Message
-cardResolutionModifiers source target modifiers = createWindowModifierEffect EffectCardResolutionWindow source target modifiers
+  :: (Sourceable source, Targetable target, IsCard card)
+  => card
+  -> source
+  -> target
+  -> [ModifierType]
+  -> Message
+cardResolutionModifiers card source target modifiers = createWindowModifierEffect (EffectCardResolutionWindow $ toCardId card) source target modifiers
 
 searchModifier
   :: (Sourceable source, Targetable target) => source -> target -> ModifierType -> Message

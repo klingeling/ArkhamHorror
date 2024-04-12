@@ -19,6 +19,7 @@ import Arkham.Classes.HasChaosTokenValue
 import Arkham.Classes.HasModifiersFor
 import Arkham.Classes.RunMessage.Internal
 import Arkham.Deck qualified as Deck
+import Arkham.DeckBuilding.Adjustment
 import Arkham.Discard
 import Arkham.Helpers
 import Arkham.Id
@@ -39,9 +40,24 @@ import Arkham.Token
 import Arkham.Token qualified as Token
 import Arkham.Trait
 import Control.Lens (_Just)
+import Data.Data
 import Data.Text qualified as T
-import Data.Typeable
 import GHC.Records
+
+instance Data Investigator where
+  gunfold _ _ _ = error "gunfold(Investigator)"
+  toConstr _ = error "toConstr(Investigator)"
+  dataTypeOf _ = error "dataTypeOf(Investigator)"
+
+instance Data (SomeField Investigator) where
+  gunfold _ _ _ = error "gunfold(SomeField Investigator)"
+  toConstr _ = error "toConstr(SomeField Investigator)"
+  dataTypeOf _ = error "dataTypeOf(SomeField Investigator)"
+
+instance Typeable a => Data (Field Investigator a) where
+  gunfold _ _ _ = error "gunfold(Investigator)"
+  toConstr _ = error "toConstr(Investigator)"
+  dataTypeOf _ = error "dataTypeOf(Investigator)"
 
 class
   ( Typeable a
@@ -108,11 +124,79 @@ data instance Field Investigator :: Type -> Type where
   InvestigatorPlayerId :: Field Investigator PlayerId
   InvestigatorBondedCards :: Field Investigator [Card]
   InvestigatorLog :: Field Investigator CampaignLog
+  InvestigatorUnhealedHorrorThisRound :: Field Investigator Int
   InvestigatorMeta :: Field Investigator Value
+  InvestigatorBeganRoundAt :: Field Investigator (Maybe LocationId)
   --
   InvestigatorSupplies :: Field Investigator [Supply]
 
 deriving stock instance Show (Field Investigator val)
+deriving stock instance Ord (Field Investigator val)
+
+instance ToJSON (Field Investigator typ) where
+  toJSON = toJSON . show
+
+instance Typeable typ => FromJSON (Field Investigator typ) where
+  parseJSON x = do
+    z <- parseJSON @(SomeField Investigator) x
+    case z of
+      SomeField (f :: Field Investigator k) -> case eqT @typ @k of
+        Just Refl -> pure f
+        Nothing -> error "type mismatch"
+
+instance FromJSON (SomeField Investigator) where
+  parseJSON = withText "Field Investigator" $ \case
+    "InvestigatorName" -> pure $ SomeField InvestigatorName
+    "InvestigatorRemainingActions" -> pure $ SomeField InvestigatorRemainingActions
+    "InvestigatorAdditionalActions" -> pure $ SomeField InvestigatorAdditionalActions
+    "InvestigatorHealth" -> pure $ SomeField InvestigatorHealth
+    "InvestigatorSanity" -> pure $ SomeField InvestigatorSanity
+    "InvestigatorRemainingSanity" -> pure $ SomeField InvestigatorRemainingSanity
+    "InvestigatorRemainingHealth" -> pure $ SomeField InvestigatorRemainingHealth
+    "InvestigatorLocation" -> pure $ SomeField InvestigatorLocation
+    "InvestigatorWillpower" -> pure $ SomeField InvestigatorWillpower
+    "InvestigatorIntellect" -> pure $ SomeField InvestigatorIntellect
+    "InvestigatorCombat" -> pure $ SomeField InvestigatorCombat
+    "InvestigatorAgility" -> pure $ SomeField InvestigatorAgility
+    "InvestigatorHorror" -> pure $ SomeField InvestigatorHorror
+    "InvestigatorAssignedHorror" -> pure $ SomeField InvestigatorAssignedHorror
+    "InvestigatorAssignedHealHorror" -> pure $ SomeField InvestigatorAssignedHealHorror
+    "InvestigatorDamage" -> pure $ SomeField Arkham.Investigator.Types.InvestigatorDamage
+    "InvestigatorAssignedDamage" -> pure $ SomeField InvestigatorAssignedDamage
+    "InvestigatorAssignedHealDamage" -> pure $ SomeField InvestigatorAssignedHealDamage
+    "InvestigatorResources" -> pure $ SomeField InvestigatorResources
+    "InvestigatorDoom" -> pure $ SomeField InvestigatorDoom
+    "InvestigatorClues" -> pure $ SomeField InvestigatorClues
+    "InvestigatorTokens" -> pure $ SomeField InvestigatorTokens
+    "InvestigatorHand" -> pure $ SomeField InvestigatorHand
+    "InvestigatorHandSize" -> pure $ SomeField InvestigatorHandSize
+    "InvestigatorCardsUnderneath" -> pure $ SomeField InvestigatorCardsUnderneath
+    "InvestigatorDeck" -> pure $ SomeField InvestigatorDeck
+    "InvestigatorDecks" -> pure $ SomeField InvestigatorDecks
+    "InvestigatorDiscard" -> pure $ SomeField InvestigatorDiscard
+    "InvestigatorClass" -> pure $ SomeField InvestigatorClass
+    "InvestigatorActionsTaken" -> pure $ SomeField InvestigatorActionsTaken
+    "InvestigatorActionsPerformed" -> pure $ SomeField InvestigatorActionsPerformed
+    "InvestigatorSlots" -> pure $ SomeField InvestigatorSlots
+    "InvestigatorUsedAbilities" -> pure $ SomeField InvestigatorUsedAbilities
+    "InvestigatorTraits" -> pure $ SomeField InvestigatorTraits
+    "InvestigatorAbilities" -> pure $ SomeField InvestigatorAbilities
+    "InvestigatorCommittedCards" -> pure $ SomeField InvestigatorCommittedCards
+    "InvestigatorDefeated" -> pure $ SomeField Arkham.Investigator.Types.InvestigatorDefeated
+    "InvestigatorResigned" -> pure $ SomeField Arkham.Investigator.Types.InvestigatorResigned
+    "InvestigatorPhysicalTrauma" -> pure $ SomeField InvestigatorPhysicalTrauma
+    "InvestigatorMentalTrauma" -> pure $ SomeField InvestigatorMentalTrauma
+    "InvestigatorXp" -> pure $ SomeField InvestigatorXp
+    "InvestigatorCardCode" -> pure $ SomeField InvestigatorCardCode
+    "InvestigatorKeys" -> pure $ SomeField InvestigatorKeys
+    "InvestigatorPlayerId" -> pure $ SomeField InvestigatorPlayerId
+    "InvestigatorBondedCards" -> pure $ SomeField InvestigatorBondedCards
+    "InvestigatorLog" -> pure $ SomeField InvestigatorLog
+    "InvestigatorUnhealedHorrorThisRound" -> pure $ SomeField InvestigatorUnhealedHorrorThisRound
+    "InvestigatorMeta" -> pure $ SomeField InvestigatorMeta
+    "InvestigatorBeganRoundAt" -> pure $ SomeField InvestigatorBeganRoundAt
+    "InvestigatorSupplies" -> pure $ SomeField InvestigatorSupplies
+    _ -> error "Unknown Field Investigator"
 
 data InvestigatorAttrs = InvestigatorAttrs
   { investigatorId :: InvestigatorId
@@ -160,6 +244,7 @@ data InvestigatorAttrs = InvestigatorAttrs
   , investigatorMulligansTaken :: Int
   , investigatorBondedCards :: [Card]
   , investigatorMeta :: Value
+  , investigatorUnhealedHorrorThisRound :: Int
   , -- handling liquid courage
     investigatorHorrorHealed :: Int
   , -- the forgotten age
@@ -168,10 +253,14 @@ data InvestigatorAttrs = InvestigatorAttrs
   , investigatorIsYithian :: Bool
   , -- keys
     investigatorKeys :: Set ArkhamKey
+  , -- monterey jack
+    investigatorBeganRoundAt :: Maybe LocationId
   , -- investigator specific logs
     investigatorLog :: CampaignLog
   , -- internal tracking
     investigatorDiscarding :: Maybe (HandDiscard Message)
+  , -- deck building
+    investigatorDeckBuildingAdjustments :: [DeckBuildingAdjustment]
   }
   deriving stock (Show, Eq, Generic)
 
@@ -272,6 +361,7 @@ instance FromJSON InvestigatorAttrs where
     investigatorMulligansTaken <- o .: "mulligansTaken"
     investigatorBondedCards <- o .: "bondedCards"
     investigatorMeta <- o .:? "meta" .!= Null
+    investigatorUnhealedHorrorThisRound <- o .:? "unhealedHorrorThisRound" .!= 0
     investigatorHorrorHealed <- o .: "horrorHealed"
     investigatorSupplies <- o .: "supplies"
     investigatorDrawnCards <- o .: "drawnCards"
@@ -279,6 +369,8 @@ instance FromJSON InvestigatorAttrs where
     investigatorKeys <- o .: "keys"
     investigatorLog <- o .:? "log" .!= mempty
     investigatorDiscarding <- o .: "discarding"
+    investigatorDeckBuildingAdjustments <- o .:? "deckBuildingAdjustments" .!= mempty
+    investigatorBeganRoundAt <- o .:? "beganRoundAt"
 
     pure InvestigatorAttrs {..}
 
@@ -425,6 +517,3 @@ searchingFoundCardsL = lens searchingFoundCards $ \m x -> m {searchingFoundCards
 
 foundCardsL :: Traversal' InvestigatorAttrs (Map Zone [Card])
 foundCardsL = searchL . _Just . searchingFoundCardsL
-
-setMeta :: ToJSON a => a -> InvestigatorAttrs -> InvestigatorAttrs
-setMeta a = metaL .~ toJSON a

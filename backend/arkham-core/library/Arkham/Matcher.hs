@@ -8,6 +8,7 @@ import Arkham.Prelude
 
 import Arkham.Campaigns.TheForgottenAge.Supply
 import Arkham.Card.CardCode
+import Arkham.Card.Id
 import Arkham.EncounterSet (EncounterSet)
 import Arkham.Id
 import Arkham.Matcher.Patterns
@@ -53,6 +54,12 @@ affectsOthers matcher =
 
 class OneOf a where
   oneOf :: [a] -> a
+
+instance OneOf SkillTestTypeMatcher where
+  oneOf = SkillTestTypeOneOf
+
+instance OneOf AbilityMatcher where
+  oneOf = AbilityOneOf
 
 instance OneOf ActionMatcher where
   oneOf = ActionOneOf
@@ -313,6 +320,12 @@ hasCard :: HasCardCode a => a -> CardListMatcher
 hasCard = HasCard . cardIs
 
 -- ** Replacements
+
+replaceThisCard :: Data a => CardId -> a -> a
+replaceThisCard cardId = over biplate (transform replace)
+ where
+  replace NotThisCard = basic (NotCard $ CardWithId cardId)
+  replace m = m
 
 replaceLocationMatcher :: Data a => LocationId -> LocationMatcher -> a -> a
 replaceLocationMatcher lid m = over biplate (transform go)

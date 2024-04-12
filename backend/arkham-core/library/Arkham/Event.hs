@@ -460,9 +460,13 @@ allEvents =
     , --- seeker [eote]
       SomeEventCard unearthTheAncients2
     , --- rogue [eote]
-      SomeEventCard moneyTalks2
+      SomeEventCard scoutAhead
+    , SomeEventCard moneyTalks2
     , --- mystic [eote]
       SomeEventCard parallelFates2
+    , --- rogue/mystic [eote]
+      SomeEventCard etherealSlip
+    , SomeEventCard etherealSlip2
     , -- The Scarlet Keys
       --- rogue [tsk]
       SomeEventCard breakingAndEntering2
@@ -553,4 +557,7 @@ allEvents =
     , SomeEventCard lookWhatIFound2
     , SomeEventCard dumbLuck2
     , SomeEventCard lucky3
+    , -- Promo
+      -- The Dirge of Reason
+      SomeEventCard mysteriesRemain
     ]

@@ -50,6 +50,7 @@ library:
     - process
     - random-shuffle
     - safe
+    - semialign
     - template-haskell
     - text
     - these
@@ -67,7 +68,6 @@ tests:
       - hspec
       - hspec-expectations-lifted
       - lens
-      - these
       - uuid
       - mtl
       - random

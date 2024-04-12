@@ -30,6 +30,7 @@ import Arkham.Action qualified as Action
 import Arkham.Action.Additional
 import Arkham.Asset.Types (Field (..))
 import Arkham.CampaignLog
+import Arkham.Capability
 import Arkham.Card
 import Arkham.Card.PlayerCard
 import Arkham.Classes.HasGame
@@ -267,7 +268,10 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
         , investigatorStartsWithInHand = investigatorStartsWithInHand
         , investigatorSupplies = investigatorSupplies
         , investigatorUsedAbilities = filter onlyCampaignAbilities investigatorUsedAbilities
+        , investigatorLog = investigatorLog
         }
+  AddDeckBuildingAdjustment iid adjustment | iid == investigatorId -> do
+    pure $ a & deckBuildingAdjustmentsL %~ (adjustment :)
   SetupInvestigator iid | iid == investigatorId -> do
     (startsWithMsgs, deck') <-
       foldM
@@ -285,7 +289,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
                       : msgs
                   , Deck (before <> rest)
                   )
-              _ -> do
+              _ | investigatorId `elem` ["05046", "05047", "05048", "05049"] -> do
                 card <- setOwner investigatorId =<< genCard cardDef
                 pure
                   ( PutCardIntoPlay
@@ -297,6 +301,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
                       : msgs
                   , currentDeck
                   )
+              _ -> pure (msgs, currentDeck)
         )
         ([], investigatorDeck)
         investigatorStartsWith
@@ -391,13 +396,16 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
     modifiers' <- getModifiers (toTarget a)
     let
       startingResources =
-        foldl'
-          ( \total -> \case
-              StartingResources n -> max 0 (total + n)
-              _ -> total
-          )
-          5
-          modifiers'
+        if CannotGainResources `elem` modifiers'
+          then 0
+          else
+            foldl'
+              ( \total -> \case
+                  StartingResources n -> max 0 (total + n)
+                  _ -> total
+              )
+              5
+              modifiers'
       startingClues =
         foldl'
           ( \total -> \case
@@ -1378,6 +1386,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
               pure
                 $ [damageInvestigator | null healthDamageableAssets]
                 <> map damageAsset healthDamageableAssets
+            DamageDirect -> pure [damageInvestigator]
             DamageAny ->
               pure $ damageInvestigator : map damageAsset healthDamageableAssets
             DamageFromHastur ->
@@ -1419,6 +1428,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
               pure
                 $ [damageInvestigator | null sanityDamageableAssets]
                 <> map damageAsset sanityDamageableAssets
+            DamageDirect -> pure [damageInvestigator]
             DamageAny -> do
               mustBeDamagedFirstBeforeInvestigator <-
                 select
@@ -1566,8 +1576,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
             , afterPlayCard
             ]
     pure a
-  CardEnteredPlay iid card | iid == investigatorId -> do
-    send $ format a <> " played " <> format card
+  CardEnteredPlay _ card -> do
     pure
       $ a
       & (handL %~ filter (/= card))
@@ -1726,6 +1735,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
          )
       & (assignedHealthDamageL .~ 0)
       & (assignedSanityDamageL .~ 0)
+      & (unhealedHorrorThisRoundL +~ investigatorAssignedSanityDamage)
   CancelAssignedDamage target damageReduction horrorReduction | isTarget a target -> do
     pure
       $ a
@@ -1735,12 +1745,16 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
     cannotHealHorror <- hasModifier a CannotHealHorror
     let health = findWithDefault 0 source investigatorAssignedHealthHeal
     let sanity = if cannotHealHorror then 0 else findWithDefault 0 source investigatorAssignedSanityHeal
+
     when (health > 0 || sanity > 0) do
       pushM
         $ checkWindows
         $ [mkAfter (Window.Healed DamageType (toTarget a) source health) | health > 0]
-        <> [mkAfter (Window.Healed DamageType (toTarget a) source sanity) | sanity > 0]
-    pure $ a & tokensL %~ subtractTokens Token.Damage health . subtractTokens Token.Horror sanity
+        <> [mkAfter (Window.Healed HorrorType (toTarget a) source sanity) | sanity > 0]
+    pure
+      $ a
+      & (tokensL %~ subtractTokens Token.Damage health . subtractTokens Token.Horror sanity)
+      & (unhealedHorrorThisRoundL %~ min 0 . subtract sanity)
   HealDamage (InvestigatorTarget iid) source amount | iid == investigatorId -> do
     afterWindow <- checkWindows [mkAfter $ Window.Healed DamageType (toTarget a) source amount]
     push afterWindow
@@ -1753,12 +1767,18 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
     if cannotHealHorror
       then pure a
       else do
+        -- TODO: HERE
+        -- healInvestigator = componentLabel HorrorToken thing [HealDamage thing source 1]
+
+        let totalHealed = min amount (investigatorSanityDamage a)
         pure
           $ a
           & (tokensL %~ subtractTokens Horror amount)
-          & (horrorHealedL .~ min amount (investigatorSanityDamage a))
+          & (horrorHealedL .~ totalHealed)
+          & (unhealedHorrorThisRoundL %~ min 0 . subtract totalHealed)
   AdditionalHealHorror (InvestigatorTarget iid) source additional | iid == investigatorId -> do
     -- exists to have Callbacks for the total, get from investigatorHorrorHealed
+    -- TODO: HERE  MAYBE
     cannotHealHorror <- hasModifier a CannotHealHorror
     if cannotHealHorror
       then pure $ a & horrorHealedL .~ 0
@@ -1771,20 +1791,44 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
         push afterWindow
         pure
           $ a
-          & tokensL
-          %~ subtractTokens Horror additional
-          & horrorHealedL
-          .~ 0
+          & (tokensL %~ subtractTokens Horror additional)
+          & (horrorHealedL .~ 0)
+          & (unhealedHorrorThisRoundL %~ min 0 . subtract additional)
   HealHorror (InvestigatorTarget iid) source amount | iid == investigatorId -> do
+    cannotHealHorror <- hasModifier a CannotHealHorror
+    unless cannotHealHorror
+      $ pushAll [HealHorrorDelayed (InvestigatorTarget iid) source amount, ApplyHealing source]
+    pure a
+  HealHorrorDelayed target@(isTarget a -> True) source n | n > 0 -> do
+    cannotHealHorror <- hasModifier a CannotHealHorror
+
+    -- afterWindow <- checkWindows [mkAfter $ Window.Healed #horror (toTarget a) source n]
+
+    unless cannotHealHorror do
+      mods <- getModifiers a
+      let onlyTargets = [targetLabel t [HealHorror t source 1] | CannotHealHorrorOnOtherCards t <- mods]
+      let additionalTargets =
+            guard (null onlyTargets)
+              *> [targetLabel t [HealHorror t source 1] | HealHorrorAsIfOnInvestigator t x <- mods, x > 0]
+      if null additionalTargets && null onlyTargets
+        then push $ Do msg
+        else do
+          let remainingHorror = investigatorSanityDamage a - sum (toList investigatorAssignedSanityHeal)
+          player <- getPlayer a.id
+          pushAll
+            [ chooseOne player
+                $ [HorrorLabel a.id [Do $ HealHorrorDelayed target source 1] | remainingHorror > 0, null onlyTargets]
+                <> additionalTargets
+                <> onlyTargets
+            , HealHorrorDelayed target source (n - 1)
+            ]
+
+    pure a
+  Do (HealHorrorDelayed (isTarget a -> True) source n) -> do
     cannotHealHorror <- hasModifier a CannotHealHorror
     if cannotHealHorror
       then pure a
-      else do
-        afterWindow <- checkWindows [mkAfter $ Window.Healed #horror (toTarget a) source amount]
-        push afterWindow
-        pure $ a & tokensL %~ subtractTokens #horror amount
-  HealHorrorDelayed (isTarget a -> True) source n -> do
-    pure $ a & assignedSanityHealL %~ insertWith (+) source n
+      else pure $ a & assignedSanityHealL %~ insertWith (+) source n
   MovedClues _ (isTarget a -> True) amount -> do
     pure $ a & tokensL %~ addTokens #clue amount
   MovedClues (isSource a -> True) _ amount -> do
@@ -1801,7 +1845,10 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
     pure $ a & tokensL %~ subtractTokens #damage amount
   HealHorrorDirectly (InvestigatorTarget iid) _ amount | iid == investigatorId -> do
     -- USE ONLY WHEN NO CALLBACKS
-    pure $ a & tokensL %~ subtractTokens #horror amount
+    pure
+      $ a
+      & (tokensL %~ subtractTokens #horror amount)
+      & (unhealedHorrorThisRoundL %~ min 0 . subtract amount)
   HealDamageDirectly (InvestigatorTarget iid) _ amount | iid == investigatorId -> do
     -- USE ONLY WHEN NO CALLBACKS
     pure $ a & tokensL %~ subtractTokens Token.Damage amount
@@ -1968,6 +2015,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
   ChooseEndTurn iid | iid == investigatorId -> pure $ a & endedTurnL .~ True
   Do BeginRound -> do
     actionsForTurn <- getAbilitiesForTurn a
+    current <- getMaybeLocation a.id
     pure
       $ a
       & (endedTurnL .~ False)
@@ -1975,6 +2023,8 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
       & (usedAdditionalActionsL .~ mempty)
       & (actionsTakenL .~ mempty)
       & (actionsPerformedL .~ mempty)
+      & (beganRoundAtL .~ current)
+      & (unhealedHorrorThisRoundL .~ 0)
   DiscardTopOfDeck iid n source mTarget | iid == investigatorId -> do
     let (cs, deck') = draw n investigatorDeck
         (cs', essenceOfTheDreams) = partition ((/= "06113") . toCardCode) cs
@@ -2166,7 +2216,10 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
                        ]
                  )
               <> [CheckHandSize iid | checkHandSize]
-            pure $ a & handL %~ (<> map PlayerCard allDrawn) & deckL .~ Deck deck'
+            pure
+              $ a
+              & (handL %~ (<> map PlayerCard (filter (`cardMatch` NotCard CardWithRevelation) allDrawn)))
+              & (deckL .~ Deck deck')
   InvestigatorDrewPlayerCard iid card -> do
     windowMsg <-
       checkWindows [mkAfter (Window.DrawCard iid (PlayerCard card) $ Deck.InvestigatorDeck iid)]
@@ -2190,7 +2243,8 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
   TakeResources iid n source True | iid == investigatorId -> do
     beforeWindowMsg <- checkWindows [mkWhen (Window.PerformAction iid #resource)]
     afterWindowMsg <- checkWindows [mkAfter (Window.PerformAction iid #resource)]
-    unlessM (hasModifier a CannotGainResources)
+    canGain <- can.gain.resources (sourceToFromSource source) iid
+    when canGain
       $ pushAll
         [ BeginAction
         , beforeWindowMsg
@@ -2201,9 +2255,9 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
         , FinishAction
         ]
     pure a
-  TakeResources iid n _ False | iid == investigatorId -> do
-    cannotGainResources <- hasModifier a CannotGainResources
-    pure $ if cannotGainResources then a else a & tokensL %~ addTokens Resource n
+  TakeResources iid n source False | iid == investigatorId -> do
+    canGain <- can.gain.resources (sourceToFromSource source) iid
+    pure $ if canGain then a & tokensL %~ addTokens Resource n else a
   PlaceTokens _ (isTarget a -> True) token n -> do
     pure $ a & tokensL %~ addTokens token n
   RemoveTokens _ (isTarget a -> True) token n -> do
@@ -2552,6 +2606,12 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
       & (discardL %~ filter ((`notElem` cards) . PlayerCard))
       & (foundCardsL . each %~ filter (`notElem` cards))
       & (bondedCardsL %~ filter (`notElem` cards))
+  SwapPlaces (aTarget, _) (_, newLocation) | a `is` aTarget -> do
+    push $ CheckEnemyEngagement a.id
+    pure $ a & placementL .~ AtLocation newLocation
+  SwapPlaces (_, newLocation) (bTarget, _) | a `is` bTarget -> do
+    push $ CheckEnemyEngagement a.id
+    pure $ a & placementL .~ AtLocation newLocation
   ShuffleCardsIntoDeck (Deck.InvestigatorDeck iid) [] | iid == investigatorId -> do
     -- can't shuffle zero cards
     pure a
@@ -2689,7 +2749,9 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
     (Search searchType iid source target@(InvestigatorTarget iid') cardSources cardMatcher foundStrategy) | iid' == toId a -> do
       mods <- getModifiers iid
       let
-        additionalDepth = foldl' (+) 0 $ mapMaybe (preview Modifier._SearchDepth) mods
+        additionalDepth =
+          sum [x | searchType == Searching, SearchDepth x <- mods]
+            + sum [x | searchType == Looking, LookAtDepth x <- mods]
         foundCards :: Map Zone [Card] =
           foldl'
             ( \hmap (cardSource, _) -> case cardSource of
@@ -3040,7 +3102,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
         drawing <- drawCardsF iid a 1
 
         canDraw <- canDo iid #draw
-        canTakeResource <- canDo iid #resource
+        canTakeResource <- (&&) <$> canDo iid #resource <*> can.gain.resources FromOtherSource iid
         canPlay <- canDo iid #play
         player <- getPlayer iid
 
@@ -3052,7 +3114,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
           <> [ ComponentLabel
               (InvestigatorComponent iid ResourceToken)
               [TakeResources iid 1 (toSource a) usesAction]
-             | canAffordTakeResources && CannotGainResources `notElem` modifiers && canTakeResource
+             | canAffordTakeResources && canTakeResource
              ]
           <> [ ComponentLabel (InvestigatorDeckComponent iid) [drawing]
              | canAffordDrawCards
@@ -3252,16 +3314,31 @@ getFacingDefeat a@InvestigatorAttrs {..} = do
 
 takeUpkeepResources :: InvestigatorAttrs -> Runnable InvestigatorAttrs
 takeUpkeepResources a = do
-  mods <- getModifiers a
-  let amount = foldr (+) 1 [n | UpkeepResources n <- mods]
-  if MayChooseNotToTakeUpkeepResources `elem` mods
-    then do
-      player <- getPlayer (toId a)
-      push
-        $ chooseOne
-          player
-          [ Label "Do not take resource(s)" []
-          , Label "Take resource(s)" [TakeResources (toId a) amount (toSource a) False]
+  fullModifiers <- getModifiers' a
+  let mods = map modifierType fullModifiers
+
+  let cannotGainResourcesFromPlayerCardEffects = CannotGainResourcesFromPlayerCardEffects `elem` mods
+
+  let additionalAmount =
+        sum
+          [ n
+          | Modifier s (UpkeepResources n) _ <- fullModifiers
+          , not cannotGainResourcesFromPlayerCardEffects || sourceToFromSource s /= FromPlayerCardEffect
           ]
-      pure a
-    else pure $ a & tokensL %~ addTokens Resource amount
+  let amount = 1 + additionalAmount
+  let cannotGainResources = CannotGainResources `elem` mods
+  if cannotGainResources
+    then pure a
+    else
+      if MayChooseNotToTakeUpkeepResources `elem` mods
+        then do
+          player <- getPlayer (toId a)
+          push
+            $ chooseOne
+              player
+              [ Label "Do not take resource(s)" []
+              , Label "Take resource(s)" [TakeResources (toId a) amount (toSource a) False]
+              ]
+          pure a
+        else
+          pure $ a & tokensL %~ addTokens Resource amount

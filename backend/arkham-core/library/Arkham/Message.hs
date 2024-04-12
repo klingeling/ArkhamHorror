@@ -18,7 +18,7 @@ import Arkham.Action hiding (Explore)
 import Arkham.Action.Additional
 import Arkham.Agenda.Sequence
 import Arkham.Asset.Uses
-import Arkham.Attack
+import Arkham.Attack.Types
 import Arkham.Campaign.Option
 import Arkham.CampaignLog
 import Arkham.CampaignLogKey
@@ -32,6 +32,7 @@ import Arkham.ClassSymbol
 import Arkham.Cost
 import Arkham.DamageEffect
 import Arkham.Deck
+import Arkham.DeckBuilding.Adjustment
 import Arkham.Decklist.Type
 import Arkham.Direction
 import Arkham.Discard
@@ -64,7 +65,7 @@ import Arkham.Resolution
 import Arkham.Scenario.Deck
 import Arkham.ScenarioLogKey
 import Arkham.Scenarios.BeforeTheBlackThrone.Cosmos
-import Arkham.SkillTest.Base
+import {-# SOURCE #-} Arkham.SkillTest.Base
 import Arkham.SkillTest.Type
 import Arkham.SkillTestResult qualified as SkillTest
 import Arkham.SkillType
@@ -81,6 +82,7 @@ import GHC.OverloadedLabels
 
 messageType :: Message -> Maybe MessageType
 messageType PerformEnemyAttack {} = Just AttackMessage
+messageType (After (PerformEnemyAttack {})) = Just AttackMessage
 messageType Revelation {} = Just RevelationMessage
 messageType DrawChaosToken {} = Just DrawChaosTokenMessage
 messageType ResolveChaosToken {} = Just ResolveChaosTokenMessage
@@ -298,7 +300,7 @@ data IncludeDiscard = IncludeDiscard | ExcludeDiscard
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
-data SearchType = Searching | Looking
+data SearchType = Searching | Looking | Revealing
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
@@ -333,7 +335,7 @@ data IsInvestigate = IsInvestigate | NotInvestigate
 data Message
   = UseAbility InvestigatorId Ability [Window]
   | SetInvestigator PlayerId Investigator
-  | ResolvedAbility Ability -- INTERNAL, Set Arbiter of Fates
+  | ResolvedAbility Ability -- INTERNAL, See Arbiter of Fates
   | -- Story Card Messages
     ReadStory InvestigatorId Card StoryMode (Maybe Target)
   | ReadStoryWithPlacement InvestigatorId Card StoryMode (Maybe Target) Placement
@@ -405,6 +407,7 @@ data Message
   | DrewFromScenarioDeck InvestigatorId ScenarioDeckKey Target [Card]
   | SetScenarioDeck ScenarioDeckKey [Card]
   | RemoveCardFromScenarioDeck ScenarioDeckKey Card
+  | SwapPlaces (Target, LocationId) (Target, LocationId) -- we include the placement so it is up to date
   | -- Victory
     AddToVictory Target
   | DefeatedAddToVictory Target
@@ -476,7 +479,7 @@ data Message
   | PreScenarioSetup
   | StandaloneSetup
   | ChoosePlayer InvestigatorId ChoosePlayerChoice
-  | ChoosePlayerOrder [InvestigatorId] [InvestigatorId]
+  | ChoosePlayerOrder InvestigatorId [InvestigatorId] [InvestigatorId]
   | ChooseRandomLocation Target [LocationId]
   | ChosenRandomLocation Target LocationId
   | ChooseChaosTokenGroups Source InvestigatorId ChaosBagStep
@@ -566,10 +569,12 @@ data Message
   | EnemyWillAttack EnemyAttackDetails
   | EnemyAttack EnemyAttackDetails
   | InitiateEnemyAttack EnemyAttackDetails
-  | PerformEnemyAttack EnemyAttackDetails -- Internal
+  | PerformEnemyAttack EnemyId -- Internal
+  | AfterEnemyAttack EnemyId [Message]
   | EnemyAttackFromDiscard InvestigatorId Source Card
   | EnemyAttackIfEngaged EnemyId (Maybe InvestigatorId)
   | EnemyAttacks [Message]
+  | ChangeEnemyAttackTarget EnemyId Target
   | CheckEnemyEngagement InvestigatorId
   | EnemyCheckEngagement EnemyId
   | EnemyDamage EnemyId DamageAssignment
@@ -847,7 +852,7 @@ data Message
   | RevealChaosToken Source InvestigatorId ChaosToken
   | Revelation InvestigatorId Source
   | RevelationChoice InvestigatorId Source Int
-  | RevelationSkillTest InvestigatorId Source SkillType Int
+  | RevelationSkillTest InvestigatorId Source SkillType SkillTestDifficulty
   | Run [Message]
   | RunBag Source (Maybe InvestigatorId) RequestedChaosTokenStrategy
   | RunDrawFromBag Source (Maybe InvestigatorId) RequestedChaosTokenStrategy
@@ -939,6 +944,7 @@ data Message
   | TriggerSkillTest InvestigatorId
   | TryEvadeEnemy InvestigatorId EnemyId Source (Maybe Target) SkillType
   | UnfocusCards
+  | ClearFound Zone
   | UnfocusTargets
   | UnfocusChaosTokens
   | SealChaosToken ChaosToken
@@ -1013,6 +1019,7 @@ data Message
   | SendMessage Target Message
   | IfEnemyExists EnemyMatcher [Message]
   | ExcessDamage EnemyId [Message]
+  | AddDeckBuildingAdjustment InvestigatorId DeckBuildingAdjustment
   | -- Commit
     Do Message
   | DoBatch BatchId Message

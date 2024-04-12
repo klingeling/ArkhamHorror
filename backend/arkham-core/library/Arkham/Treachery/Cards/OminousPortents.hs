@@ -34,14 +34,18 @@ instance RunMessage OminousPortents where
         $ chooseOrRunOne player
         $ [ Label
             "Draw the top card of the spectral encounter deck. That card gains peril, and its effects cannot be canceled."
-            [ cardResolutionModifiers attrs (toCardId topSpectralCard) [AddKeyword Peril, EffectsCannotBeCanceled]
+            [ cardResolutionModifiers
+                topSpectralCard
+                attrs
+                (toCardId topSpectralCard)
+                [AddKeyword Peril, EffectsCannotBeCanceled]
             , InvestigatorDrewEncounterCard iid (topSpectralCard {ecAddedPeril = True})
             ]
           | topSpectralCard <- maybeToList mTopSpectralCard
           ]
         <> [ Label
               "Test {willpower} (3). If you fail take 2 horror."
-              [revelationSkillTest iid attrs SkillWillpower 3]
+              [revelationSkillTest iid attrs SkillWillpower (Fixed 3)]
            ]
       pure t
     _ -> OminousPortents <$> runMessage msg attrs

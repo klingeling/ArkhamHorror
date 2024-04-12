@@ -430,6 +430,9 @@ allTreacheries =
     , -- Edge of the Earth
       -- signature
       SomeTreacheryCard theHarbinger
+    , SomeTreacheryCard buriedSecrets
+    , SomeTreacheryCard burdenOfDestiny
+    , SomeTreacheryCard greed
     , -- Return to the Night of the Zealot
       -- Return to the Gathering
       SomeTreacheryCard theZealotsSeal
@@ -497,6 +500,12 @@ allTreacheries =
     , --- Sins of the Past
       SomeTreacheryCard chillingPresence
     , -- Promo
-      --- Blood of Baalshandor
+      --- The Dirge of Reason
+      SomeTreacheryCard theDirgeOfReason
+    , --- To Fight the Black Wind
+      SomeTreacheryCard toFightTheBlackWind
+    , --- Blood of Baalshandor
       SomeTreacheryCard yaztaroth
+    , --- Dark Revelations
+      SomeTreacheryCard liberOmniumFinium
     ]

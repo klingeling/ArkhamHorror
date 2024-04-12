@@ -90,6 +90,7 @@ data InvestigatorMatcher
   | MostToken Token
   | HasTokens Token ValueMatcher
   | MostKeys
+  | InvestigatorWithUnhealedHorror
   | UneliminatedInvestigator
   | ResignedInvestigator
   | DefeatedInvestigator
@@ -108,6 +109,7 @@ data InvestigatorMatcher
   | InvestigatorHasCardWithHorror
   | InvestigatorWithDoom ValueMatcher
   | InvestigatorWithHorror ValueMatcher
+  | InvestigatorWithHealableHorror
   | InvestigatorWithRemainingSanity ValueMatcher
   | InvestigatorWithResources ValueMatcher
   | InvestigatorWithSpendableResources ValueMatcher
@@ -141,6 +143,8 @@ data InvestigatorMatcher
   | InvestigatorCanTarget Target
   | InvestigatorWithRecord CampaignLogKey
   | CanBeHuntedBy EnemyId
+  | DistanceFromRoundStart ValueMatcher
+  | InvestigatorWithMetaKey Text
   deriving stock (Show, Eq, Ord, Data)
 
 instance Plated InvestigatorMatcher
@@ -244,6 +248,9 @@ instance IsLabel "ally" AssetMatcher where
 instance IsLabel "tome" AssetMatcher where
   fromLabel = AssetWithTrait Tome
 
+instance IsLabel "spell" AssetMatcher where
+  fromLabel = AssetWithTrait Spell
+
 instance IsLabel "item" AssetMatcher where
   fromLabel = AssetWithTrait Item
 
@@ -298,10 +305,13 @@ data EnemyMatcher
   | EnemyIs CardCode
   | EnemyWithCardId CardId
   | AnyEnemy
+  | EnemyCanAttack InvestigatorMatcher
+  | AttackedYouSinceTheEndOfYourLastTurn
   | CanFightEnemy Source
-  | CanEvadeEnemy Source
+  | CanEvadeEnemy Source -- This checks for an ability
+  | EnemyCanBeEvadedBy Source -- This is not checking for an ability
   | CanFightEnemyWithOverride CriteriaOverride
-  | CanEvadeEnemyWithOverride CriteriaOverride
+  | CanEvadeEnemyWithOverride CriteriaOverride -- This checks for an ability but overrides the criteria
   | CanEngageEnemy Source
   | CanEngageEnemyWithOverride CriteriaOverride
   | EnemyDiscardedBy InvestigatorMatcher
@@ -316,6 +326,7 @@ data EnemyMatcher
   | EnemyWithoutModifier ModifierType
   | EnemyWithModifier ModifierType
   | EnemyWithEvade
+  | EnemyWithFight
   | UnengagedEnemy
   | UniqueEnemy
   | NotEnemy EnemyMatcher
@@ -630,6 +641,7 @@ data ExtendedCardMatcher
   = BasicCardMatch CardMatcher
   | CardIsBeneathInvestigator Who
   | CardWithCopyInHand Who
+  | NotThisCard
   | InHandOf Who
   | InDeckOf Who
   | InPlayAreaOf Who
@@ -652,6 +664,8 @@ data ExtendedCardMatcher
   | CardWithoutModifier ModifierType
   | CardIsCommittedBy InvestigatorMatcher
   deriving stock (Show, Eq, Ord, Data)
+
+instance Plated ExtendedCardMatcher
 
 instance Semigroup ExtendedCardMatcher where
   ExtendedCardMatches xs <> ExtendedCardMatches ys =
@@ -826,6 +840,8 @@ data WindowMatcher
   | InvestigatorWouldTakeDamage Timing Who SourceMatcher
   | InvestigatorWouldTakeHorror Timing Who SourceMatcher
   | WouldSearchDeck Timing Who DeckMatcher
+  | WouldLookAtDeck Timing Who DeckMatcher
+  | LookedAtDeck Timing Who DeckMatcher
   | SearchedDeck Timing Who DeckMatcher
   | AmongSearchedCards Who
   | DeckWouldRunOutOfCards Timing Who
@@ -1010,6 +1026,9 @@ data SkillTestMatcher
 instance IsLabel "any" SkillTestMatcher where
   fromLabel = AnySkillTest
 
+instance IsLabel "failed" SkillTestMatcher where
+  fromLabel = SkillTestWasFailed
+
 data SourceMatcher
   = SourceWithTrait Trait
   | SourceIsEnemyAttack EnemyMatcher
@@ -1083,6 +1102,9 @@ instance IsLabel "success" SkillTestResultMatcher where
 instance IsLabel "failure" SkillTestResultMatcher where
   fromLabel = FailureResult AnyValue
 
+instance IsLabel "any" SkillTestResultMatcher where
+  fromLabel = AnyResult
+
 data ValueMatcher
   = LessThan GameValue
   | GreaterThan GameValue
@@ -1092,7 +1114,12 @@ data ValueMatcher
   | AnyValue
   deriving stock (Show, Eq, Ord, Data)
 
-data SkillTestTypeMatcher = InvestigationSkillTest LocationMatcher | AnySkillTestType
+data SkillTestTypeMatcher
+  = InvestigationSkillTest LocationMatcher
+  | AnySkillTestType
+  | SkillTestWithAction ActionMatcher
+  | SkillTestOnEncounterCard
+  | SkillTestTypeOneOf [SkillTestTypeMatcher]
   deriving stock (Show, Eq, Ord, Data)
 
 instance IsLabel "investigation" SkillTestTypeMatcher where
@@ -1344,9 +1371,14 @@ data DamageEffectMatcher
 data EnemyAttackMatcher
   = AnyEnemyAttack
   | AttackOfOpportunityAttack
+  | AttackOfOpportunityAttackYouProvoked
   | AttackViaAlert
   | CancelableEnemyAttack EnemyAttackMatcher
+  | NotEnemyAttack EnemyAttackMatcher
   deriving stock (Show, Eq, Ord, Data)
+
+instance Not EnemyAttackMatcher where
+  not_ = NotEnemyAttack
 
 data ScenarioMatcher = TheScenario
   deriving stock (Show, Eq, Ord, Data)

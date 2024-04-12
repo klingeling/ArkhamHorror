@@ -9,7 +9,6 @@ import Arkham.Ability
 import Arkham.Asset.Cards qualified as Cards
 import Arkham.Asset.Runner
 import Arkham.Damage
-import Arkham.Helpers.Investigator
 import Arkham.Matcher
 import Arkham.Timing qualified as Timing
 import Arkham.Window
@@ -40,15 +39,15 @@ instance HasAbilities HypnoticTherapy where
 instance RunMessage HypnoticTherapy where
   runMessage msg a@(HypnoticTherapy attrs) = case msg of
     UseCardAbility iid (isSource attrs -> True) 1 _ _ -> do
-      push $ beginSkillTest iid (attrs.ability 1) iid #intellect 2
+      push $ beginSkillTest iid (attrs.ability 1) iid #intellect (Fixed 2)
       pure a
     PassedThisSkillTest iid (isAbilitySource attrs 1 -> True) -> do
       targetsWithCardDrawAndHeal <- do
-        iidsWithHeal <- getInvestigatorsWithHealHorror attrs 1 $ colocatedWith iid
-        for iidsWithHeal $ \(i, healHorror) -> do
+        iids <- select $ HealableInvestigator (attrs.ability 1) #horror $ colocatedWith iid
+        for iids $ \i -> do
           draw <- drawCards i (toAbilitySource attrs 1) 1
           targetPlayer <- getPlayer i
-          pure ((i, targetPlayer), draw, healHorror)
+          pure ((i, targetPlayer), draw, HealHorror (toTarget i) (attrs.ability 1) 1)
       player <- getPlayer iid
       pushWhen (notNull targetsWithCardDrawAndHeal)
         $ chooseOrRunOne player

@@ -23,7 +23,7 @@ import Arkham.Helpers.Source
 import Arkham.Id
 import Arkham.Investigator.Types
 import Arkham.Matcher hiding (InvestigatorDefeated)
-import Arkham.Message (IsInvestigate (..), Message (HealHorror, InvestigatorMulligan))
+import Arkham.Message (IsInvestigate (..), Message (InvestigatorMulligan))
 import Arkham.Name
 import Arkham.Placement
 import Arkham.Projection
@@ -31,12 +31,9 @@ import Arkham.SkillType
 import Arkham.Source
 import Arkham.Stats
 import Arkham.Target
-import Arkham.Treachery.Cards qualified as Treacheries
 import Data.Foldable (foldrM)
 import Data.Function (on)
 import Data.List (nubBy)
-import Data.Monoid
-import Data.UUID qualified as UUID
 
 getSkillValue :: HasGame m => SkillType -> InvestigatorId -> m Int
 getSkillValue st iid = case st of
@@ -340,6 +337,7 @@ investigator f cardDef Stats {..} =
                 , investigatorMovement = Nothing
                 , investigatorBondedCards = mempty
                 , investigatorMeta = Null
+                , investigatorUnhealedHorrorThisRound = 0
                 , investigatorUsedAbilities = mempty
                 , investigatorUsedAdditionalActions = mempty
                 , investigatorMulligansTaken = 0
@@ -354,6 +352,8 @@ investigator f cardDef Stats {..} =
                 , investigatorIsYithian = False
                 , investigatorDiscarding = Nothing
                 , investigatorLog = mkCampaignLog
+                , investigatorDeckBuildingAdjustments = mempty
+                , investigatorBeganRoundAt = Nothing
                 }
         }
 
@@ -491,50 +491,11 @@ isEliminated iid =
 getHandCount :: HasGame m => InvestigatorId -> m Int
 getHandCount = fieldMap InvestigatorHand length
 
-getHealHorrorMessage :: (HasGame m, Sourceable a) => a -> Int -> InvestigatorId -> m (Maybe Message)
-getHealHorrorMessage a n iid = do
-  mHorrorId <- canHaveHorrorHealed a iid
-  for mHorrorId $ \horrorId ->
-    pure $ HealHorror (InvestigatorTarget horrorId) (toSource a) n
-
-canHaveHorrorHealed :: (HasGame m, Sourceable a) => a -> InvestigatorId -> m (Maybe InvestigatorId)
-canHaveHorrorHealed a iid = do
-  result <- selectAny $ HealableInvestigator (toSource a) HorrorType $ InvestigatorWithId iid
-
-  let
-    isCannotHealHorrorOnOtherCardsModifiers = \case
-      CannotHealHorrorOnOtherCards _ -> True
-      _ -> False
-  mModifier <- find isCannotHealHorrorOnOtherCardsModifiers <$> getModifiers (InvestigatorTarget iid)
-  case mModifier of
-    Nothing -> pure $ iid <$ guard result
-    Just (CannotHealHorrorOnOtherCards target) -> case target of
-      TreacheryTarget tid -> do
-        -- we know rational thought is in effect
-        let
-          asIfInvestigator = \case
-            HealHorrorOnThisAsIfInvestigator ii -> First (Just ii)
-            _ -> First Nothing
-        mAsIfInverstigator <- getFirst . foldMap asIfInvestigator <$> getModifiers target
-        case mAsIfInverstigator of
-          Just iid' | iid == iid' -> do
-            innerResult <- elem tid <$> select (treacheryIs Treacheries.rationalThought)
-            pure $ InvestigatorId (CardCode $ UUID.toText $ unTreacheryId tid) <$ guard innerResult
-          _ -> pure Nothing
-      _ -> pure Nothing
-    _ -> pure Nothing
+canHaveHorrorHealed :: (HasGame m, Sourceable a) => a -> InvestigatorId -> m Bool
+canHaveHorrorHealed a = selectAny . HealableInvestigator (toSource a) HorrorType . InvestigatorWithId
 
 canHaveDamageHealed :: (HasGame m, Sourceable a) => a -> InvestigatorId -> m Bool
 canHaveDamageHealed a = selectAny . HealableInvestigator (toSource a) DamageType . InvestigatorWithId
-
-getInvestigatorsWithHealHorror
-  :: (HasGame m, Sourceable a)
-  => a
-  -> Int
-  -> InvestigatorMatcher
-  -> m [(InvestigatorId, Message)]
-getInvestigatorsWithHealHorror a n =
-  select . affectsOthers >=> mapMaybeM (traverseToSndM (getHealHorrorMessage a n))
 
 additionalActionCovers
   :: HasGame m => Source -> [Action] -> AdditionalAction -> m Bool
@@ -548,13 +509,11 @@ additionalActionCovers source actions (AdditionalAction _ _ aType) = case aType 
   EffectAction _ _ -> pure False
   AnyAdditionalAction -> pure True
   BountyAction -> pure False -- Has to be handled by Tony Morgan
+  BobJenkinsAction -> pure False -- Has to be handled by Bob Jenkins
 
 -- canFight <- selectAny $ CanFightEnemy source <> EnemyWithBounty
 -- canEngage <- selectAny $ CanEngageEnemy <> EnemyWithBounty
 -- pure $ (canFight && maction == Just #fight) || (canEngage && maction == Just #engage)
-
-getCanDrawCards :: HasGame m => InvestigatorId -> m Bool
-getCanDrawCards = selectAny . InvestigatorCanDrawCards . InvestigatorWithId
 
 eliminationWindow :: InvestigatorId -> WindowMatcher
 eliminationWindow iid = OrWindowMatcher [GameEnds #when, InvestigatorEliminated #when (InvestigatorWithId iid)]
@@ -584,10 +543,20 @@ instance HasGame m => Capable (InvestigatorId -> m Bool) where
     let can' = can :: Capabilities InvestigatorMatcher
      in fmap (flip (<=~>)) can'
 
+instance HasGame m => Capable (FromSource -> InvestigatorId -> m Bool) where
+  can =
+    let can' = can :: Capabilities (FromSource -> InvestigatorMatcher)
+     in fmap (\m fSource iid -> iid <=~> m fSource) can'
+
 instance HasGame m => Capable (InvestigatorAttrs -> m Bool) where
   can =
     let can' = can :: Capabilities InvestigatorMatcher
      in fmap (\c -> (<=~> c) . toId) can'
+
+instance HasGame m => Capable (FromSource -> InvestigatorAttrs -> m Bool) where
+  can =
+    let can' = can :: Capabilities (FromSource -> InvestigatorMatcher)
+     in fmap (\c fSource attrs -> toId attrs <=~> c fSource) can'
 
 guardAffectsOthers :: HasGame m => InvestigatorId -> InvestigatorMatcher -> m InvestigatorMatcher
 guardAffectsOthers iid matcher = do
@@ -604,3 +573,6 @@ getInMulligan = fromQueue (any isMulligan)
   isMulligan = \case
     InvestigatorMulligan {} -> True
     _ -> False
+
+setMeta :: ToJSON a => a -> InvestigatorAttrs -> InvestigatorAttrs
+setMeta meta attrs = attrs & metaL .~ toJSON meta

@@ -12,6 +12,7 @@ import Arkham.EncounterSet qualified as EncounterSet
 import Arkham.Keyword qualified as Keyword
 import Arkham.Name
 import Arkham.Trait hiding (Dreamlands)
+import Arkham.Trait qualified as Trait
 
 baseTreachery
   :: CardCode
@@ -66,6 +67,8 @@ allPlayerTreacheryCards =
       , atychiphobia
       , bloodlust
       , boughtInBlood
+      , burdenOfDestiny
+      , buriedSecrets
       , callOfTheUnknown
       , calledByTheMists
       , caughtRedHanded
@@ -85,6 +88,7 @@ allPlayerTreacheryCards =
       , falseAwakeningPointOfNoReturn
       , finalRhapsody
       , finePrint
+      , greed
       , haunted
       , hospitalDebts
       , hypochondria
@@ -115,10 +119,12 @@ allPlayerTreacheryCards =
       , terribleSecret
       , the13thVision
       , theBellTolls
+      , theDirgeOfReason
       , theHarbinger
       , thePriceOfFailure
       , thriceDamnedCuriosity
       , throughTheGates
+      , toFightTheBlackWind
       , unspeakableOathBloodthirst
       , unspeakableOathCowardice
       , unspeakableOathCuriosity
@@ -126,6 +132,7 @@ allPlayerTreacheryCards =
       , whatHaveYouDone
       , wrackedByNightmares
       , yaztaroth
+      , liberOmniumFinium
       ]
 
 allEncounterTreacheryCards :: Map CardCode CardDef
@@ -2048,6 +2055,24 @@ theHarbinger =
     { cdCardTraits = setFromList [Omen, Endtimes]
     }
 
+buriedSecrets :: CardDef
+buriedSecrets =
+  (weakness "08009" "Buried Secrets")
+    { cdCardTraits = setFromList [Mystery]
+    }
+
+burdenOfDestiny :: CardDef
+burdenOfDestiny =
+  (weakness "08015" "Burden of Destiny")
+    { cdCardTraits = setFromList [Flaw]
+    }
+
+greed :: CardDef
+greed =
+  (weakness "08018" "Greed")
+    { cdCardTraits = setFromList [Flaw]
+    }
+
 theZealotsSeal :: CardDef
 theZealotsSeal =
   (treachery "50024" "The Zealot's Seal" ReturnToTheGathering 2)
@@ -2326,9 +2351,31 @@ chillingPresence =
     { cdCardTraits = singleton Terror
     }
 
+theDirgeOfReason :: CardDef
+theDirgeOfReason =
+  (weakness "98006" "The Dirge of Reason")
+    { cdCardTraits = setFromList [Madness]
+    , cdKeywords = setFromList [Keyword.Replacement]
+    }
+
+toFightTheBlackWind :: CardDef
+toFightTheBlackWind =
+  (weakness "98012" "To Fight the Black Wind")
+    { cdCardTraits = setFromList [Task, Trait.Dreamlands]
+    , cdKeywords = setFromList [Keyword.Replacement]
+    }
+
 yaztaroth :: CardDef
 yaztaroth =
   (weakness "98018" "Yaztaroth")
     { cdCardTraits = setFromList [Curse, Pact]
     , cdUnique = True
+    , cdKeywords = setFromList [Keyword.Replacement]
+    }
+
+liberOmniumFinium :: CardDef
+liberOmniumFinium =
+  (weakness "98021" "Liber Omnium Finium")
+    { cdCardTraits = setFromList [Endtimes]
+    , cdKeywords = setFromList [Keyword.Replacement]
     }

@@ -13,6 +13,9 @@ import Arkham.Target
 class Capable a where
   can :: Capabilities a
 
+data FromSource = FromPlayerCardEffect | FromOtherSource
+  deriving stock (Eq)
+
 instance Capable InvestigatorMatcher where
   can =
     Capabilities
@@ -22,9 +25,16 @@ instance Capable InvestigatorMatcher where
       , draw =
           DrawCapabilities
             { cards =
-                InvestigatorWithoutModifier CannotDrawCards <> InvestigatorWithoutModifier CannotManipulateDeck
+                InvestigatorWithoutModifier CannotDrawCards
+                  <> InvestigatorWithoutModifier CannotDrawCardsFromPlayerCardEffects
+                  <> InvestigatorWithoutModifier CannotManipulateDeck
             }
-      , gain = GainCapabilities {resources = InvestigatorWithoutModifier CannotGainResources}
+      , gain =
+          GainCapabilities
+            { resources =
+                InvestigatorWithoutModifier CannotGainResources
+                  <> InvestigatorWithoutModifier CannotGainResourcesFromPlayerCardEffects
+            }
       , spend = SpendCapabilities {resources = InvestigatorWithSpendableResources (GreaterThan $ Static 0)}
       , have =
           HaveCapabilities
@@ -37,7 +47,40 @@ instance Capable InvestigatorMatcher where
             }
       , move = InvestigatorWithoutModifier CannotMove
       , target = TargetCapabilities {encounterDeck = InvestigatorCanTarget EncounterDeckTarget}
+      , reveal = RevealCapabilities {cards = InvestigatorWithoutModifier CannotRevealCards}
       }
+
+instance Capable (InvestigatorMatcher -> InvestigatorMatcher) where
+  can =
+    let can' = can :: Capabilities InvestigatorMatcher
+     in fmap (<>) can'
+
+instance Capable (FromSource -> InvestigatorMatcher) where
+  can =
+    let can' = fmap const can
+     in can'
+          { draw =
+              DrawCapabilities
+                { cards = \case
+                    FromPlayerCardEffect -> can.draw.cards
+                    FromOtherSource ->
+                      InvestigatorWithoutModifier CannotDrawCards
+                        <> InvestigatorWithoutModifier CannotManipulateDeck
+                }
+          , gain =
+              GainCapabilities
+                { resources = \case
+                    FromPlayerCardEffect -> can.gain.resources
+                    FromOtherSource -> InvestigatorWithoutModifier CannotGainResources
+                }
+          }
+
+instance Capable (FromSource -> InvestigatorMatcher -> InvestigatorMatcher) where
+  can =
+    let can' = can :: Capabilities (FromSource -> InvestigatorMatcher)
+     in fmap
+          (\(m :: FromSource -> InvestigatorMatcher) fSource matcher -> m fSource <> matcher)
+          can'
 
 data Capabilities a = Capabilities
   { search :: SearchCapabilities a
@@ -50,6 +93,7 @@ data Capabilities a = Capabilities
   , affect :: AffectCapabilities a
   , target :: TargetCapabilities a
   , move :: a
+  , reveal :: RevealCapabilities a
   }
   deriving stock (Functor)
 
@@ -69,6 +113,11 @@ data SearchCapabilities a = SearchCapabilities
   deriving stock (Functor)
 
 data DrawCapabilities a = DrawCapabilities
+  { cards :: a
+  }
+  deriving stock (Functor)
+
+data RevealCapabilities a = RevealCapabilities
   { cards :: a
   }
   deriving stock (Functor)

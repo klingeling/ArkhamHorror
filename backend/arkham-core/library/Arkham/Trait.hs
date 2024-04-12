@@ -31,6 +31,7 @@ data Trait
   | Bold
   | Boon
   | Bridge
+  | Broken
   | Byakhee
   | Bystander
   | Campsite
@@ -72,6 +73,7 @@ data Trait
   | Eldritch
   | Elite
   | Endtimes
+  | Entrepreneur
   | Evidence
   | Exhibit
   | Expert
@@ -207,6 +209,7 @@ data Trait
   | Train
   | Trap
   | Trick
+  | Unbroken
   | Unhallowed
   | Upgrade
   | Vale

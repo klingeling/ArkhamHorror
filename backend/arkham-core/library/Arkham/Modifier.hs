@@ -68,7 +68,9 @@ data ModifierType
   | AsIfEnemyFight Int
   | AsIfEngagedWith EnemyId
   | AsIfInHand Card
+  | PlayableCardOf InvestigatorId Card
   | AsIfUnderControlOf InvestigatorId
+  | PlayUnderControlOf InvestigatorId
   | AttacksCannotBeCancelled
   | BaseSkillOf {skillType :: SkillType, value :: Int}
   | BecomesFast
@@ -136,12 +138,15 @@ data ModifierType
   | CannotDiscoverCluesExceptAsResultOfInvestigation LocationMatcher
   | CannotDisengageEnemies
   | CannotDrawCards
+  | CannotDrawCardsFromPlayerCardEffects
   | CannotEngage InvestigatorId
   | CannotEnter LocationId
   | CannotEvade EnemyMatcher
   | CannotExplore
   | CannotFight EnemyMatcher
   | CannotGainResources
+  | CannotGainResourcesFromPlayerCardEffects
+  | CannotRevealCards
   | CannotHealHorror
   | CannotHealHorrorOnOtherCards Target
   | CannotInvestigate
@@ -168,6 +173,7 @@ data ModifierType
   | CardsCannotLeaveYourDiscardPile
   | ChangeChaosTokenModifier ChaosTokenModifier
   | ChangeRevealStrategy RevealStrategy
+  | SetAttackDamageStrategy DamageStrategy
   | ChaosTokenFaceModifier [ChaosTokenFace]
   | ChaosTokenValueModifier Int
   | CommitCost Cost
@@ -205,6 +211,7 @@ data ModifierType
   | EnemyFightActionCriteria CriteriaOverride
   | EnemyFightWithMin Int (Min Int)
   | EnemyEngageActionCriteria CriteriaOverride
+  | ExtraResources Int
   | FailTies
   | FewerActions Int
   | FewerSlots SlotType Int
@@ -218,7 +225,8 @@ data ModifierType
   | HandSize Int
   | CheckHandSizeAfterDraw
   | HandSizeCardCount Int
-  | HealHorrorOnThisAsIfInvestigator InvestigatorId
+  | HealHorrorOnThisAsIfInvestigator InvestigatorId -- DEPRECATED
+  | HealHorrorAsIfOnInvestigator Target Int
   | HealthModifier Int
   | HealthModifierWithMin Int (Min Int)
   | HunterConnectedTo LocationId
@@ -271,6 +279,7 @@ data ModifierType
   | RevealChaosTokensBeforeCommittingCards
   | SanityModifier Int
   | SearchDepth Int
+  | LookAtDepth Int
   | SetAbilityCost Cost
   | SetAbilityCriteria CriteriaOverride
   | SetAfterPlay AfterPlayStrategy
@@ -307,6 +316,11 @@ data ModifierType
     Ethereal -- from Ethereal Form
   | Explosion -- from Dyanamite Blast
   deriving stock (Show, Eq, Ord, Data)
+
+pattern CannotMoveExceptByScenarioCardEffects :: ModifierType
+pattern CannotMoveExceptByScenarioCardEffects <- CannotMove
+  where
+    CannotMoveExceptByScenarioCardEffects = CannotMove
 
 instance IsLabel "combat" (Int -> ModifierType) where
   fromLabel = SkillModifier #combat

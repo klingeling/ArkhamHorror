@@ -19,7 +19,9 @@ import Arkham.Helpers.Matchers
 import Arkham.Helpers.Modifiers
 import Arkham.Helpers.Scenario
 import {-# SOURCE #-} Arkham.Helpers.SkillTest
+import Arkham.Helpers.Target
 import Arkham.Id
+import Arkham.Investigator.Cards qualified as Investigators
 import Arkham.Investigator.Types (Field (..))
 import Arkham.Location.Types (Field (..))
 import Arkham.Matcher qualified as Matcher
@@ -73,6 +75,15 @@ getCanAffordCost iid (toSource -> source) actions windows' = \case
       AssetTarget aid -> fieldMap AssetCardsUnderneath (any (`cardMatch` cardMatcher)) aid
       _ -> error "Unhandled shuffle attached card into deck cost"
   DrawEncounterCardsCost _n -> can.target.encounterDeck iid
+  GloriaCost -> do
+    mtarget <- getSkillTestTarget
+    case mtarget of
+      Nothing -> pure False
+      Just t -> do
+        gloria <- selectJust $ Matcher.investigatorIs Investigators.gloriaGoldberg
+        cardsUnderneath <- field InvestigatorCardsUnderneath gloria
+        traits <- targetTraits t
+        pure $ any (\trait -> any (`cardMatch` Matcher.CardWithTrait trait) cardsUnderneath) traits
   ShuffleIntoDeckCost target -> case target of
     TreacheryTarget tid ->
       andM
@@ -291,13 +302,15 @@ getCanAffordCost iid (toSource -> source) actions windows' = \case
 
 getSpendableResources :: HasGame m => InvestigatorId -> m Int
 getSpendableResources iid = do
+  mods <- getModifiers iid
+  let extraResources = sum [x | ExtraResources x <- mods]
   familyInheritanceResources <-
     getSum
       <$> selectAgg
         Sum
         AssetResources
         (Matcher.assetIs Assets.familyInheritance)
-  fieldMap InvestigatorResources (+ familyInheritanceResources) iid
+  fieldMap InvestigatorResources (+ (familyInheritanceResources + extraResources)) iid
 
 getModifiedCardCost :: HasGame m => InvestigatorId -> Card -> m Int
 getModifiedCardCost iid c@(PlayerCard _) = do

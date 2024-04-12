@@ -746,7 +746,18 @@ allAssets =
       SomeAssetCard jacobMorrisonCostGuardCaptain3
     , -- Edge of the Earth
       --- signature [eote]
-      SomeAssetCard livreDeibon
+      SomeAssetCard mechanicsWrench
+    , SomeAssetCard livreDeibon
+    , SomeAssetCard trustyBullwhip
+    , SomeAssetCard disciplineAlignmentOfSpirit
+    , SomeAssetCard disciplineAlignmentOfSpiritBroken
+    , SomeAssetCard disciplineQuiescenceOfThought
+    , SomeAssetCard disciplineQuiescenceOfThoughtBroken
+    , SomeAssetCard disciplinePrescienceOfFate
+    , SomeAssetCard disciplinePrescienceOfFateBroken
+    , SomeAssetCard disciplineBalanceOfBody
+    , SomeAssetCard disciplineBalanceOfBodyBroken
+    , SomeAssetCard shrewdDealings
     , --- seeker [eote]
       SomeAssetCard forcedLearning
     , --- rogue [eote]
@@ -767,6 +778,8 @@ allAssets =
     , --- rogue/survivor [eote]
       SomeAssetCard preciousMementoFromAFormerLife4
     , SomeAssetCard preciousMementoFromAFutureLife4
+    , --- mystic/survivor [eote]
+      SomeAssetCard talismanOfProtection
     , --- neutral [eote]
       SomeAssetCard inTheThickOfIt
     , -- The Scarlet Keys
@@ -967,8 +980,16 @@ allAssets =
       SomeAssetCard daisysToteBagAdvanced
     , SomeAssetCard theNecronomiconAdvanced
     , -- Promo
-      --- Blood of Baalshandor
+      --- Hour of the Huntress
+      SomeAssetCard greenManMedallionHourOfTheHuntress
+    , --- Ire of the Void
+      SomeAssetCard splitTheAngleIreOfTheVoid
+    , --- To Fight the Black Wind
+      SomeAssetCard foolishnessFoolishCatOfUlthar
+    , --- Blood of Baalshandor
       SomeAssetCard mollyMaxwell
+    , --- Dark Revelations
+      SomeAssetCard ruthWestmacottDarkRevelations
     , -- Misc
       SomeAssetCard courage
     ]

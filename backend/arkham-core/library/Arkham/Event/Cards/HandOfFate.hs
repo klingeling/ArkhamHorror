@@ -1,10 +1,5 @@
-module Arkham.Event.Cards.HandOfFate (
-  handOfFate,
-  HandOfFate (..),
-)
-where
+module Arkham.Event.Cards.HandOfFate (handOfFate, HandOfFate (..)) where
 
-import Arkham.Attack
 import Arkham.Classes
 import Arkham.Enemy.Types (Field (..))
 import Arkham.Event.Cards qualified as Cards
@@ -27,7 +22,7 @@ instance RunMessage HandOfFate where
   runMessage msg e@(HandOfFate attrs) = case msg of
     PlayThisEvent _iid eid | eid == toId attrs -> do
       enemyId <- fromQueue $ \queue -> case dropUntilAttack queue of
-        PerformEnemyAttack details : _ -> attackEnemy details
+        PerformEnemyAttack x : _ -> x
         _ -> error "unhandled"
       damage <- field EnemyHealthDamage enemyId
       horror <- field EnemySanityDamage enemyId

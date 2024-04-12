@@ -365,6 +365,9 @@ allEnemies =
       SomeEnemyCard shadowAgents
     , -- basic weakness
       SomeEnemyCard accursedFollower
+    , -- Edge of the Earth
+      -- signature
+      SomeEnemyCard mobGoons
     , -- Return to Night of the Zealot
       -- Return to the Gathering
       SomeEnemyCard corpseHungryGhoul
@@ -415,4 +418,9 @@ allEnemies =
     , SomeEnemyCard cultistOfTheEnclave
     , --- Sins of the Past
       SomeEnemyCard vengefulSpecter
+    , -- Promo
+      --- Hour of the Huntress
+      SomeEnemyCard sacrificialBeast
+    , --- Ire of the Void
+      SomeEnemyCard vengefulHound
     ]

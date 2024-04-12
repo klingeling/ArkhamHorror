@@ -63,7 +63,10 @@ allPlayerEnemyCards =
       , unboundBeast
       , shadowAgents
       , accursedFollower
+      , mobGoons
       , tommyMalloy
+      , sacrificialBeast
+      , vengefulHound
       ]
 
 allEncounterEnemyCards :: Map CardCode CardDef
@@ -1977,6 +1980,13 @@ accursedFollower =
     , cdKeywords = singleton Keyword.Aloof
     }
 
+mobGoons :: CardDef
+mobGoons =
+  (weakness "08003" "Mob Goons")
+    { cdCardTraits = setFromList [Humanoid, Criminal]
+    , cdKeywords = singleton Keyword.Hunter
+    }
+
 corpseHungryGhoul :: CardDef
 corpseHungryGhoul =
   ( enemy "50022" "Corpse-Hungry Ghoul" ReturnToTheGathering 1
@@ -2273,6 +2283,20 @@ vengefulSpecter =
     , cdKeywords = setFromList [Keyword.Patrol "Room 245", Keyword.Retaliate]
     , cdVictoryPoints = Just 2
     , cdUnique = True
+    }
+
+sacrificialBeast :: CardDef
+sacrificialBeast =
+  (weakness "98003" "Sacrificial Beast")
+    { cdCardTraits = setFromList [Monster, DarkYoung]
+    , cdKeywords = singleton Keyword.Replacement
+    }
+
+vengefulHound :: CardDef
+vengefulHound =
+  (weakness "98009" "Vengeful Hound")
+    { cdCardTraits = setFromList [Monster, Extradimensional, Tindalos]
+    , cdKeywords = singleton Keyword.Replacement
     }
 
 flyingPolyp :: CardDef

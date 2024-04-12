@@ -16,7 +16,7 @@ const includeEncounter = ref(false)
 
 interface Filter {
   cardType: string | null
-  text: string | null
+  text: string[]
   level: number | null
   cycle: number | null
   set: string | null
@@ -100,7 +100,7 @@ const image = (card: Arkham.CardDef) => imgsrc(`cards/${card.art}.jpg`)
 const view = ref(View.List)
 
 const query = ref("")
-const filter = ref<Filter>({ cardType: null, text: null, level: null, cycle: null, set: null, classes: [] })
+const filter = ref<Filter>({ cardType: null, text: [], level: null, cycle: null, set: null, classes: [] })
 
 const cards = computed(() => {
   let all = allCards.value
@@ -123,8 +123,12 @@ const cards = computed(() => {
     all = all.filter((c) => c.classSymbols.some((cs) => classes.includes(cs.toLowerCase())))
   }
 
-  if (text) {
-    all = all.filter((c) => cardName(c).toLowerCase().includes(text.toLowerCase()))
+  if (text.length > 0) {
+    all = all.filter((c) => {
+      const cardNameMatches = text.some((t) => cardName(c).toLowerCase().includes(t.toLowerCase()))
+      const cardCodeMatches = text.some((t) => c.cardCode == `c${t.toLowerCase()}`)
+      return cardNameMatches || cardCodeMatches
+    })
   }
 
   if (level) {
@@ -183,7 +187,7 @@ const setFilter = () => {
     set = matchSet[1]
   }
 
-  filter.value = { classes, cycle, set, cardType, level, text: queryString.trim() !== "" ? queryString.trim() : null}
+  filter.value = { classes, cycle, set, cardType, level, text: queryString.trim() !== "" ? queryString.trim().split('|') : []}
 }
 
 const cardName = (card: Arkham.CardDef) => {
@@ -277,12 +281,12 @@ const cycleSets = (cycle: CardCycle) => {
 
 const setCycle = (cycle: CardCycle) => {
   query.value = `y:${cycle.cycle}`
-  filter.value = { cardType: null, text: null, level: null, cycle: cycle.cycle, set: null, classes: [] }
+  filter.value = { cardType: null, text: [], level: null, cycle: cycle.cycle, set: null, classes: [] }
 }
 
 const setSet = (set: CardSet) => {
   query.value = `e:${set.code}`
-  filter.value = { cardType: null, text: null, level: null, cycle: null, set: set.code, classes: [] }
+  filter.value = { cardType: null, text: [], level: null, cycle: null, set: set.code, classes: [] }
 }
 </script>
 

@@ -1,6 +1,5 @@
 module Arkham.Event.Cards.DodgeSpec (spec) where
 
-import Arkham.Attack qualified as Attack
 import Arkham.Event.Cards qualified as Cards
 import TestImport.New
 
@@ -18,7 +17,7 @@ spec = do
       self `moveTo` location
       enemy `attacks` self
 
-      let attackMessage = PerformEnemyAttack $ Attack.enemyAttack (toId enemy) enemy self
+      let attackMessage = PerformEnemyAttack (toId enemy)
 
       withRewind $ assertRunsMessage attackMessage skip
       assertDoesNotRunMessage attackMessage $ chooseTarget dodge

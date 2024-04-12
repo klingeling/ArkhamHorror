@@ -27,6 +27,7 @@ import Arkham.Helpers.Message as X hiding (
 import Arkham.Helpers.Query as X
 import Arkham.Helpers.SkillTest as X
 import Arkham.Placement as X
+import Arkham.SkillTest.Base as X (SkillTestDifficulty (..))
 import Arkham.Source as X
 import Arkham.Target as X
 import Arkham.Treachery.Helpers as X
@@ -48,7 +49,7 @@ forcedOnElimination :: InvestigatorId -> AbilityType
 forcedOnElimination = ForcedAbility . eliminationWindow
 
 on :: Targetable target => TreacheryAttrs -> target -> Bool
-on = flip treacheryOn
+on = treacheryOn
 
 instance RunMessage TreacheryAttrs where
   runMessage msg a@TreacheryAttrs {..} = case msg of

@@ -15,6 +15,7 @@ import Arkham.Action qualified as Action
 import Arkham.Agenda.Cards qualified as Agenda
 import Arkham.Agenda.Sequence qualified as AS
 import Arkham.Agenda.Types (Agenda, AgendaAttrs (..), Field (..))
+import Arkham.Asset.Cards qualified as Assets
 import Arkham.Asset.Types (
   Asset,
   AssetAttrs (..),
@@ -164,8 +165,9 @@ import Control.Monad.Reader (runReader)
 import Control.Monad.State.Strict hiding (state)
 import Data.Aeson (Result (..))
 import Data.Aeson.Diff qualified as Diff
+import Data.Aeson.Key qualified as Key
 import Data.Aeson.KeyMap qualified as KeyMap
-import Data.Aeson.Types (emptyArray, parse)
+import Data.Aeson.Types (emptyArray, parse, parseMaybe)
 import Data.List qualified as List
 import Data.List.Extra (groupOn)
 import Data.Map.Monoidal.Strict (getMonoidalMap)
@@ -175,11 +177,9 @@ import Data.Monoid (First (..))
 import Data.Sequence ((|>), pattern Empty, pattern (:<|), pattern (:|>))
 import Data.Sequence qualified as Seq
 import Data.Set qualified as Set
-import Data.These
 import Data.Tuple.Extra (dupe)
 import Data.Typeable
 import Data.UUID (nil)
-import Data.UUID qualified as UUID
 import System.Environment (lookupEnv)
 import Text.Pretty.Simple
 
@@ -341,6 +341,7 @@ withSkillTestMetadata :: HasGame m => SkillTest -> m (With SkillTest SkillTestMe
 withSkillTestMetadata st = do
   stmModifiedSkillValue <- getSkillTestModifiedSkillValue
   stmSkills <- getSkillTestSkillTypes
+  stmModifiedDifficulty <- fromJustNote "impossible" <$> getSkillTestDifficulty
   pure $ st `with` SkillTestMetadata {..}
 
 withInvestigatorConnectionData
@@ -581,43 +582,22 @@ getInvestigatorsMatching matcher = do
   case matcher of
     ThatInvestigator -> error "ThatInvestigator must be resolved in criteria"
     HealableInvestigator _source HorrorType _ -> do
-      -- first let's look for the modifier for the active investigator
       let
         isCannotHealHorrorOnOtherCardsModifiers = \case
           CannotHealHorrorOnOtherCards _ -> True
           _ -> False
-      modifiers' <- getActiveInvestigatorModifiers
-      if CannotHealHorror `elem` modifiers'
+      active <- getActiveInvestigatorId
+      mods <- getModifiers active
+      if CannotHealHorror `elem` mods
         then pure []
-        else case find isCannotHealHorrorOnOtherCardsModifiers modifiers' of
-          Nothing -> pure results
-          Just (CannotHealHorrorOnOtherCards target) -> case target of
-            TreacheryTarget tid -> do
-              let
-                asIfInvestigator = \case
-                  HealHorrorOnThisAsIfInvestigator ii -> First (Just ii)
-                  _ -> First Nothing
-              mAsIfInverstigator <-
-                getFirst . foldMap asIfInvestigator <$> getModifiers target
-              case mAsIfInverstigator of
-                Just iid' -> case find ((== iid') . toId) results of
-                  Just targetInvestigator ->
-                    pure
-                      [ overAttrs
-                          ( \a ->
-                              a
-                                { Investigator.investigatorId =
-                                    InvestigatorId
-                                      (CardCode $ UUID.toText $ unTreacheryId tid)
-                                }
-                          )
-                          targetInvestigator
-                      ]
-                  _ -> pure []
-                _ -> pure []
-            -- we know rational thought is in effect
-            _ -> error "Only handled for Rational Thought"
-          Just _ -> error "Not possible"
+        else
+          -- This logic may be too specific to rational thought, we basically
+          -- only let the player heal themselves if this modifier is on them,
+          -- but we may need to let them heal other things
+          pure
+            if any isCannotHealHorrorOnOtherCardsModifiers mods
+              then filter ((== active) . toId) results
+              else results
     _ -> pure results
  where
   includeEliminated Anyone = True
@@ -855,8 +835,26 @@ getInvestigatorsMatching matcher = do
       (`gameValueMatches` gameValueMatcher) . attr investigatorDoom
     InvestigatorWithDamage gameValueMatcher ->
       (`gameValueMatches` gameValueMatcher) . attr investigatorHealthDamage
-    InvestigatorWithHorror gameValueMatcher ->
-      (`gameValueMatches` gameValueMatcher) . attr investigatorSanityDamage
+    InvestigatorWithHealableHorror -> \i -> do
+      let onSelf = attr investigatorSanityDamage i > 0
+      mFoolishness <-
+        selectOne
+          $ assetIs Assets.foolishnessFoolishCatOfUlthar
+          <> assetControlledBy i.id
+          <> AssetWithHorror
+      foolishness <-
+        maybe (pure False) (fieldMap AssetHorror (> 0)) mFoolishness
+      pure $ onSelf || foolishness
+    InvestigatorWithHorror gameValueMatcher -> \i -> do
+      onSelf <- attr investigatorSanityDamage i `gameValueMatches` gameValueMatcher
+      mFoolishness <-
+        selectOne
+          $ assetIs Assets.foolishnessFoolishCatOfUlthar
+          <> assetControlledBy i.id
+          <> AssetWithHorror
+      foolishness <-
+        maybe (pure False) (fieldMapM AssetHorror (`gameValueMatches` gameValueMatcher)) mFoolishness
+      pure $ onSelf || foolishness
     InvestigatorWithRemainingSanity gameValueMatcher ->
       field InvestigatorRemainingSanity
         . toId
@@ -915,6 +913,15 @@ getInvestigatorsMatching matcher = do
       pure $ not (historySuccessfulExplore history)
     InvestigatorWithCommittableCard -> \i -> do
       selectAny $ CommittableCard (toId i) (basic AnyCard)
+    InvestigatorWithUnhealedHorror -> fieldMap InvestigatorUnhealedHorrorThisRound (> 0) . toId
+    InvestigatorWithMetaKey k -> \i -> do
+      meta <- field InvestigatorMeta (toId i)
+      case meta of
+        Object o ->
+          case KeyMap.lookup (Key.fromText k) o of
+            Just (Bool b) -> pure b
+            _ -> pure False
+        _ -> pure False
     ContributedMatchingIcons valueMatcher -> \i -> do
       mSkillTest <- getSkillTest
       case mSkillTest of
@@ -943,6 +950,12 @@ getInvestigatorsMatching matcher = do
       isHighestAmongst (toId i) UneliminatedInvestigator getCardsInPlayCount
     InvestigatorWithKey key -> \i ->
       pure $ key `elem` investigatorKeys (toAttrs i)
+    DistanceFromRoundStart valueMatcher -> \i -> do
+      fromMaybe False <$> runMaybeT do
+        startLocation <- hoistMaybe $ attr investigatorBeganRoundAt i
+        current <- MaybeT $ getMaybeLocation i.id
+        Distance distance <- MaybeT $ getDistance startLocation current
+        lift $ gameValueMatches distance valueMatcher
     CanBeHuntedBy eid -> \i -> do
       mods <- getModifiers i
       flip noneM mods $ \case
@@ -2501,6 +2514,25 @@ enemyMatcherFilter = \case
       . maxes
       . mapMaybe (\(x, y) -> (x,) <$> y)
       <$> forToSnd matches' (field EnemyRemainingHealth . toId)
+  AttackedYouSinceTheEndOfYourLastTurn -> \enemy -> do
+    -- ONLY works for Daniela Reyes
+    iid <- toId <$> getActiveInvestigator
+    meta <- field InvestigatorMeta iid
+    case meta of
+      Object obj -> case parseMaybe @_ @[EnemyId] (.: "enemiesThatAttackedYouSinceTheEndOfYourLastTurn") obj of
+        Just eids -> pure $ toId enemy `elem` eids
+        Nothing -> error "AttackedYouSinceTheEndOfYourLastTurn: key missing"
+      _ -> error "AttackedYouSinceTheEndOfYourLastTurn: InvestigatorMeta is not an Object"
+  EnemyCanAttack investigatorMatcher -> \enemy -> do
+    iids <- select investigatorMatcher
+    let
+      canBeAttacked iid = do
+        mods <- getModifiers iid
+        flip noneM mods \case
+          CannotBeAttackedBy eMatcher -> toId enemy <=~> eMatcher
+          CannotBeAttacked -> pure True
+          _ -> pure False
+    anyM canBeAttacked iids
   EnemyWithRemainingHealth valueMatcher -> do
     let hasRemainingHealth = \case
           Nothing -> pure False
@@ -2511,6 +2543,7 @@ enemyMatcherFilter = \case
   EnemyWithModifier modifier ->
     \enemy -> elem modifier <$> getModifiers (toTarget enemy)
   EnemyWithEvade -> fieldP EnemyEvade isJust . toId
+  EnemyWithFight -> fieldP EnemyFight isJust . toId
   EnemyWithPlacement p -> fieldP EnemyPlacement (== p) . toId
   UnengagedEnemy -> selectNone . InvestigatorEngagedWith . EnemyWithId . toId
   UniqueEnemy -> pure . cdUnique . toCardDef
@@ -2646,6 +2679,18 @@ enemyMatcherFilter = \case
                 ]
           )
           (getAbilities enemy)
+  EnemyCanBeEvadedBy _source -> \enemy -> do
+    iid <- view activeInvestigatorIdL <$> getGame
+    modifiers' <- getModifiers iid
+    let
+      enemyFilters =
+        mapMaybe
+          ( \case
+              CannotEvade m -> Just m
+              _ -> Nothing
+          )
+          modifiers'
+    notElem (toId enemy) <$> select (mconcat $ EnemyWithModifier CannotBeEvaded : enemyFilters)
   CanEvadeEnemyWithOverride override -> \enemy -> do
     iid <- view activeInvestigatorIdL <$> getGame
     modifiers' <- getModifiers (EnemyTarget $ toId enemy)
@@ -3027,6 +3072,7 @@ getEnemyField f e = do
     EnemySealedChaosTokens -> pure enemySealedChaosTokens
     EnemyKeys -> pure enemyKeys
     EnemySpawnedBy -> pure enemySpawnedBy
+    EnemyAttacking -> pure enemyAttacking
     EnemyTokens -> pure enemyTokens
     EnemyDoom -> do
       countAllDoom <- attrs `hasModifier` CountAllDoomInPlay
@@ -3198,6 +3244,8 @@ instance Projection Investigator where
       InvestigatorMentalTrauma -> pure investigatorMentalTrauma
       InvestigatorPhysicalTrauma -> pure investigatorPhysicalTrauma
       InvestigatorBondedCards -> pure investigatorBondedCards
+      InvestigatorUnhealedHorrorThisRound -> pure investigatorUnhealedHorrorThisRound
+      InvestigatorBeganRoundAt -> pure investigatorBeganRoundAt
       InvestigatorResources -> pure $ investigatorResources attrs
       InvestigatorDoom -> pure $ investigatorDoom attrs
       InvestigatorClues -> pure $ investigatorClues attrs
@@ -3347,6 +3395,7 @@ instance Query ExtendedCardMatcher where
    where
     matches' :: HasGame m => Card -> ExtendedCardMatcher -> m Bool
     matches' c = \case
+      NotThisCard -> error "must be replaced"
       CanCancelRevelationEffect matcher' -> do
         cardIsMatch <- matches' c matcher'
         modifiers <- getModifiers (toCardId c)
@@ -3889,6 +3938,7 @@ instance Projection Treachery where
       TreacheryPlacement -> pure treacheryPlacement
       TreacheryDrawnBy -> pure treacheryDrawnBy
       TreacheryDrawnFrom -> pure treacheryDrawnFrom
+      TreacheryOwner -> pure treacheryOwner
       TreacheryCardId -> pure treacheryCardId
       TreacheryCanBeCommitted -> pure treacheryCanBeCommitted
       TreacheryClues -> pure $ treacheryClues attrs

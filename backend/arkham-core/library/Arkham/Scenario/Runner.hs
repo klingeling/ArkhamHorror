@@ -45,7 +45,6 @@ import Arkham.Id
 import Arkham.Investigator.Types (Field (..))
 import Arkham.Location.Types (Field (..))
 import Arkham.Matcher qualified as Matcher
-import Arkham.Modifier qualified as Modifier
 import Arkham.Phase
 import Arkham.Placement
 import Arkham.Projection
@@ -569,6 +568,23 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = case msg of
           (PlacedUnderneath ActDeckTarget card)
           [Window.PlaceUnderneath ActDeckTarget card]
     pure a
+  ObtainCard card -> do
+    let
+      removeCard :: IsCard c => [c] -> [c]
+      removeCard = deleteFirstMatch ((== card) . toCard)
+    pure
+      $ a
+      & (setAsideCardsL %~ removeCard)
+      & (encounterDeckL %~ withDeck removeCard)
+      & (victoryDisplayL %~ removeCard)
+      & (discardL %~ removeCard)
+      & (cardsUnderScenarioReferenceL %~ removeCard)
+      & (cardsUnderAgendaDeckL %~ removeCard)
+      & (cardsUnderActDeckL %~ removeCard)
+      & (cardsNextToActDeckL %~ removeCard)
+      & (cardsNextToAgendaDeckL %~ removeCard)
+      & (decksL . each %~ removeCard)
+      & (encounterDecksL . each %~ bimap (withDeck removeCard) removeCard)
   PlacedUnderneath ActDeckTarget card -> do
     pure $ a & cardsUnderActDeckL %~ (card :)
   PlaceNextTo ActDeckTarget cards -> do
@@ -682,20 +698,27 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = case msg of
         pushAll [UnsetActiveCard, InvestigatorDrewEncounterCard iid card]
         pure $ a & (deckLens handler .~ Deck encounterDeck)
   Search searchType iid _ EncounterDeckTarget _ _ _ -> do
-    if searchType == Searching
-      then
+    case searchType of
+      Searching ->
         wouldDo
           msg
           (Window.WouldSearchDeck iid Deck.EncounterDeck)
           (Window.SearchedDeck iid Deck.EncounterDeck)
-      else do
+      Looking ->
+        wouldDo
+          msg
+          (Window.WouldLookAtDeck iid Deck.EncounterDeck)
+          (Window.LookedAtDeck iid Deck.EncounterDeck)
+      Revealing -> do
         batchId <- getRandom
         push $ DoBatch batchId msg
     pure a
-  DoBatch batchId (Search _ iid source EncounterDeckTarget cardSources cardMatcher foundStrategy) -> do
+  DoBatch batchId (Search sType iid source EncounterDeckTarget cardSources cardMatcher foundStrategy) -> do
     mods <- getModifiers iid
     let
-      additionalDepth = foldl' (+) 0 $ mapMaybe (preview Modifier._SearchDepth) mods
+      additionalDepth =
+        sum [x | sType == Searching, SearchDepth x <- mods]
+          + sum [x | sType == Looking, LookAtDepth x <- mods]
       foundCards :: Map Zone [Card] =
         foldl'
           ( \hmap (cardSource, _) -> case cardSource of
@@ -727,11 +750,6 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = case msg of
           )
           mempty
           cardSources
-      encounterDeck =
-        filter
-          ( (`notElem` findWithDefault [] Zone.FromDeck foundCards) . EncounterCard
-          )
-          (unDeck scenarioEncounterDeck)
       targetCards = filter (`cardMatch` cardMatcher) $ concat $ toList foundCards
     pushBatch batchId $ EndSearch iid source EncounterDeckTarget cardSources
     player <- getPlayer iid
@@ -748,10 +766,8 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = case msg of
       DrawFound who n -> do
         let
           choices =
-            [ targetLabel
-              (toCardId card)
-              [InvestigatorDrewEncounterCard who card]
-            | card <- mapMaybe (preview _EncounterCard) targetCards
+            [ targetLabel (toCardId card) [InvestigatorDrewEncounterCard who card]
+            | EncounterCard card <- targetCards
             ]
         pushBatch batchId
           $ if null choices
@@ -760,10 +776,8 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = case msg of
       DrawFoundUpTo who n -> do
         let
           choices =
-            [ targetLabel
-              (toCardId card)
-              [InvestigatorDrewEncounterCard who card]
-            | card <- mapMaybe (preview _EncounterCard) targetCards
+            [ targetLabel (toCardId card) [InvestigatorDrewEncounterCard who card]
+            | EncounterCard card <- targetCards
             ]
         pushBatch batchId
           $ if null choices
@@ -780,10 +794,8 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = case msg of
       DrawAllFound who -> do
         let
           choices =
-            [ targetLabel
-              (toCardId card)
-              [InvestigatorDrewEncounterCard who card]
-            | card <- mapMaybe (preview _EncounterCard) targetCards
+            [ targetLabel (toCardId card) [InvestigatorDrewEncounterCard who card]
+            | EncounterCard card <- targetCards
             ]
         pushBatch batchId
           $ if null choices
@@ -795,7 +807,7 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = case msg of
 
     pushBatch batchId (FoundCards foundCards)
 
-    pure $ a & (encounterDeckL .~ Deck encounterDeck)
+    pure a
   Discarded (AssetTarget _) _ card@(EncounterCard ec) -> do
     handler <- getEncounterDeckHandler $ toCardId card
     -- TODO: determine why this was only specified for Asset
@@ -1050,7 +1062,7 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = case msg of
   SpawnEnemyAtEngagedWith (EncounterCard ec) _ _ -> do
     pure $ a & discardL %~ filter (/= ec)
   InvestigatorDrewEncounterCard _ ec -> do
-    pure $ a & discardL %~ filter (/= ec)
+    pure $ a & discardL %~ filter (/= ec) & encounterDeckL %~ withDeck (filter (/= ec))
   When (EnemySpawn _ _ enemyId) -> do
     card <- field EnemyCard enemyId
     pure $ a & (victoryDisplayL %~ delete card)

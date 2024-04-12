@@ -60,12 +60,17 @@ allInvestigatorCards =
       , trishScarborough
       , dexterDrake
       , silasMarsh
+      , danielaReyes
       , normanWithers
+      , montereyJack
+      , lilyChen
+      , bobJenkins
       , nathanielCho
       , harveyWalters
       , winifredHabbamock
       , jacquelineFine
       , stellaClark
+      , gloriaGoldberg
       , daisyWalkerParallel
       ]
 
@@ -378,6 +383,14 @@ silasMarsh =
       Survivor
       [Drifter]
 
+danielaReyes :: CardDef
+danielaReyes =
+  investigator
+    "08001"
+    ("Daniela Reyes" <:> "The Mechanic")
+    Guardian
+    [Miskatonic]
+
 normanWithers :: CardDef
 normanWithers =
   withAlternate "98007"
@@ -386,6 +399,30 @@ normanWithers =
       ("Norman Withers" <:> "The Astronomer")
       Seeker
       [Miskatonic]
+
+montereyJack :: CardDef
+montereyJack =
+  investigator
+    "08007"
+    ("Monterey Jack" <:> "The Archaeologist")
+    Rogue
+    [Wayfarer]
+
+lilyChen :: CardDef
+lilyChen =
+  investigator
+    "08010"
+    ("Lily Chen" <:> "The Martial Artist")
+    Mystic
+    [Chosen, Warden]
+
+bobJenkins :: CardDef
+bobJenkins =
+  investigator
+    "08016"
+    ("Bob Jenkins" <:> "The Salesman")
+    Survivor
+    [Entrepreneur]
 
 nathanielCho :: CardDef
 nathanielCho =
@@ -426,6 +463,14 @@ stellaClark =
     ("Stella Clark" <:> "The Letter Carrier")
     Survivor
     [Chosen, Civic]
+
+gloriaGoldberg :: CardDef
+gloriaGoldberg =
+  investigator
+    "98019"
+    ("Gloria Goldberg" <:> "The Writer")
+    Mystic
+    [Clairvoyant]
 
 daisyWalkerParallel :: CardDef
 daisyWalkerParallel =

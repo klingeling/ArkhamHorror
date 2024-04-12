@@ -64,6 +64,7 @@ import Arkham.Investigator (
   lookupInvestigator,
   returnToBody,
  )
+import Arkham.Investigator.Cards qualified as Investigators
 import Arkham.Investigator.Types (InvestigatorAttrs (..))
 import Arkham.Investigator.Types qualified as Investigator
 import Arkham.Keyword qualified as Keyword
@@ -115,11 +116,17 @@ import Arkham.Window (Window (..), mkAfter, mkWhen, mkWindow)
 import Arkham.Window qualified as Window
 import Arkham.Zone qualified as Zone
 import Control.Lens (each, itraverseOf, itraversed, non, set)
+import Control.Monad.State.Strict (evalStateT, get, put)
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.These
 import Data.These.Lens
 import Data.Typeable
+
+getInvestigatorsInOrder :: HasGame m => m [InvestigatorId]
+getInvestigatorsInOrder = do
+  g <- getGame
+  pure $ g ^. playerOrderL
 
 runGameMessage :: Runner Game
 runGameMessage msg g = case msg of
@@ -304,8 +311,9 @@ runGameMessage msg g = case msg of
     (before, _, after) <- frame Window.GameBegins
     pushAll [before, after]
     pure g
-  InvestigatorsMulligan ->
-    g <$ pushAll [InvestigatorMulligan iid | iid <- g ^. playerOrderL]
+  InvestigatorsMulligan -> do
+    iids <- getInvestigatorsInOrder
+    g <$ pushAll [InvestigatorMulligan iid | iid <- iids]
   InvestigatorMulligan iid -> pure $ g & activeInvestigatorIdL .~ iid
   Will msg'@(ResolveChaosToken token tokenFace iid) -> do
     mods <- getModifiers iid
@@ -469,6 +477,7 @@ runGameMessage msg g = case msg of
     pure $ g & entitiesL . effectsL %~ deleteMap effectId & removedEntitiesF
   FocusCards cards -> pure $ g & focusedCardsL .~ cards
   UnfocusCards -> pure $ g & focusedCardsL .~ mempty
+  ClearFound zone -> pure $ g & foundCardsL . at zone ?~ mempty
   FocusTarotCards cards -> pure $ g & focusedTarotCardsL .~ cards
   UnfocusTarotCards -> pure $ g & focusedTarotCardsL .~ mempty
   PutCardOnTopOfDeck _ _ c -> do
@@ -523,7 +532,7 @@ runGameMessage msg g = case msg of
     pure g
   ChoosePlayer iid SetLeadInvestigator -> do
     let players = view playerOrderL g
-    push $ ChoosePlayerOrder (filter (/= iid) players) [iid]
+    push $ ChoosePlayerOrder (gameLeadInvestigatorId g) (filter (/= iid) players) [iid]
     pure $ g & leadInvestigatorIdL .~ iid
   ChoosePlayer iid SetTurnPlayer -> do
     pushAll [BeginTurn iid, After (BeginTurn iid)]
@@ -569,6 +578,7 @@ runGameMessage msg g = case msg of
         if turn then turnHistoryL %~ insertHistory iid historyItem else id
     pure $ g & (phaseHistoryL %~ insertHistory iid historyItem) & setTurnHistory
   FoundCards cards -> pure $ g & foundCardsL .~ cards
+  ObtainCard card -> pure $ g & foundCardsL . each %~ deleteFirstMatch (== card)
   AddFocusedToTopOfDeck iid EncounterDeckTarget cardId ->
     if null (gameFoundCards g)
       then do
@@ -899,50 +909,46 @@ runGameMessage msg g = case msg of
         other -> other
       foundCards = gameFoundCards g
     player <- getPlayer iid
-    for_ cardSources $ \(cardSource, returnStrategy) -> case returnStrategy of
-      DiscardRest -> do
-        push
-          $ chooseOneAtATime player
-          $ map
-            ( \case
-                EncounterCard c ->
+
+    flip evalStateT True $ do
+      for_ cardSources $ \(cardSource, returnStrategy) -> case returnStrategy of
+        DiscardRest -> do
+          lift
+            $ push
+            $ chooseOneAtATime player
+            $ map
+              ( \case
+                  EncounterCard c ->
+                    TargetLabel
+                      (CardIdTarget $ toCardId c)
+                      [AddToEncounterDiscard c]
+                  _ -> error "not possible"
+              )
+              (findWithDefault [] Zone.FromDeck foundCards)
+        PutBackInAnyOrder -> do
+          when (foundKey cardSource /= Zone.FromDeck) $ error "Expects a deck"
+          lift
+            $ push
+            $ chooseOneAtATime player
+            $ map
+              ( \c ->
                   TargetLabel
                     (CardIdTarget $ toCardId c)
-                    [AddToEncounterDiscard c]
-                _ -> error "not possible"
-            )
-            (findWithDefault [] Zone.FromDeck foundCards)
-      PutBackInAnyOrder -> do
-        when (foundKey cardSource /= Zone.FromDeck) $ error "Expects a deck"
-        push
-          $ chooseOneAtATime player
-          $ map
-            ( \c ->
-                TargetLabel
-                  (CardIdTarget $ toCardId c)
-                  [AddFocusedToTopOfDeck iid EncounterDeckTarget $ toCardId c]
-            )
-            (findWithDefault [] Zone.FromDeck foundCards)
-      ShuffleBackIn -> do
-        when (foundKey cardSource /= Zone.FromDeck) $ error "Expects a deck"
-        when (notNull foundCards)
-          $ push
-          $ ShuffleCardsIntoDeck Deck.EncounterDeck
-          $ findWithDefault
-            []
-            Zone.FromDeck
-            foundCards
-      PutBack -> do
-        when (foundKey cardSource /= Zone.FromDeck)
-          $ error "Can not take deck"
-        pushAll
-          $ map (AddFocusedToTopOfDeck iid EncounterDeckTarget . toCardId)
-          $ reverse
-          $ mapMaybe (preview _EncounterCard)
-          $ findWithDefault [] Zone.FromDeck foundCards
-      RemoveRestFromGame -> do
-        -- Try to obtain, then don't add back
-        pushAll $ map ObtainCard $ findWithDefault [] Zone.FromDeck foundCards
+                    [AddFocusedToTopOfDeck iid EncounterDeckTarget $ toCardId c]
+              )
+              (findWithDefault [] Zone.FromDeck foundCards)
+        ShuffleBackIn -> lift $ pushAll [ClearFound $ foundKey cardSource, ShuffleDeck Deck.EncounterDeck]
+        PutBack -> do
+          needsContinue <- get
+          if needsContinue
+            then do
+              put False
+              lift $ push $ chooseOne player [Label "Continue" [ClearFound $ foundKey cardSource]] -- we don't remove anymore so nothing to do
+            else lift $ push (ClearFound $ foundKey cardSource) -- we don't remove anymore so nothing to do
+        RemoveRestFromGame -> do
+          -- Try to obtain, then don't add back
+          lift $ pushAll $ map ObtainCard $ findWithDefault [] Zone.FromDeck foundCards
+
     pure g
   AddToEncounterDiscard card -> do
     pure
@@ -1033,9 +1039,14 @@ runGameMessage msg g = case msg of
     pure $ g & entitiesL . eventsL %~ deleteMap eid
   ShuffleIntoDeck deck (TreacheryTarget treacheryId) -> do
     treachery <- getTreachery treacheryId
+    adjustedDeck <- case deck of
+      Deck.InvestigatorDeck _ ->
+        maybe Deck.EncounterDeck Deck.InvestigatorDeck <$> field TreacheryOwner treacheryId
+      _ -> pure deck
+
     pushAll
       [ RemoveTreachery treacheryId
-      , ShuffleCardsIntoDeck deck [toCard treachery]
+      , ShuffleCardsIntoDeck adjustedDeck [toCard treachery]
       ]
     pure g
   ShuffleIntoDeck deck (EnemyTarget enemyId) -> do
@@ -1094,7 +1105,12 @@ runGameMessage msg g = case msg of
     case find (== card) playableCards of
       Nothing -> pure g
       Just _ -> do
-        g' <- runGameMessage (PutCardIntoPlay iid card mtarget payment windows') g
+        mods <- getModifiers iid
+        cardMods <- getModifiers (CardIdTarget $ toCardId card)
+        let owner = fromMaybe iid $ listToMaybe [o | PlayableCardOf o c <- mods, c == card]
+        let controller = fromMaybe owner $ listToMaybe [c | PlayUnderControlOf c <- cardMods]
+        send $ format investigator' <> " played " <> format card
+        g' <- runGameMessage (PutCardIntoPlay controller card mtarget payment windows') g
         let
           recordLimit g'' = \case
             MaxPerGame _ -> g'' & cardUsesL . at (toCardCode card) . non 0 +~ 1
@@ -1573,20 +1589,21 @@ runGameMessage msg g = case msg of
     player <- getPlayer x
     pushM $ checkWindows [mkWhen (Window.TurnBegins x), mkAfter (Window.TurnBegins x)]
     pure $ g & activeInvestigatorIdL .~ x & activePlayerIdL .~ player & turnPlayerInvestigatorIdL ?~ x
-  ChoosePlayerOrder [x] [] -> do
+  ChoosePlayerOrder _ [x] [] -> do
     pure $ g & playerOrderL .~ [x]
-  ChoosePlayerOrder [] (x : xs) -> do
+  ChoosePlayerOrder _ [] (x : xs) -> do
     pure $ g & playerOrderL .~ (x : xs)
-  ChoosePlayerOrder [y] (x : xs) -> do
+  ChoosePlayerOrder _ [y] (x : xs) -> do
     pure $ g & playerOrderL .~ (x : (xs <> [y]))
-  ChoosePlayerOrder investigatorIds orderedInvestigatorIds -> do
-    player <- getPlayer (gameLeadInvestigatorId g)
+  ChoosePlayerOrder lead investigatorIds orderedInvestigatorIds -> do
+    player <- getPlayer lead
     push
       $ questionLabel "Choose next in turn order" player
       $ ChooseOne
         [ PortraitLabel
           iid
           [ ChoosePlayerOrder
+              iid
               (filter (/= iid) investigatorIds)
               (orderedInvestigatorIds <> [iid])
           ]
@@ -1703,6 +1720,8 @@ runGameMessage msg g = case msg of
     pushAllEnd [BeginRoundWindow, BeginRound, Begin MythosPhase]
     pure $ g & (roundHistoryL .~ mempty)
   Begin MythosPhase {} -> do
+    let playerOrder = g ^. playerOrderL
+    mGloria <- selectOne $ investigatorIs Investigators.gloriaGoldberg
     hasEncounterDeck <- scenarioField ScenarioHasEncounterDeck
     phaseBeginsWindow <-
       checkWindows
@@ -1721,7 +1740,9 @@ runGameMessage msg g = case msg of
     modifiers <- getModifiers (PhaseTarget MythosPhase)
     let phaseStep s msgs = Msg.PhaseStep (MythosPhaseStep s) msgs
     pushAllEnd
-      $ phaseStep MythosPhaseBeginsStep [phaseBeginsWindow]
+      $ phaseStep
+        MythosPhaseBeginsStep
+        (phaseBeginsWindow : [ChoosePlayerOrder gloria playerOrder [] | gloria <- toList mGloria])
       : [ phaseStep PlaceDoomOnAgendaStep [placeDoomOnAgenda]
         | SkipMythosPhaseStep PlaceDoomOnAgendaStep `notElem` modifiers
         ]
@@ -1730,7 +1751,9 @@ runGameMessage msg g = case msg of
            | hasEncounterDeck
            ]
         <> [ phaseStep MythosPhaseWindow [fastWindow]
-           , phaseStep MythosPhaseEndsStep [EndMythos]
+           , phaseStep
+              MythosPhaseEndsStep
+              [EndMythos, ChoosePlayerOrder (gameLeadInvestigatorId g) [] playerOrder]
            ]
     pure $ g & phaseL .~ MythosPhase & phaseStepL ?~ MythosPhaseStep MythosPhaseBeginsStep
   Msg.PhaseStep step msgs -> do
@@ -1738,7 +1761,7 @@ runGameMessage msg g = case msg of
     pure $ g & phaseStepL ?~ step
   AllDrawEncounterCard -> do
     investigators <-
-      traverse (traverseToSnd getPlayer) =<< filterM (fmap not . isEliminated) (view playerOrderL g)
+      traverse (traverseToSnd getPlayer) =<< filterM (fmap not . isEliminated) =<< getInvestigatorsInOrder
     pushAll
       $ [ chooseOne
           player
@@ -2089,7 +2112,7 @@ runGameMessage msg g = case msg of
     for_ (view resolvingCardL g) $ \c ->
       push
         $ CreateWindowModifierEffect
-          EffectCardResolutionWindow
+          (EffectCardResolutionWindow $ toCardId c)
           (EffectModifiers $ toModifiers GameSource [NoSurge])
           GameSource
           (CardIdTarget $ toCardId c)

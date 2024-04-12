@@ -243,6 +243,14 @@ allPlayerAssetCards =
       , digDeep4
       , discOfItzamna
       , discOfItzamna2
+      , disciplineAlignmentOfSpirit
+      , disciplineAlignmentOfSpiritBroken
+      , disciplineBalanceOfBody
+      , disciplineBalanceOfBodyBroken
+      , disciplinePrescienceOfFate
+      , disciplinePrescienceOfFateBroken
+      , disciplineQuiescenceOfThought
+      , disciplineQuiescenceOfThoughtBroken
       , doubleDouble4
       , drElliHorowitz
       , drFrancisMorgan
@@ -304,6 +312,7 @@ allPlayerAssetCards =
       , flashlight
       , fleshWard
       , fluteOfTheOuterGods4
+      , foolishnessFoolishCatOfUlthar
       , forbiddenKnowledge
       , forbiddenTome
       , forbiddenTomeDarkKnowledge3
@@ -327,6 +336,7 @@ allPlayerAssetCards =
       , grannyOrne3
       , gravediggersShovel
       , gravediggersShovel2
+      , greenManMedallionHourOfTheHuntress
       , gregoryGry
       , greteWagner
       , greteWagner3
@@ -438,6 +448,7 @@ allPlayerAssetCards =
       , mauserC96
       , mauserC962
       , meatCleaver
+      , mechanicsWrench
       , medicalStudent
       , medicalTexts
       , medicoDellaPeste
@@ -526,6 +537,7 @@ allPlayerAssetCards =
       , robesOfEndlessNight
       , robesOfEndlessNight2
       , rolands38Special
+      , ruthWestmacottDarkRevelations
       , sacredCovenant2
       , safeguard
       , safeguard2
@@ -554,6 +566,7 @@ allPlayerAssetCards =
       , shotgun4
       , showmanship
       , shrewdAnalysis
+      , shrewdDealings
       , shrivelling
       , shrivelling3
       , shrivelling5
@@ -581,6 +594,7 @@ allPlayerAssetCards =
       , spiritOfHumanity2
       , spiritSpeaker
       , spiritualResolve5
+      , splitTheAngleIreOfTheVoid
       , springfieldM19034
       , stHubertsKey
       , strangeSolution
@@ -597,6 +611,7 @@ allPlayerAssetCards =
       , switchblade
       , switchblade2
       , swordCane
+      , talismanOfProtection
       , tennesseeSourMash
       , tennesseeSourMashRogue3
       , tennesseeSourMashSurvivor3
@@ -642,6 +657,7 @@ allPlayerAssetCards =
       , trenchKnife
       , tristanBotleyFixerForHire2
       , trueGrit
+      , trustyBullwhip
       , tryAndTryAgain1
       , tryAndTryAgain3
       , twentyFiveAutomatic
@@ -4633,6 +4649,15 @@ jacobMorrisonCostGuardCaptain3 =
     , cdUnique = True
     }
 
+mechanicsWrench :: CardDef
+mechanicsWrench =
+  signature "08001"
+    $ (asset "08002" "Mechanic's Wrench" 2 Neutral)
+      { cdCardTraits = setFromList [Item, Tool, Melee]
+      , cdSkills = [#combat, #combat, #wild]
+      , cdSlots = [#hand]
+      }
+
 livreDeibon :: CardDef
 livreDeibon =
   signature "08004"
@@ -4641,6 +4666,96 @@ livreDeibon =
       , cdSkills = [#willpower, #willpower, #wild]
       , cdUnique = True
       , cdSlots = [#hand]
+      }
+
+trustyBullwhip :: CardDef
+trustyBullwhip =
+  signature "08007"
+    . fast
+    $ (asset "08008" "Trusty Bullwhip" 2 Neutral)
+      { cdCardTraits = setFromList [Item, Weapon, Melee]
+      , cdSkills = [#agility, #agility, #wild]
+      , cdSlots = [#hand]
+      }
+
+disciplineAlignmentOfSpirit :: CardDef
+disciplineAlignmentOfSpirit =
+  signature "08010"
+    . permanent
+    $ (asset "08011a" ("Discipline" <:> "Alignment of Spirit") 0 Neutral)
+      { cdCardTraits = setFromList [Unbroken]
+      , cdOtherSide = Just "08011b"
+      }
+
+disciplineAlignmentOfSpiritBroken :: CardDef
+disciplineAlignmentOfSpiritBroken =
+  signature "08010"
+    . permanent
+    $ (asset "08011b" ("Discipline" <:> "Alignment of Spirit") 0 Neutral)
+      { cdCardTraits = setFromList [Broken]
+      , cdOtherSide = Just "08011a"
+      }
+
+disciplineQuiescenceOfThought :: CardDef
+disciplineQuiescenceOfThought =
+  signature "08010"
+    . permanent
+    $ (asset "08012a" ("Discipline" <:> "Quiescence of Thought") 0 Neutral)
+      { cdCardTraits = setFromList [Unbroken]
+      , cdOtherSide = Just "08012b"
+      }
+
+disciplineQuiescenceOfThoughtBroken :: CardDef
+disciplineQuiescenceOfThoughtBroken =
+  signature "08010"
+    . permanent
+    $ (asset "08012b" ("Discipline" <:> "Quiescence of Thought") 0 Neutral)
+      { cdCardTraits = setFromList [Broken]
+      , cdOtherSide = Just "08012a"
+      }
+
+disciplinePrescienceOfFate :: CardDef
+disciplinePrescienceOfFate =
+  signature "08010"
+    . permanent
+    $ (asset "08013a" ("Discipline" <:> "Prescience of Fate") 0 Neutral)
+      { cdCardTraits = setFromList [Unbroken]
+      , cdOtherSide = Just "08013b"
+      }
+
+disciplinePrescienceOfFateBroken :: CardDef
+disciplinePrescienceOfFateBroken =
+  signature "08010"
+    . permanent
+    $ (asset "08013b" ("Discipline" <:> "Prescience of Fate") 0 Neutral)
+      { cdCardTraits = setFromList [Broken]
+      , cdOtherSide = Just "08013a"
+      }
+
+disciplineBalanceOfBody :: CardDef
+disciplineBalanceOfBody =
+  signature "08010"
+    . permanent
+    $ (asset "08014a" ("Discipline" <:> "Balance of Body") 0 Neutral)
+      { cdCardTraits = setFromList [Unbroken]
+      , cdOtherSide = Just "08014b"
+      }
+
+disciplineBalanceOfBodyBroken :: CardDef
+disciplineBalanceOfBodyBroken =
+  signature "08010"
+    . permanent
+    $ (asset "08014b" ("Discipline" <:> "Balance of Body") 0 Neutral)
+      { cdCardTraits = setFromList [Broken]
+      , cdOtherSide = Just "08014a"
+      }
+
+shrewdDealings :: CardDef
+shrewdDealings =
+  signature "08016"
+    $ (asset "08017" "Shrewd Dealings" 2 Neutral)
+      { cdSkills = [#intellect, #intellect, #wild]
+      , cdCardTraits = setFromList [Talent]
       }
 
 -- TODO: if we ever care about deck size need to encode that somehow
@@ -4757,6 +4872,15 @@ preciousMementoFromAFutureLife4 =
     , cdSlots = [#accessory]
     , cdLevel = Just 4
     }
+
+talismanOfProtection :: CardDef
+talismanOfProtection =
+  fast
+    (multiClassAsset "08116" "Talisman of Protection" 2 [Mystic, Survivor])
+      { cdCardTraits = setFromList [Item, Charm]
+      , cdSkills = [#willpower]
+      , cdSlots = [#arcane]
+      }
 
 inTheThickOfIt :: CardDef
 inTheThickOfIt =
@@ -6025,7 +6149,39 @@ theNecronomiconAdvanced =
   (weakness "90003" ("The Necronomicon" <:> "John Dee Translation"))
     { cdCardTraits = setFromList [Item, Tome]
     , cdSlots = [#hand]
+    , cdKeywords = setFromList [Keyword.Advanced]
     }
+
+greenManMedallionHourOfTheHuntress :: CardDef
+greenManMedallionHourOfTheHuntress =
+  signature "02003"
+    $ (asset "98002" ("Green Man Medallion" <:> "Hour of the Huntress") 1 Neutral)
+      { cdCardTraits = setFromList [Item, Relic]
+      , cdSkills = [#wild, #wild]
+      , cdKeywords = setFromList [Keyword.Replacement]
+      , cdUnique = True
+      , cdSlots = [#accessory]
+      }
+
+splitTheAngleIreOfTheVoid :: CardDef
+splitTheAngleIreOfTheVoid =
+  signature "08004"
+    $ (asset "98008" ("Split the Angle" <:> "Ire of the Void") 2 Neutral)
+      { cdCardTraits = setFromList [Spell]
+      , cdSkills = [#willpower, #intellect, #wild]
+      , cdKeywords = setFromList [Keyword.Replacement]
+      }
+
+foolishnessFoolishCatOfUlthar :: CardDef
+foolishnessFoolishCatOfUlthar =
+  signature "05001"
+    $ (asset "98011" ("Foolishness" <:> "Foolish Cat of Ulthar") 4 Neutral)
+      { cdCardTraits = setFromList [Ally, Creature, Dreamlands]
+      , cdSkills = [#wild, #wild]
+      , cdKeywords = setFromList [Keyword.Replacement]
+      , cdUnique = True
+      , cdSlots = [#ally]
+      }
 
 mollyMaxwell :: CardDef
 mollyMaxwell =
@@ -6035,6 +6191,18 @@ mollyMaxwell =
       , cdSkills = [#willpower, #agility, #wild]
       , cdSlots = [#ally]
       , cdUnique = True
+      , cdKeywords = setFromList [Keyword.Replacement]
+      }
+
+ruthWestmacottDarkRevelations :: CardDef
+ruthWestmacottDarkRevelations =
+  signature "98019"
+    $ (asset "98020" ("Ruth Westmacott" <:> "Dark Revelations") 3 Neutral)
+      { cdCardTraits = setFromList [Ally, Artist]
+      , cdSkills = [#intellect, #intellect, #wild]
+      , cdSlots = [#ally]
+      , cdUnique = True
+      , cdKeywords = setFromList [Keyword.Replacement]
       }
 
 courage :: CardDef

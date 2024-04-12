@@ -49,9 +49,18 @@ drawCardsIfCan
   -> Int
   -> m (Maybe Message)
 drawCardsIfCan i source n = do
-  canDraw <- can.draw.cards i
+  canDraw <- can.draw.cards (sourceToFromSource source) i
   drawing <- drawCards i source n
   pure $ guard canDraw $> drawing
+
+sourceToFromSource :: Sourceable source => source -> FromSource
+sourceToFromSource (toSource -> source) = case source of
+  AbilitySource s _ -> sourceToFromSource s
+  InvestigatorSource _ -> FromPlayerCardEffect
+  AssetSource _ -> FromPlayerCardEffect
+  EventSource _ -> FromPlayerCardEffect
+  SkillSource _ -> FromPlayerCardEffect
+  _ -> FromOtherSource
 
 drawCardsAction
   :: (MonadRandom m, Sourceable source)
@@ -430,13 +439,22 @@ lookAt
   -> Message
 lookAt iid (toSource -> source) (toTarget -> target) = Search Looking iid source target
 
+revealing
+  :: (Targetable target, Sourceable source)
+  => InvestigatorId
+  -> source
+  -> target
+  -> Zone
+  -> Message
+revealing iid (toSource -> source) (toTarget -> target) zone = Search Revealing iid source target [(zone, PutBack)] AnyCard ReturnCards
+
 takeResources :: Sourceable source => InvestigatorId -> source -> Int -> Message
 takeResources iid (toSource -> source) n = TakeResources iid n source False
 
 gainResourcesIfCan
   :: (HasGame m, Sourceable source) => InvestigatorId -> source -> Int -> m (Maybe Message)
 gainResourcesIfCan iid source n = do
-  canGainResources <- can.gain.resources iid
+  canGainResources <- can.gain.resources (sourceToFromSource source) iid
   pure $ guard canGainResources $> takeResources iid source n
 
 assignEnemyDamage :: DamageAssignment -> EnemyId -> Message

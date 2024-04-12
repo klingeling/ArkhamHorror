@@ -21,6 +21,7 @@ import Arkham.GameValue
 import Arkham.Id
 import Arkham.Matcher
 import Arkham.Name
+import {-# SOURCE #-} Arkham.SkillTest.Base (SkillTestDifficulty)
 import Arkham.SkillType
 import Arkham.Source
 import Arkham.Strategy
@@ -127,7 +128,7 @@ data Cost
   | HandDiscardAnyNumberCost CardMatcher
   | ReturnMatchingAssetToHandCost AssetMatcher
   | ReturnAssetToHandCost AssetId
-  | SkillTestCost Source SkillType Int
+  | SkillTestCost Source SkillType SkillTestDifficulty
   | SkillIconCost Int (Set SkillIcon)
   | SameSkillIconCost Int
   | DiscardCombinedCost Int
@@ -163,6 +164,7 @@ data Cost
   | UnpayableCost
   | AsIfAtLocationCost LocationId Cost
   | DrawEncounterCardsCost Int
+  | GloriaCost -- lol, not going to attempt to make this generic
   deriving stock (Show, Eq, Ord, Data)
 
 assetUseCost :: (Entity a, EntityId a ~ AssetId) => a -> UseType -> Int -> Cost
@@ -185,6 +187,8 @@ displayCostType = \case
   UnpayableCost -> "Unpayable"
   OptionalCost c -> "Optional: " <> displayCostType c
   DrawEncounterCardsCost n -> "Draw " <> pluralize n "Encounter Card"
+  GloriaCost ->
+    "Discard an encounter card that shares a Trait with that encounter card from beneath Gloria Goldberg"
   AsIfAtLocationCost _ c -> displayCostType c
   ShuffleAttachedCardIntoDeckCost _ _ -> "Shuffle attached card into deck"
   AddCurseTokenCost n -> "Add " <> tshow n <> " {curse} " <> pluralize n "token" <> "to the chaos bag"
