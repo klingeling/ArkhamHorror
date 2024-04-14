@@ -162,6 +162,7 @@ allPlayerAssetCards =
       , azureFlame5
       , backpack
       , backpack2
+      , bandages
       , bandolier
       , bandolier2
       , bangleOfJinxes1
@@ -329,6 +330,7 @@ allPlayerAssetCards =
       , garroteWire2
       , gateBox
       , gavriellaMizrah
+      , gearedUp
       , geas2
       , geneBeauregard3
       , gildedVolto
@@ -4758,6 +4760,14 @@ shrewdDealings =
       , cdCardTraits = setFromList [Talent]
       }
 
+gearedUp :: CardDef
+gearedUp =
+  permanent
+    $ (asset "08019" "Geared Up" 0 Guardian)
+      { cdCardTraits = setFromList [Talent]
+      , cdDeckRestrictions = [PerDeckLimit 1, PurchaseAtDeckCreation]
+      }
+
 -- TODO: if we ever care about deck size need to encode that somehow
 forcedLearning :: CardDef
 forcedLearning =
@@ -4792,6 +4802,14 @@ schoffnersCatalogue =
     { cdSkills = [#intellect]
     , cdCardTraits = setFromList [Item, Tome]
     , cdUses = uses Secret 5
+    }
+
+bandages :: CardDef
+bandages =
+  (asset "08073" "Bandages" 2 Survivor)
+    { cdCardTraits = setFromList [Item]
+    , cdSkills = [#agility]
+    , cdUses = uses Supply 3
     }
 
 bangleOfJinxes1 :: CardDef
