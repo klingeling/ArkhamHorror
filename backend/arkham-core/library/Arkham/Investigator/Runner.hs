@@ -29,6 +29,7 @@ import Arkham.Action (Action)
 import Arkham.Action qualified as Action
 import Arkham.Action.Additional
 import Arkham.Asset.Types (Field (..))
+import Arkham.Asset.Uses qualified as Uses
 import Arkham.CampaignLog
 import Arkham.Capability
 import Arkham.Card
@@ -436,7 +437,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
     player <- getPlayer iid
     push $ chooseOne player [targetLabel iid' [TakeControlOfAsset iid' aid] | iid' <- iids]
     pure a
-  BeginTrade iid source ResourceTarget iids | iid == investigatorId -> do
+  BeginTrade iid source (ResourceTarget _) iids | iid == investigatorId -> do
     player <- getPlayer iid
     push
       $ chooseOne player
@@ -784,7 +785,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
         _ -> original
       applyMatcherModifiers _ n = n
       canFightMatcher = case overrides of
-        [] -> CanFightEnemy source
+        [] -> if choose.overriden then AnyEnemy else CanFightEnemy source
         [o] -> CanFightEnemyWithOverride o
         _ -> error "multiple overrides found"
     enemyIds <- select $ foldr applyMatcherModifiers (canFightMatcher <> enemyMatcher) modifiers
@@ -1111,46 +1112,49 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
         InvestigatorDoAssignDamage iid' s t matcher' damage' (max 0 (horror' - n)) aa b
       other -> other
     pure a
-  InvestigatorDirectDamage iid source damage horror
-    | iid == toId a
-    , not (investigatorDefeated || investigatorResigned) -> do
-        pushAll
-          $ [ CheckWindow [iid]
-              $ mkWhen (Window.WouldTakeDamageOrHorror source (toTarget a) damage horror)
-              : [mkWhen (Window.WouldTakeDamage source (toTarget a) damage) | damage > 0]
-                <> [mkWhen (Window.WouldTakeHorror source (toTarget a) horror) | horror > 0]
-            | damage > 0 || horror > 0
-            ]
-          <> [ InvestigatorDoAssignDamage
-                iid
-                source
-                DamageAny
-                (AssetWithModifier CanBeAssignedDirectDamage)
-                damage
-                horror
-                []
-                []
-             , checkDefeated source iid
-             ]
-        pure a
-  InvestigatorAssignDamage iid source strategy damage horror
-    | iid == toId a
-    , not (investigatorDefeated || investigatorResigned) -> do
-        modifiers <- getModifiers (toTarget a)
-        if TreatAllDamageAsDirect `elem` modifiers
-          then push $ InvestigatorDirectDamage iid source damage horror
-          else
-            pushAll
-              $ [ CheckWindow [iid]
-                  $ mkWhen (Window.WouldTakeDamageOrHorror source (toTarget a) damage horror)
-                  : [mkWhen (Window.WouldTakeDamage source (toTarget a) damage) | damage > 0]
-                    <> [mkWhen (Window.WouldTakeHorror source (toTarget a) horror) | horror > 0]
-                | damage > 0 || horror > 0
-                ]
-              <> [ InvestigatorDoAssignDamage iid source strategy AnyAsset damage horror [] []
-                 , checkDefeated source iid
-                 ]
-        pure a
+  InvestigatorDirectDamage iid source damage horror | iid == toId a -> do
+    unless (investigatorDefeated || investigatorResigned) do
+      mods <- getModifiers a
+      let horrorToCancel = if CannotCancelHorror `elem` mods then 0 else sum [n | WillCancelHorror n <- mods]
+      let horror' = max 0 (horror - horrorToCancel)
+      pushAll
+        $ [ CheckWindow [iid]
+            $ mkWhen (Window.WouldTakeDamageOrHorror source (toTarget a) damage horror')
+            : [mkWhen (Window.WouldTakeDamage source (toTarget a) damage) | damage > 0]
+              <> [mkWhen (Window.WouldTakeHorror source (toTarget a) horror') | horror' > 0]
+          | damage > 0 || horror' > 0
+          ]
+        <> [ InvestigatorDoAssignDamage
+              iid
+              source
+              DamageAny
+              (AssetWithModifier CanBeAssignedDirectDamage)
+              damage
+              horror'
+              []
+              []
+           , checkDefeated source iid
+           ]
+    pure a
+  InvestigatorAssignDamage iid source strategy damage horror | iid == toId a -> do
+    unless (investigatorDefeated || investigatorResigned) do
+      mods <- getModifiers a
+      if TreatAllDamageAsDirect `elem` mods
+        then push $ InvestigatorDirectDamage iid source damage horror
+        else do
+          let horrorToCancel = if CannotCancelHorror `elem` mods then 0 else sum [n | WillCancelHorror n <- mods]
+          let horror' = max 0 (horror - horrorToCancel)
+          pushAll
+            $ [ CheckWindow [iid]
+                $ mkWhen (Window.WouldTakeDamageOrHorror source (toTarget a) damage horror')
+                : [mkWhen (Window.WouldTakeDamage source (toTarget a) damage) | damage > 0]
+                  <> [mkWhen (Window.WouldTakeHorror source (toTarget a) horror') | horror' > 0]
+              | damage > 0 || horror' > 0
+              ]
+            <> [ InvestigatorDoAssignDamage iid source strategy AnyAsset damage horror' [] []
+               , checkDefeated source iid
+               ]
+    pure a
   InvestigatorDoAssignDamage iid source damageStrategy _ 0 0 damageTargets horrorTargets | iid == toId a -> do
     let
       damageEffect = case source of
@@ -1206,23 +1210,17 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
     pure a
   InvestigatorDoAssignDamage iid source DamageEvenly matcher health 0 damageTargets horrorTargets | iid == toId a -> do
     healthDamageableAssets <-
-      toList
-        <$> getHealthDamageableAssets
-          iid
-          matcher
-          health
-          damageTargets
-          horrorTargets
+      toList <$> getHealthDamageableAssets iid matcher health damageTargets horrorTargets
+
+    mustBeDamagedFirstBeforeInvestigator <-
+      select (AssetCanBeAssignedDamageBy iid <> AssetWithModifier NonDirectDamageMustBeAssignToThisFirst)
+
     let
-      getDamageTargets xs =
-        if length xs >= length healthDamageableAssets + 1
-          then getDamageTargets (drop (length healthDamageableAssets + 1) xs)
-          else xs
-      damageTargets' = getDamageTargets damageTargets
-      healthDamageableAssets' =
-        filter
-          ((`notElem` damageTargets') . AssetTarget)
-          healthDamageableAssets
+      onlyAssets = any (`elem` mustBeDamagedFirstBeforeInvestigator) healthDamageableAssets
+      allowedDamage =
+        findFewestOccurrences
+          damageTargets
+          (map toTarget healthDamageableAssets <> [InvestigatorTarget iid | not onlyAssets])
       assignRestOfHealthDamage =
         InvestigatorDoAssignDamage
           investigatorId
@@ -1248,9 +1246,9 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
           ]
       healthDamageMessages =
         [ damageInvestigator
-        | InvestigatorTarget investigatorId `notElem` damageTargets'
+        | InvestigatorTarget investigatorId `elem` allowedDamage
         ]
-          <> map damageAsset healthDamageableAssets'
+          <> map damageAsset (filter ((`elem` allowedDamage) . toTarget) healthDamageableAssets)
     player <- getPlayer iid
     push $ chooseOne player healthDamageMessages
     pure a
@@ -1269,15 +1267,11 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
             <> AssetWithModifier NonDirectHorrorMustBeAssignToThisFirst
         )
     let
-      getDamageTargets xs =
-        if length xs >= length sanityDamageableAssets + 1
-          then getDamageTargets (drop (length sanityDamageableAssets + 1) xs)
-          else xs
-      horrorTargets' = getDamageTargets horrorTargets
-      sanityDamageableAssets' =
-        filter
-          ((`notElem` horrorTargets') . AssetTarget)
-          sanityDamageableAssets
+      onlyAssets = any (`elem` mustBeDamagedFirstBeforeInvestigator) sanityDamageableAssets
+      allowedDamage =
+        findFewestOccurrences
+          damageTargets
+          (map toTarget sanityDamageableAssets <> [InvestigatorTarget iid | not onlyAssets])
       assignRestOfSanityDamage =
         InvestigatorDoAssignDamage
           investigatorId
@@ -1303,11 +1297,9 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
           ]
       sanityDamageMessages =
         [ damageInvestigator
-        | InvestigatorTarget investigatorId
-            `notElem` horrorTargets'
-            && null mustBeDamagedFirstBeforeInvestigator
+        | InvestigatorTarget investigatorId `elem` allowedDamage
         ]
-          <> map damageAsset sanityDamageableAssets'
+          <> map damageAsset (filter ((`elem` allowedDamage) . toTarget) sanityDamageableAssets)
     player <- getPlayer iid
     push $ chooseOne player sanityDamageMessages
     pure a
@@ -1328,9 +1320,25 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
         sanity
         damageTargets
         horrorTargets
+
+    mustBeAssignedDamageFirstBeforeInvestigator <-
+      select
+        ( AssetCanBeAssignedDamageBy iid
+            <> AssetWithModifier NonDirectDamageMustBeAssignToThisFirst
+        )
+
+    mustBeAssignedHorrorFirstBeforeInvestigator <-
+      select
+        ( AssetCanBeAssignedHorrorBy iid
+            <> AssetWithModifier NonDirectDamageMustBeAssignToThisFirst
+        )
+
     let
       damageableAssets =
         toList $ healthDamageableAssets `union` sanityDamageableAssets
+      onlyAssets =
+        (any (`elem` mustBeAssignedDamageFirstBeforeInvestigator) damageableAssets && health > 0)
+          || (any (`elem` mustBeAssignedHorrorFirstBeforeInvestigator) damageableAssets && sanity > 0)
       continue h s t =
         InvestigatorDoAssignDamage
           iid
@@ -1355,12 +1363,14 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
     player <- getPlayer iid
     push
       $ chooseOne player
-      $ targetLabel
-        a
-        [ Msg.InvestigatorDamage investigatorId source health sanity
-        , continue health sanity (toTarget a)
+      $ [ targetLabel
+          a
+          [ Msg.InvestigatorDamage investigatorId source health sanity
+          , continue health sanity (toTarget a)
+          ]
+        | not onlyAssets
         ]
-      : map toAssetMessage assetsWithCounts
+      <> map toAssetMessage assetsWithCounts
     pure a
   InvestigatorDoAssignDamage iid source strategy matcher health sanity damageTargets horrorTargets | iid == toId a -> do
     healthDamageMessages <-
@@ -1389,10 +1399,23 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
                 $ [damageInvestigator | null healthDamageableAssets]
                 <> map damageAsset healthDamageableAssets
             DamageDirect -> pure [damageInvestigator]
-            DamageAny ->
-              pure $ damageInvestigator : map damageAsset healthDamageableAssets
-            DamageFromHastur ->
-              pure $ damageInvestigator : map damageAsset healthDamageableAssets
+            DamageAny -> do
+              mustBeAssignedDamageFirstBeforeInvestigator <-
+                select
+                  ( AssetCanBeAssignedDamageBy iid
+                      <> AssetWithModifier NonDirectDamageMustBeAssignToThisFirst
+                  )
+              let onlyAssets = any (`elem` mustBeAssignedDamageFirstBeforeInvestigator) healthDamageableAssets
+
+              pure $ [damageInvestigator | not onlyAssets] <> map damageAsset healthDamageableAssets
+            DamageFromHastur -> do
+              mustBeAssignedDamageFirstBeforeInvestigator <-
+                select
+                  ( AssetCanBeAssignedDamageBy iid
+                      <> AssetWithModifier NonDirectDamageMustBeAssignToThisFirst
+                  )
+              let onlyAssets = any (`elem` mustBeAssignedDamageFirstBeforeInvestigator) healthDamageableAssets
+              pure $ [damageInvestigator | not onlyAssets] <> map damageAsset healthDamageableAssets
             DamageFirst def -> do
               validAssets <-
                 List.intersect healthDamageableAssets
@@ -1432,25 +1455,28 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
                 <> map damageAsset sanityDamageableAssets
             DamageDirect -> pure [damageInvestigator]
             DamageAny -> do
-              mustBeDamagedFirstBeforeInvestigator <-
+              mustBeAssignedDamageFirstBeforeInvestigator <-
                 select
                   ( AssetCanBeAssignedHorrorBy iid
                       <> AssetWithModifier NonDirectHorrorMustBeAssignToThisFirst
                   )
+
+              let onlyAssets = any (`elem` mustBeAssignedDamageFirstBeforeInvestigator) sanityDamageableAssets
               pure
                 $ [ damageInvestigator
-                  | null mustBeDamagedFirstBeforeInvestigator
+                  | not onlyAssets
                   ]
                 <> map damageAsset sanityDamageableAssets
             DamageFromHastur -> do
-              mustBeDamagedFirstBeforeInvestigator <-
+              mustBeAssignedDamageFirstBeforeInvestigator <-
                 select
                   ( AssetCanBeAssignedHorrorBy iid
                       <> AssetWithModifier NonDirectHorrorMustBeAssignToThisFirst
                   )
+              let onlyAssets = any (`elem` mustBeAssignedDamageFirstBeforeInvestigator) sanityDamageableAssets
               pure
                 $ [ damageInvestigator
-                  | null mustBeDamagedFirstBeforeInvestigator
+                  | not onlyAssets
                   ]
                 <> map damageAsset sanityDamageableAssets
             DamageFirst def -> do
@@ -2260,6 +2286,11 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
   TakeResources iid n source False | iid == investigatorId -> do
     canGain <- can.gain.resources (sourceToFromSource source) iid
     pure $ if canGain then a & tokensL %~ addTokens Resource n else a
+  MoveUses _ target Uses.Leyline n | isTarget a target -> pure $ a & tokensL %~ addTokens Leyline n
+  MoveTokens source _ tType n | isSource a source -> pure $ a & tokensL %~ subtractTokens tType n
+  MoveTokens _ target tType n | isTarget a target -> pure $ a & tokensL %~ addTokens tType n
+  MoveTokens _ (ResourceTarget iid) _tType n | iid == investigatorId -> do
+    pure $ a & tokensL %~ addTokens Resource n
   PlaceTokens _ (isTarget a -> True) token n -> do
     pure $ a & tokensL %~ addTokens token n
   RemoveTokens _ (isTarget a -> True) token n -> do
@@ -2577,9 +2608,9 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
         & (foundCardsL . each %~ filter (/= PlayerCard pc))
     EncounterCard _ -> pure a
     VengeanceCard _ -> pure a
-  MoveUses (ProxySource (isSource a -> True) ResourceSource) _ _ n -> do
+  MoveUses (ResourceSource iid) _ _ n | iid == investigatorId -> do
     pure $ a & tokensL %~ subtractTokens Resource n
-  MoveUses _ (ProxyTarget (isTarget a -> True) ResourceTarget) _ n -> do
+  MoveUses _ (ResourceTarget iid) _ n | iid == investigatorId -> do
     pure $ a & tokensL %~ addTokens Resource n
   AddToHand iid cards | iid == investigatorId -> do
     let

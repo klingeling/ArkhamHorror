@@ -11,6 +11,7 @@ import Key from '@/arkham/components/Key.vue';
 import AbilityButton from '@/arkham/components/AbilityButton.vue'
 import Treachery from '@/arkham/components/Treachery.vue';
 import Asset from '@/arkham/components/Asset.vue';
+import Event from '@/arkham/components/Event.vue';
 import Token from '@/arkham/components/Token.vue';
 import Story from '@/arkham/components/Story.vue';
 import * as Arkham from '@/arkham/types/Enemy'
@@ -109,6 +110,7 @@ const enemyDamage = computed(() => (props.enemy.tokens[TokenType.Damage] || 0) +
 const doom = computed(() => props.enemy.tokens[TokenType.Doom])
 const clues = computed(() => props.enemy.tokens[TokenType.Clue])
 const resources = computed(() => props.enemy.tokens[TokenType.Resource])
+const leylines = computed(() => props.enemy.tokens[TokenType.Leyline])
 const lostSouls = computed(() => props.enemy.tokens[TokenType.LostSoul])
 const bounties = computed(() => props.enemy.tokens[TokenType.Bounty])
 
@@ -212,6 +214,7 @@ watch(abilities, (abilities) => {
             <PoolItem v-if="doom && doom > 0" type="doom" :amount="doom" />
             <PoolItem v-if="clues && clues > 0" type="clue" :amount="clues" />
             <PoolItem v-if="resources && resources > 0" type="resource" :amount="resources" />
+            <PoolItem v-if="leylines && leylines > 0" type="resource" tooltip="Leyline" :amount="leylines" />
             <PoolItem v-if="lostSouls && lostSouls > 0" type="resource" :amount="lostSouls" />
             <PoolItem v-if="bounties && bounties > 0" type="resource" :amount="bounties" />
             <Token
@@ -249,6 +252,14 @@ watch(abilities, (abilities) => {
         v-for="assetId in enemy.assets"
         :key="assetId"
         :asset="game.assets[assetId]"
+        :game="game"
+        :playerId="playerId"
+        @choose="$emit('choose', $event)"
+      />
+      <Event
+        v-for="eventId in enemy.events"
+        :key="eventId"
+        :event="game.events[eventId]"
         :game="game"
         :playerId="playerId"
         @choose="$emit('choose', $event)"

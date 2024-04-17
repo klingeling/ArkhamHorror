@@ -66,6 +66,7 @@ data InvestigatorMatcher
   = InvestigatorAt LocationMatcher
   | InvestigatorIs CardCode
   | InvestigatorCanMoveTo Source LocationMatcher
+  | InvestigatorWithToken Token
   | You
   | ThatInvestigator
   | UnengagedInvestigator
@@ -145,6 +146,7 @@ data InvestigatorMatcher
   | CanBeHuntedBy EnemyId
   | DistanceFromRoundStart ValueMatcher
   | InvestigatorWithMetaKey Text
+  | InvestigatorWithFilledSlot SlotType
   deriving stock (Show, Eq, Ord, Data)
 
 instance Plated InvestigatorMatcher
@@ -284,6 +286,7 @@ data EnemyMatcher
   | EnemyWithFullTitle Text Text
   | EnemyWithId EnemyId
   | EnemyWithTrait Trait
+  | EnemyWithToken Token
   | EnemyAt LocationMatcher
   | EnemyCanEnter LocationMatcher
   | EnemyWithoutTrait Trait
@@ -388,6 +391,7 @@ data EventMatcher
   | EventCardMatch CardMatcher
   | EventMatches [EventMatcher]
   | EventOneOf [EventMatcher]
+  | EnemyEvent EnemyId
   | AnyEvent
   | NotEvent EventMatcher
   | EventWithPlacement Placement
@@ -418,6 +422,7 @@ data LocationMatcher
   | Nowhere
   | HauntedLocation
   | EmptyLocation
+  | LocationWithToken Token
   | ConnectedFrom LocationMatcher
   | ConnectedTo LocationMatcher
   | AccessibleFrom LocationMatcher
@@ -642,6 +647,7 @@ data ExtendedCardMatcher
   | CardIsBeneathInvestigator Who
   | CardWithCopyInHand Who
   | NotThisCard
+  | ControlledBy Who
   | InHandOf Who
   | InDeckOf Who
   | InPlayAreaOf Who
@@ -1016,11 +1022,13 @@ data SkillTestMatcher
   | UsingThis
   | SkillTestSourceMatches SourceMatcher
   | SkillTestMatches [SkillTestMatcher]
+  | SkillTestOneOf [SkillTestMatcher]
   | NotSkillTest SkillTestMatcher
   | SkillTestFromRevelation
   | SkillTestWithRevealedChaosToken ChaosTokenMatcher
   | SkillTestWithRevealedChaosTokenCount Int ChaosTokenMatcher
   | SkillTestWithResolvedChaosTokenBy InvestigatorMatcher ChaosTokenMatcher
+  | SkillTestOnCardWithTrait Trait
   deriving stock (Show, Eq, Ord, Data)
 
 instance IsLabel "any" SkillTestMatcher where
@@ -1151,6 +1159,7 @@ data ChaosTokenMatcher
   | WouldReduceYourSkillValueToZero
   | IsInfestationToken ChaosTokenMatcher
   | NotChaosToken ChaosTokenMatcher
+  | SealedOnAsset AssetMatcher ChaosTokenMatcher
   deriving stock (Show, Eq, Ord, Data)
 
 instance Not ChaosTokenMatcher where

@@ -135,6 +135,7 @@ allPlayerAssetCards =
       , ancientStoneTransientThoughts4
       , annaKaslow4
       , anotherDayAnotherDollar3
+      , antiquary3
       , aquinnah1
       , aquinnah3
       , arbiterOfFates
@@ -150,6 +151,11 @@ allPlayerAssetCards =
       , archaicGlyphsGuidingStones3
       , archaicGlyphsMarkingsOfIsis3
       , archaicGlyphsProphecyForetold3
+      , archiveOfConduitsGatewayToAcheron4
+      , archiveOfConduitsGatewayToAldebaran4
+      , archiveOfConduitsGatewayToParadise4
+      , archiveOfConduitsGatewayToTindalos4
+      , archiveOfConduitsUnidentified
       , ariadnesTwine3
       , armageddon
       , armageddon4
@@ -192,9 +198,12 @@ allPlayerAssetCards =
       , brandOfCthugha1
       , brandOfCthugha4
       , brotherXavier1
+      , bruiser3
       , bulletproofVest3
       , burglary
       , burglary2
+      , butterflySwords2
+      , butterflySwords5
       , catBurglar1
       , celaenoFragments
       , chainsaw4
@@ -216,6 +225,8 @@ allPlayerAssetCards =
       , coltVestPocket2
       , cornered2
       , combatTraining1
+      , combatTraining3
+      , crafty3
       , crypticGrimoireTextOfTheElderGuardian4
       , crypticGrimoireTextOfTheElderHerald4
       , crypticGrimoireUntranslated
@@ -253,6 +264,7 @@ allPlayerAssetCards =
       , disciplineQuiescenceOfThought
       , disciplineQuiescenceOfThoughtBroken
       , doubleDouble4
+      , downTheRabbitHole
       , drElliHorowitz
       , drFrancisMorgan
       , drHenryArmitage
@@ -349,6 +361,7 @@ allPlayerAssetCards =
       , grotesqueStatue2
       , grotesqueStatue4
       , grounded1
+      , grounded3
       , guardDog
       , guardDog2
       , guardianAngel
@@ -393,6 +406,7 @@ allPlayerAssetCards =
       , jacobMorrisonCostGuardCaptain3
       , jakeWilliams
       , jennysTwin45s
+      , jeremiahKirbyArcticArchaeologist
       , jeromeDavids
       , jessicaHyde1
       , jewelOfAureolus3
@@ -468,6 +482,7 @@ allPlayerAssetCards =
       , moonPendant2
       , moonstone
       , moxie1
+      , moxie3
       , mrRook
       , mysteriousRaven
       , nephthysHuntressOfBast4
@@ -505,13 +520,16 @@ allPlayerAssetCards =
       , pickpocketing
       , pickpocketing2
       , plucky1
+      , plucky3
       , pnakoticManuscripts5
+      , pocketTelescope
       , policeBadge2
       , powderOfIbnGhazi
       , preciousMementoFromAFormerLife4
       , preciousMementoFromAFutureLife4
       , priestOfTwoFaiths1
       , professorWarrenRice
+      , prophetic3
       , protectiveIncantation1
       , purifyingCorruption4
       , puzzleBox
@@ -538,6 +556,7 @@ allPlayerAssetCards =
       , ritualCandles
       , robesOfEndlessNight
       , robesOfEndlessNight2
+      , rodOfAnimalism1
       , rolands38Special
       , ruthWestmacottDarkRevelations
       , sacredCovenant2
@@ -548,6 +567,7 @@ allPlayerAssetCards =
       , scavenging2
       , schoffnersCatalogue
       , scientificTheory1
+      , scientificTheory3
       , scrapper
       , scrapper3
       , scrollOfProphecies
@@ -579,6 +599,8 @@ allPlayerAssetCards =
       , silassNet
       , sixthSense
       , sixthSense4
+      , sledDog
+      , sleuth3
       , smokingPipe
       , solemnVow
       , somethingWorthFightingFor
@@ -638,6 +660,7 @@ allPlayerAssetCards =
       , theNecronomiconOlausWormiusTranslation
       , theNecronomiconPetrusDeDaciaTranslation5
       , thePallidMask
+      , theRedClockBrokenButReliable2
       , theRedGlovedMan5
       , theSilverKey
       , theSkeletonKey2
@@ -666,6 +689,7 @@ allPlayerAssetCards =
       , twentyFiveAutomatic2
       , twilaKatherinePrice3
       , twilightBlade
+      , underworldSupport
       , untilTheEndOfTime
       , valentinoRivas
       , vaultOfKnowledge
@@ -4768,6 +4792,33 @@ gearedUp =
       , cdDeckRestrictions = [PerDeckLimit 1, PurchaseAtDeckCreation]
       }
 
+butterflySwords2 :: CardDef
+butterflySwords2 =
+  (asset "08025" "Butterfly Swords" 3 Guardian)
+    { cdCardTraits = setFromList [Item, Weapon, Melee]
+    , cdSkills = [#combat, #agility]
+    , cdSlots = [#hand, #hand]
+    , cdLevel = Just 2
+    }
+
+combatTraining3 :: CardDef
+combatTraining3 =
+  (asset "08027" "Combat Training" 1 Guardian)
+    { cdSkills = [#combat, #combat, #agility, #agility]
+    , cdCardTraits = setFromList [Talent, Composure]
+    , cdLimits = [LimitPerTrait Composure 1]
+    , cdLevel = Just 3
+    }
+
+butterflySwords5 :: CardDef
+butterflySwords5 =
+  (asset "08030" "Butterfly Swords" 3 Guardian)
+    { cdCardTraits = setFromList [Item, Weapon, Melee]
+    , cdSkills = [#combat, #agility, #wild]
+    , cdSlots = [#hand, #hand]
+    , cdLevel = Just 5
+    }
+
 -- TODO: if we ever care about deck size need to encode that somehow
 forcedLearning :: CardDef
 forcedLearning =
@@ -4776,6 +4827,111 @@ forcedLearning =
       { cdCardTraits = setFromList [Talent, Ritual]
       , cdDeckRestrictions = [PerDeckLimit 1, PurchaseAtDeckCreation]
       }
+
+jeremiahKirbyArcticArchaeologist :: CardDef
+jeremiahKirbyArcticArchaeologist =
+  (asset "08032" ("Jeremiah Kirby" <:> "Artic Archaeologist") 4 Seeker)
+    { cdCardTraits = setFromList [Ally, Miskatonic, Wayfarer]
+    , cdSkills = [#intellect]
+    , cdSlots = [#ally]
+    , cdUnique = True
+    }
+
+archiveOfConduitsUnidentified :: CardDef
+archiveOfConduitsUnidentified =
+  (asset "08033" ("Archive of Conduits" <:> "Unidentified") 2 Seeker)
+    { cdCardTraits = setFromList [Item, Tome, Occult]
+    , cdSkills = [#wild]
+    , cdSlots = [#hand]
+    , cdDeckRestrictions = [PerDeckLimit 1]
+    , cdAdditionalCost = Just ArchiveOfConduitsUnidentifiedCost
+    }
+
+scientificTheory3 :: CardDef
+scientificTheory3 =
+  (asset "08040" "Scientific Theory" 0 Seeker)
+    { cdSkills = [#intellect, #intellect, #combat, #combat]
+    , cdCardTraits = setFromList [Talent, Composure]
+    , cdLimits = [LimitPerTrait Composure 1]
+    , cdLevel = Just 3
+    }
+
+archiveOfConduitsGatewayToTindalos4 :: CardDef
+archiveOfConduitsGatewayToTindalos4 =
+  (asset "08041" ("Archive of Conduits" <:> "Gateway to Tindalos") 4 Seeker)
+    { cdCardTraits = setFromList [Ritual]
+    , cdSkills = [#combat, #combat, #wild]
+    , cdSlots = [#arcane]
+    , cdDeckRestrictions = [PerDeckLimit 1]
+    , cdLevel = Just 4
+    , cdKeywords = singleton $ Keyword.Researched YouHaveIdentifiedTheGateway
+    , cdUses = uses Leyline 4
+    }
+
+archiveOfConduitsGatewayToAcheron4 :: CardDef
+archiveOfConduitsGatewayToAcheron4 =
+  (asset "08042" ("Archive of Conduits" <:> "Gateway to Acheron") 4 Seeker)
+    { cdCardTraits = setFromList [Ritual]
+    , cdSkills = [#intellect, #intellect, #wild]
+    , cdSlots = [#arcane]
+    , cdDeckRestrictions = [PerDeckLimit 1]
+    , cdLevel = Just 4
+    , cdKeywords = singleton $ Keyword.Researched YouHaveIdentifiedTheGateway
+    , cdUses = uses Leyline 4
+    }
+
+archiveOfConduitsGatewayToAldebaran4 :: CardDef
+archiveOfConduitsGatewayToAldebaran4 =
+  (asset "08043" ("Archive of Conduits" <:> "Gateway to Aldebaran") 4 Seeker)
+    { cdCardTraits = setFromList [Ritual]
+    , cdSkills = [#intellect, #intellect, #wild]
+    , cdSlots = [#arcane]
+    , cdDeckRestrictions = [PerDeckLimit 1]
+    , cdLevel = Just 4
+    , cdKeywords = singleton $ Keyword.Researched YouHaveIdentifiedTheGateway
+    , cdUses = uses Leyline 4
+    }
+
+archiveOfConduitsGatewayToParadise4 :: CardDef
+archiveOfConduitsGatewayToParadise4 =
+  (asset "08044" ("Archive of Conduits" <:> "Gateway to Paradise") 4 Seeker)
+    { cdCardTraits = setFromList [Ritual]
+    , cdSkills = [#intellect, #intellect, #wild]
+    , cdSlots = [#arcane]
+    , cdDeckRestrictions = [PerDeckLimit 1]
+    , cdLevel = Just 4
+    , cdKeywords = singleton $ Keyword.Researched YouHaveIdentifiedTheGateway
+    , cdUses = uses Leyline 4
+    }
+
+underworldSupport :: CardDef
+underworldSupport =
+  permanent
+    $ (asset "08046" "Underworld Support" 0 Rogue)
+      { cdCardTraits = setFromList [Favor, Illicit]
+      , cdDeckRestrictions = [PerDeckLimit 1, PurchaseAtDeckCreation]
+      }
+
+theRedClockBrokenButReliable2 :: CardDef
+theRedClockBrokenButReliable2 =
+  (asset "08053" ("The Red Clock" <:> "Broken but Reliable") 2 Rogue)
+    { cdCardTraits = setFromList [Item, Relic]
+    , cdSkills = [#wild]
+    , cdSlots = [#accessory]
+    , cdUnique = True
+    , cdExceptional = True
+    , cdLevel = Just 2
+    , cdUses = uses Charge 0
+    }
+
+moxie3 :: CardDef
+moxie3 =
+  (asset "08056" "Moxie" 0 Rogue)
+    { cdSkills = [#willpower, #willpower, #agility, #agility]
+    , cdCardTraits = setFromList [Talent, Composure]
+    , cdLimits = [LimitPerTrait Composure 1]
+    , cdLevel = Just 3
+    }
 
 theBlackFan3 :: CardDef
 theBlackFan3 =
@@ -4788,12 +4944,29 @@ theBlackFan3 =
     , cdLevel = Just 3
     }
 
+downTheRabbitHole :: CardDef
+downTheRabbitHole =
+  permanent
+    $ (asset "08059" "Down the Rabbit Hole" 0 Mystic)
+      { cdCardTraits = setFromList [Talent]
+      , cdDeckRestrictions = [PerDeckLimit 1, PurchaseAtDeckCreation]
+      }
+
 dragonPole :: CardDef
 dragonPole =
   (asset "08060" "Dragon Pole" 3 Mystic)
     { cdCardTraits = setFromList [Item, Weapon, Melee]
     , cdSkills = [#combat]
     , cdSlots = [#hand, #hand]
+    }
+
+grounded3 :: CardDef
+grounded3 =
+  (asset "08069" "Grounded" 0 Mystic)
+    { cdSkills = [#wild, #wild]
+    , cdCardTraits = setFromList [Talent, Composure]
+    , cdLimits = [LimitPerTrait Composure 1]
+    , cdLevel = Just 3
     }
 
 schoffnersCatalogue :: CardDef
@@ -4820,6 +4993,15 @@ bangleOfJinxes1 =
     , cdSlots = [#accessory]
     , cdUses = uses Charge 1
     , cdLevel = Just 1
+    }
+
+plucky3 :: CardDef
+plucky3 =
+  (asset "08081" "Plucky" 0 Survivor)
+    { cdSkills = [#willpower, #willpower, #intellect, #intellect]
+    , cdCardTraits = setFromList [Talent, Composure]
+    , cdLimits = [LimitPerTrait Composure 1]
+    , cdLevel = Just 3
     }
 
 medicalStudent :: CardDef
@@ -4861,6 +5043,14 @@ brandOfCthugha4 =
     , cdSlots = [#arcane]
     }
 
+pocketTelescope :: CardDef
+pocketTelescope =
+  (multiClassAsset "08097" "Pocket Telescope" 2 [Seeker, Rogue])
+    { cdSkills = [#intellect]
+    , cdCardTraits = setFromList [Item, Tool]
+    , cdSlots = [#hand]
+    }
+
 geneBeauregard3 :: CardDef
 geneBeauregard3 =
   (multiClassAsset "08099" ("Gené Beauregard" <:> "Intrepid Explorer") 5 [Seeker, Rogue])
@@ -4900,6 +5090,51 @@ talismanOfProtection =
       , cdSlots = [#arcane]
       }
 
+prophetic3 :: CardDef
+prophetic3 =
+  (multiClassAsset "08120" "Prophetic" 3 [Guardian, Mystic, Survivor])
+    { cdSkills = [#willpower, #willpower]
+    , cdCardTraits = setFromList [Talent]
+    , cdLevel = Just 3
+    , cdUses = uses Resource 2
+    }
+
+sleuth3 :: CardDef
+sleuth3 =
+  (multiClassAsset "08121" "Sleuth" 3 [Guardian, Seeker, Mystic])
+    { cdSkills = [#intellect, #intellect]
+    , cdCardTraits = setFromList [Talent]
+    , cdLevel = Just 3
+    , cdUses = uses Resource 2
+    }
+
+bruiser3 :: CardDef
+bruiser3 =
+  (multiClassAsset "08122" "Bruiser" 3 [Guardian, Rogue, Survivor])
+    { cdSkills = [#combat, #combat]
+    , cdCardTraits = setFromList [Talent]
+    , cdLevel = Just 3
+    , cdUses = uses Resource 2
+    }
+
+crafty3 :: CardDef
+crafty3 =
+  (multiClassAsset "08123" "Crafty" 3 [Seeker, Rogue, Survivor])
+    { cdSkills = [#agility, #agility]
+    , cdCardTraits = setFromList [Talent]
+    , cdLevel = Just 3
+    , cdUses = uses Resource 2
+    }
+
+antiquary3 :: CardDef
+antiquary3 =
+  (multiClassAsset "08124" "Crafty" 3 [Seeker, Rogue, Mystic])
+    { cdSkills = [#wild]
+    , cdCardTraits = setFromList [Talent]
+    , cdLevel = Just 3
+    , cdUses = uses Resource 2
+    }
+
 inTheThickOfIt :: CardDef
 inTheThickOfIt =
   permanent
@@ -4907,6 +5142,25 @@ inTheThickOfIt =
       { cdCardTraits = singleton Curse
       , cdPurchaseTrauma = PurchaseAnyTrauma 2
       }
+
+sledDog :: CardDef
+sledDog =
+  (asset "08127" "Sled Dog" 3 Neutral)
+    { cdSkills = [#combat]
+    , cdCardTraits = setFromList [Ally, Creature]
+    , cdDeckRestrictions = [PerDeckLimit 4]
+    , cdSlots = [#ally]
+    }
+
+rodOfAnimalism1 :: CardDef
+rodOfAnimalism1 =
+  (asset "08128" "Rod of Animalism" 2 Neutral)
+    { cdSkills = [#willpower]
+    , cdCardTraits = setFromList [Item, Relic]
+    , cdSlots = [#accessory]
+    , cdLevel = Just 1
+    , cdUnique = True
+    }
 
 runicAxe :: CardDef
 runicAxe =

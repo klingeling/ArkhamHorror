@@ -434,6 +434,7 @@ data Message
   | AssetDefeated AssetId
   | -- Attach
     AttachAsset AssetId Target
+  | AttachEvent EventId Target
   | AttachStoryTreacheryTo TreacheryId Card Target
   | AttackEnemy InvestigatorId EnemyId Source (Maybe Target) SkillType
   | BeforeRevealChaosTokens
@@ -759,6 +760,7 @@ data Message
   | PlaceLocationMatching CardMatcher
   | PlaceTokens Source Target Token Int
   | RemoveTokens Source Target Token Int
+  | MoveTokens Source Target Token Int
   | PlaceUnderneath Target [Card]
   | PlacedUnderneath Target Card
   | PlaceNextTo Target [Card]

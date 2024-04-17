@@ -760,16 +760,32 @@ allAssets =
     , SomeAssetCard shrewdDealings
     , --- guardian [eote]
       SomeAssetCard gearedUp
+    , SomeAssetCard butterflySwords2
+    , SomeAssetCard combatTraining3
+    , SomeAssetCard butterflySwords5
     , --- seeker [eote]
       SomeAssetCard forcedLearning
+    , SomeAssetCard jeremiahKirbyArcticArchaeologist
+    , SomeAssetCard archiveOfConduitsUnidentified
+    , SomeAssetCard scientificTheory3
+    , SomeAssetCard archiveOfConduitsGatewayToTindalos4
+    , SomeAssetCard archiveOfConduitsGatewayToAcheron4
+    , SomeAssetCard archiveOfConduitsGatewayToAldebaran4
+    , SomeAssetCard archiveOfConduitsGatewayToParadise4
     , --- rogue [eote]
-      SomeAssetCard theBlackFan3
+      SomeAssetCard underworldSupport
+    , SomeAssetCard theRedClockBrokenButReliable2
+    , SomeAssetCard moxie3
+    , SomeAssetCard theBlackFan3
     , --- mystic [eote]
-      SomeAssetCard dragonPole
+      SomeAssetCard downTheRabbitHole
+    , SomeAssetCard dragonPole
+    , SomeAssetCard grounded3
     , --- survivor [eote]
       SomeAssetCard bandages
     , SomeAssetCard schoffnersCatalogue
     , SomeAssetCard bangleOfJinxes1
+    , SomeAssetCard plucky3
     , --- guardian/seeker [eote]
       SomeAssetCard medicalStudent
     , SomeAssetCard michaelLeigh5
@@ -777,14 +793,27 @@ allAssets =
       SomeAssetCard brandOfCthugha1
     , SomeAssetCard brandOfCthugha4
     , --- seeker/rogue [eote]
-      SomeAssetCard geneBeauregard3
+      SomeAssetCard pocketTelescope
+    , SomeAssetCard geneBeauregard3
     , --- rogue/survivor [eote]
       SomeAssetCard preciousMementoFromAFormerLife4
     , SomeAssetCard preciousMementoFromAFutureLife4
     , --- mystic/survivor [eote]
       SomeAssetCard talismanOfProtection
+    , --- guardian/mystic/survivor [eote]
+      SomeAssetCard prophetic3
+    , --- guardian/seeker/mystic [eote]
+      SomeAssetCard sleuth3
+    , --- guardian/rogue/survivor [eote]
+      SomeAssetCard bruiser3
+    , --- seeker/rogue/survivor [eote]
+      SomeAssetCard crafty3
+    , --- seeker/rogue/mystic [eote]
+      SomeAssetCard antiquary3
     , --- neutral [eote]
       SomeAssetCard inTheThickOfIt
+    , SomeAssetCard sledDog
+    , SomeAssetCard rodOfAnimalism1
     , -- The Scarlet Keys
       --- guardian [tsk]
       -- , SomeAssetCard runicAxe

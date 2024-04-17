@@ -151,6 +151,7 @@ allPlayerEventCards =
       , extensiveResearch
       , extensiveResearch1
       , extraAmmunition1
+      , fangOfTyrthrha4
       , faustianBargain
       , fightOrFlight
       , firstWatch
@@ -161,7 +162,9 @@ allPlayerEventCards =
       , fortuitousDiscovery
       , fortuneOrFate2
       , galvanize1
+      , gangUp1
       , gazeOfOuraxsh2
+      , getBehindMe
       , getOverHere
       , getOverHere2
       , ghastlyRevelation
@@ -217,6 +220,7 @@ allPlayerEventCards =
       , manoAMano1
       , manoAMano2
       , marksmanship1
+      , meditativeTrance
       , mindOverMatter
       , mindOverMatter2
       , mindWipe1
@@ -239,6 +243,7 @@ allPlayerEventCards =
       , oneTwoPunch
       , oneTwoPunch5
       , onTheHunt
+      , onTheHunt3
       , onTheLam
       , oops
       , oops2
@@ -638,6 +643,7 @@ taunt =
   (event "02017" "Taunt" 1 Guardian)
     { cdCardTraits = setFromList [Tactic]
     , cdFastWindow = Just $ DuringTurn You
+    , cdCriteria = Just $ exists $ CanEngageEnemy ThisCard
     , cdSkills = [#willpower, #combat]
     }
 
@@ -2694,6 +2700,22 @@ toeToToe =
     , cdBeforeEffect = True
     }
 
+getBehindMe :: CardDef
+getBehindMe =
+  (event "08021" "\"Get behind me!\"" 0 Guardian)
+    { cdSkills = [#willpower, #combat]
+    , cdCardTraits = setFromList [Spirit, Tactic]
+    , cdFastWindow = Just FastPlayerWindow
+    }
+
+gangUp1 :: CardDef
+gangUp1 =
+  (event "08022" "Gang Up" 3 Guardian)
+    { cdSkills = [#willpower, #combat]
+    , cdCardTraits = setFromList [Spirit, Synergy]
+    , cdActions = [#fight]
+    }
+
 sweepingKick1 :: CardDef
 sweepingKick1 =
   (event "08023" "Sweeping Kick" 1 Guardian)
@@ -2716,6 +2738,32 @@ dodge2 =
             (CancelableEnemyAttack AnyEnemyAttack)
             AnyEnemy
     , cdLevel = Just 2
+    }
+
+onTheHunt3 :: CardDef
+onTheHunt3 =
+  (event "08028" "On the Hunt" 0 Guardian)
+    { cdCardTraits = singleton Tactic
+    , cdFastWindow = Just $ WouldDrawEncounterCard #when You #mythos
+    , cdSkills = [#willpower, #intellect, #combat]
+    , cdLevel = Just 3
+    }
+
+fangOfTyrthrha4 :: CardDef
+fangOfTyrthrha4 =
+  (event "08029" "Fang of Thr'thrha" 3 Guardian)
+    { cdCardTraits = singleton Spell
+    , cdActions = [#fight]
+    , cdSkills = [#willpower, #intellect, #combat]
+    , cdLevel = Just 4
+    , cdCriteria =
+        Just
+          $ exists
+          $ CanFightEnemyWithOverride
+          $ Criteria.CriteriaOverride
+          $ Criteria.enemyExists
+          $ EnemyAt RevealedLocation
+    , cdOverrideActionPlayableIfCriteriaMet = True
     }
 
 unearthTheAncients2 :: CardDef
@@ -2751,6 +2799,18 @@ moneyTalks2 =
             AnySkillTestValue
             #any
     , cdLevel = Just 2
+    }
+
+meditativeTrance :: CardDef
+meditativeTrance =
+  (event "08061" "Meditative Trance" 2 Mystic)
+    { cdSkills = [#willpower, #intellect]
+    , cdCardTraits = setFromList [Insight, Spirit]
+    , cdCriteria =
+        Just
+          $ youExist
+          $ InvestigatorWithFilledSlot #arcane
+          <> oneOf [HealableInvestigator ThisCard dType You | dType <- [#damage, #horror]]
     }
 
 parallelFates2 :: CardDef

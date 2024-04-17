@@ -19,6 +19,7 @@ import Arkham.Helpers.Matchers
 import Arkham.Helpers.Modifiers
 import Arkham.Helpers.Scenario
 import {-# SOURCE #-} Arkham.Helpers.SkillTest
+import Arkham.Helpers.SkillTest.Target
 import Arkham.Helpers.Target
 import Arkham.Id
 import Arkham.Investigator.Cards qualified as Investigators
@@ -76,6 +77,9 @@ getCanAffordCost iid (toSource -> source) actions windows' = \case
       _ -> error "Unhandled shuffle attached card into deck cost"
   EnemyAttackCost eid -> selectAny $ Matcher.EnemyWithId eid <> Matcher.EnemyCanAttack (Matcher.InvestigatorWithId iid)
   DrawEncounterCardsCost _n -> can.target.encounterDeck iid
+  ArchiveOfConduitsUnidentifiedCost -> do
+    n <- selectCount Matcher.Anywhere
+    pure $ n >= 4
   GloriaCost -> do
     mtarget <- getSkillTestTarget
     case mtarget of
@@ -111,6 +115,8 @@ getCanAffordCost iid (toSource -> source) actions windows' = \case
       elem eid <$> select Matcher.EventReady
     _ -> error $ "Not handled" <> show target
   ExhaustAssetCost matcher ->
+    selectAny $ matcher <> Matcher.AssetReady
+  ExhaustXAssetCost matcher ->
     selectAny $ matcher <> Matcher.AssetReady
   DiscardAssetCost matcher ->
     selectAny $ matcher <> Matcher.DiscardableAsset

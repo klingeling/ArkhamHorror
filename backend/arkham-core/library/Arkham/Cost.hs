@@ -12,6 +12,7 @@ import Arkham.Cost.Status as X
 import Arkham.Zone as X
 
 import Arkham.Asset.Uses
+import {-# SOURCE #-} Arkham.Calculation
 import Arkham.Campaigns.TheForgottenAge.Supply
 import {-# SOURCE #-} Arkham.Card
 import Arkham.ChaosToken (ChaosToken)
@@ -21,7 +22,6 @@ import Arkham.GameValue
 import Arkham.Id
 import Arkham.Matcher
 import Arkham.Name
-import {-# SOURCE #-} Arkham.SkillTest.Base (SkillTestDifficulty)
 import Arkham.SkillType
 import Arkham.Source
 import Arkham.Strategy
@@ -107,6 +107,7 @@ data Cost
   | ExhaustCost Target
   | DiscardAssetCost AssetMatcher
   | ExhaustAssetCost AssetMatcher
+  | ExhaustXAssetCost AssetMatcher
   | RemoveCost Target
   | RevealCost CardId
   | Costs [Cost]
@@ -129,7 +130,7 @@ data Cost
   | HandDiscardAnyNumberCost CardMatcher
   | ReturnMatchingAssetToHandCost AssetMatcher
   | ReturnAssetToHandCost AssetId
-  | SkillTestCost Source SkillType SkillTestDifficulty
+  | SkillTestCost Source SkillType GameCalculation
   | SkillIconCost Int (Set SkillIcon)
   | SameSkillIconCost Int
   | DiscardCombinedCost Int
@@ -166,6 +167,7 @@ data Cost
   | AsIfAtLocationCost LocationId Cost
   | DrawEncounterCardsCost Int
   | GloriaCost -- lol, not going to attempt to make this generic
+  | ArchiveOfConduitsUnidentifiedCost -- this either
   deriving stock (Show, Eq, Ord, Data)
 
 assetUseCost :: (Entity a, EntityId a ~ AssetId) => a -> UseType -> Int -> Cost
@@ -185,12 +187,15 @@ data DynamicUseCostValue = DrawnCardsValue
 
 displayCostType :: Cost -> Text
 displayCostType = \case
+  ExhaustXAssetCost _ -> "Exhaust X copies"
   EnemyAttackCost _ -> "The chosen enemy makes an attack against you"
   UnpayableCost -> "Unpayable"
   OptionalCost c -> "Optional: " <> displayCostType c
   DrawEncounterCardsCost n -> "Draw " <> pluralize n "Encounter Card"
   GloriaCost ->
     "Discard an encounter card that shares a Trait with that encounter card from beneath Gloria Goldberg"
+  ArchiveOfConduitsUnidentifiedCost ->
+    "Place 1 resource on 4 different locations, as leylines."
   AsIfAtLocationCost _ c -> displayCostType c
   ShuffleAttachedCardIntoDeckCost _ _ -> "Shuffle attached card into deck"
   AddCurseTokenCost n -> "Add " <> tshow n <> " {curse} " <> pluralize n "token" <> "to the chaos bag"
@@ -306,6 +311,7 @@ displayCostType = \case
     Key -> pluralize n "Key"
     Lock -> pluralize n "Lock"
     Evidence -> tshow n <> " Evidence"
+    Leyline -> pluralize n "Leyline"
   DynamicUseCost _ uType _ -> case uType of
     Ammo -> "X Ammo"
     Supply -> "X Supplies"
@@ -319,6 +325,7 @@ displayCostType = \case
     Key -> "X Keys"
     Lock -> "X Locks"
     Evidence -> "X Evidence"
+    Leyline -> "X Leylines"
   UseCostUpTo _ uType n m -> case uType of
     Ammo -> tshow n <> "-" <> tshow m <> " Ammo"
     Supply -> tshow n <> "-" <> tshow m <> " Supplies"
@@ -332,6 +339,7 @@ displayCostType = \case
     Key -> tshow n <> "-" <> tshow m <> " Keys"
     Lock -> tshow n <> "-" <> tshow m <> " Locks"
     Evidence -> tshow n <> "-" <> tshow m <> " Evidence"
+    Leyline -> tshow n <> "-" <> tshow m <> " Leylines"
   UpTo n c -> displayCostType c <> " up to " <> pluralize n "time"
   SealCost _ -> "Seal token"
   SealMultiCost n _ -> "Seal " <> tshow n <> " matching tokens"

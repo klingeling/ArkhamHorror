@@ -41,6 +41,7 @@ data EnemyMetadata = EnemyMetadata
   { emEngagedInvestigators :: [InvestigatorId]
   , emTreacheries :: [TreacheryId]
   , emAssets :: [AssetId]
+  , emEvents :: [EventId]
   , emModifiers :: [Modifier]
   }
   deriving stock (Show, Eq, Generic)
@@ -54,6 +55,7 @@ data AssetMetadata = AssetMetadata
   , amAssets :: [AssetId]
   , amTreacheries :: [TreacheryId]
   , amModifiers :: [Modifier]
+  , amPermanent :: Bool
   }
   deriving stock (Show, Eq, Generic)
 

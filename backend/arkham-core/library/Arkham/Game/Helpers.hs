@@ -669,7 +669,7 @@ targetToSource = \case
   ChaosTokenTarget _ -> error "not convertable"
   ChaosTokenFaceTarget _ -> error "Not convertable"
   TestTarget -> TestSource mempty
-  ResourceTarget -> ResourceSource
+  ResourceTarget iid -> ResourceSource iid
   ActDeckTarget -> ActDeckSource
   AgendaDeckTarget -> AgendaDeckSource
   InvestigationTarget {} -> error "not converted"
@@ -714,7 +714,7 @@ sourceToTarget = \case
   TestSource {} -> TestTarget
   ProxySource _ source -> sourceToTarget source
   EffectSource eid -> EffectTarget eid
-  ResourceSource -> ResourceTarget
+  ResourceSource iid -> ResourceTarget iid
   AbilitySource s _ -> sourceToTarget s
   ActDeckSource -> ActDeckTarget
   AgendaDeckSource -> AgendaDeckTarget
@@ -835,7 +835,7 @@ getIsPlayableWithResources iid (toSource -> source) availableResources costStatu
         _ -> pure False
     iids <- filter (/= iid) <$> getInvestigatorIds
     iidsWithModifiers <- for iids $ \iid' -> (iid',) <$> getModifiers iid'
-    canHelpPay <- flip filterM iidsWithModifiers $ \(iid', modifiers) -> do
+    canHelpPay <- flip filterM iidsWithModifiers $ \(iid', modifiers') -> do
       bobJenkinsPermitted <-
         if isBobJenkins
           then do
@@ -843,7 +843,7 @@ getIsPlayableWithResources iid (toSource -> source) availableResources costStatu
               Just owner | owner == iid' -> pure True
               _ -> pure False
           else pure False
-      modifierPermitted <- flip anyM modifiers $ \case
+      modifierPermitted <- flip anyM modifiers' $ \case
         CanSpendResourcesOnCardFromInvestigator iMatcher cMatcher ->
           andM
             [ iid <=~> iMatcher
@@ -853,15 +853,16 @@ getIsPlayableWithResources iid (toSource -> source) availableResources costStatu
         _ -> pure False
       pure $ bobJenkinsPermitted || modifierPermitted
 
+    modifiers <- getModifiers iid
     resourcesFromAssets <-
-      sum <$> for iidsWithModifiers \(iid', modifiers) -> do
-        sum <$> for modifiers \case
+      sum <$> for ((iid, modifiers) : iidsWithModifiers) \(iid', modifiers') -> do
+        sum <$> for modifiers' \case
           CanSpendUsesAsResourceOnCardFromInvestigator assetId uType iMatcher cMatcher -> do
             canContribute <-
               andM
                 [ iid <=~> iMatcher
                 , pure $ cardMatch c cMatcher
-                , withoutModifier iid' CannotAffectOtherPlayersWithPlayerEffectsExceptDamage
+                , (iid == iid' ||) <$> withoutModifier iid' CannotAffectOtherPlayersWithPlayerEffectsExceptDamage
                 ]
             if canContribute
               then fieldMap AssetUses (findWithDefault 0 uType) assetId
@@ -869,8 +870,9 @@ getIsPlayableWithResources iid (toSource -> source) availableResources costStatu
           _ -> pure 0
 
     additionalResources <-
-      (resourcesFromAssets +) . sum <$> traverse (field InvestigatorResources . fst) canHelpPay
-    modifiers <- getModifiers (InvestigatorTarget iid)
+      (resourcesFromAssets +)
+        . sum
+        <$> traverse (field InvestigatorResources . fst) canHelpPay
     cardModifiers <- getModifiers (toCardId c)
     let title = nameTitle (cdName pcDef)
     passesUnique <- case (cdUnique pcDef, cdCardType pcDef) of
@@ -2809,6 +2811,7 @@ locationMatches investigatorId source window locationId matcher' = do
     Matcher.LocationWithModifier _ -> locationId <=~> matcher
     Matcher.IsIchtacasDestination -> locationId <=~> matcher
     Matcher.HauntedLocation -> locationId <=~> matcher
+    Matcher.LocationWithToken _ -> locationId <=~> matcher
     Matcher.SingleSidedLocation -> locationId <=~> matcher
     Matcher.LocationWithLowerPrintedShroudThan _ -> locationId <=~> matcher
     Matcher.LocationNotInPlay -> locationId <=~> matcher
@@ -2930,6 +2933,7 @@ skillTestMatches iid source st = \case
   Matcher.SkillTestWithRevealedChaosTokenCount n matcher ->
     (>= n)
       <$> countM (`chaosTokenMatches` Matcher.IncludeSealed matcher) (skillTestRevealedChaosTokens st)
+  Matcher.SkillTestOnCardWithTrait t -> elem t <$> sourceTraits (skillTestSource st)
   Matcher.SkillTestWithResolvedChaosTokenBy whoMatcher matcher -> do
     iids <- select whoMatcher
     anyM (`chaosTokenMatches` Matcher.IncludeSealed matcher)
@@ -2973,6 +2977,7 @@ skillTestMatches iid source st = \case
       _ -> pure False
   Matcher.SkillTestOfInvestigator whoMatcher -> st.investigator <=~> whoMatcher
   Matcher.SkillTestMatches ms -> allM (skillTestMatches iid source st) ms
+  Matcher.SkillTestOneOf ms -> anyM (skillTestMatches iid source st) ms
 
 matchPhase :: Monad m => Phase -> Matcher.PhaseMatcher -> m Bool
 matchPhase p = \case

@@ -2,13 +2,15 @@ module Arkham.Message.Lifted (module X, module Arkham.Message.Lifted) where
 
 import Arkham.Act.Types (ActAttrs (actDeckId))
 import Arkham.Agenda.Types (AgendaAttrs (agendaDeckId))
+import Arkham.Calculation
 import Arkham.CampaignLogKey
 import Arkham.Card
 import Arkham.ChaosToken
 import Arkham.Classes.HasGame
-import Arkham.Classes.HasQueue
+import Arkham.Classes.HasQueue hiding (insertAfterMatching)
 import Arkham.Classes.HasQueue as X (runQueueT)
 import Arkham.Classes.Query
+import Arkham.Cost
 import Arkham.DamageEffect
 import Arkham.Deck (IsDeck (..))
 import Arkham.EffectMetadata (EffectMetadata)
@@ -20,7 +22,7 @@ import Arkham.Helpers.Campaign qualified as Msg
 import Arkham.Helpers.Enemy qualified as Msg
 import Arkham.Helpers.Log qualified as Msg
 import Arkham.Helpers.Message qualified as Msg
-import Arkham.Helpers.Modifiers (ModifierType)
+import Arkham.Helpers.Modifiers (ModifierType (MetaModifier), getMetaMaybe)
 import Arkham.Helpers.Modifiers qualified as Msg
 import Arkham.Helpers.Query
 import Arkham.Helpers.SkillTest qualified as Msg
@@ -33,13 +35,11 @@ import Arkham.Movement
 import Arkham.Prelude
 import Arkham.Query
 import Arkham.ScenarioLogKey
-import Arkham.SkillTest.Base (SkillTestDifficulty)
 import Arkham.SkillType qualified as SkillType
 import Arkham.Source
 import Arkham.Target
 import Arkham.Token
 import Arkham.Window (Window)
-import Arkham.Zone
 import Control.Monad.Trans.Class
 
 class (CardGen m, HasGame m, HasQueue Message m) => ReverseQueue m
@@ -214,7 +214,7 @@ beginSkillTest
   -> source
   -> target
   -> SkillType.SkillType
-  -> SkillTestDifficulty
+  -> GameCalculation
   -> m ()
 beginSkillTest iid source target sType n = push $ Msg.beginSkillTest iid source target sType n
 
@@ -323,9 +323,6 @@ removeTokens
   :: (ReverseQueue m, Sourceable source, Targetable target) => source -> target -> Token -> Int -> m ()
 removeTokens source lid token n = push $ RemoveTokens (toSource source) (toTarget lid) token n
 
-afterSkillTest :: ReverseQueue m => Message -> m ()
-afterSkillTest = Msg.pushAfterSkillTest
-
 drawAnotherChaosToken :: ReverseQueue m => InvestigatorId -> m ()
 drawAnotherChaosToken = push . DrawAnotherChaosToken
 
@@ -336,6 +333,9 @@ eachInvestigator :: ReverseQueue m => (InvestigatorId -> m ()) -> m ()
 eachInvestigator f = do
   investigators <- getInvestigators
   for_ investigators f
+
+forInvestigator :: ReverseQueue m => InvestigatorId -> Message -> m ()
+forInvestigator iid msg = push $ ForInvestigator iid msg
 
 selectEach :: (Query a, ReverseQueue m) => a -> (QueryElement a -> m ()) -> m ()
 selectEach matcher f = select matcher >>= traverse_ f
@@ -565,7 +565,49 @@ cardResolutionModifiers
 cardResolutionModifiers card source target modifiers = push $ Msg.cardResolutionModifiers card source target modifiers
 
 insteadOf
-  :: HasQueue Message m => Message -> QueueT Message m () -> QueueT Message m ()
+  :: (MonadTrans t, HasQueue Message m, HasQueue Message (t m))
+  => Message
+  -> QueueT Message (t m) a
+  -> t m ()
 insteadOf msg f = do
   msgs <- evalQueueT f
   lift $ replaceMessageMatching (== msg) (const msgs)
+
+enemyAttackModifier
+  :: (ReverseQueue m, Sourceable source, Targetable target) => source -> target -> ModifierType -> m ()
+enemyAttackModifier source target modifier = push $ Msg.enemyAttackModifier source target modifier
+
+abilityModifier
+  :: (ReverseQueue m, Sourceable source, Targetable target) => source -> target -> ModifierType -> m ()
+abilityModifier source target modifier = push $ Msg.abilityModifier source target modifier
+
+batched :: ReverseQueue m => (BatchId -> QueueT Message m ()) -> m ()
+batched f = do
+  batchId <- getRandom
+  msgs <- evalQueueT (f batchId)
+  push $ Would batchId msgs
+
+payBatchCost :: ReverseQueue m => BatchId -> InvestigatorId -> Cost -> m ()
+payBatchCost batchId iid cost = push $ PayAdditionalCost iid batchId cost
+
+withCost :: ReverseQueue m => InvestigatorId -> Cost -> QueueT Message m () -> m ()
+withCost iid cost f = batched \batchId -> payBatchCost batchId iid cost >> f
+
+oncePerAbility
+  :: (ReverseQueue m, Sourceable attrs, Targetable attrs) => attrs -> Int -> m () -> m ()
+oncePerAbility attrs _n f = do
+  unlessM (getMetaMaybe False attrs "_oncePerAbility") do
+    abilityModifier attrs attrs (MetaModifier $ object ["_oncePerAbility" .= True]) >> f
+
+insertAfterMatching :: (MonadTrans t, HasQueue msg m) => [msg] -> (msg -> Bool) -> t m ()
+insertAfterMatching msgs p = lift $ Msg.insertAfterMatching msgs p
+
+afterSkillTest
+  :: (MonadTrans t, HasQueue Message m, HasQueue Message (t m)) => QueueT Message (t m) a -> t m ()
+afterSkillTest body = do
+  msgs <- evalQueueT body
+  insertAfterMatching msgs (== EndSkillTestWindow)
+
+costModifier
+  :: (ReverseQueue m, Sourceable source, Targetable target) => source -> target -> ModifierType -> m ()
+costModifier source target modifier = push $ Msg.costModifier source target modifier

@@ -176,6 +176,16 @@ payCost msg c iid skipAdditionalCosts cost = do
   let pay = PayCost acId iid skipAdditionalCosts
   player <- getPlayer iid
   case cost of
+    ArchiveOfConduitsUnidentifiedCost -> do
+      locations <- select Anywhere
+      push
+        $ chooseOrRunN
+          player
+          4
+          [ targetLabel location [PlaceTokens source (toTarget location) Token.Leyline 1]
+          | location <- locations
+          ]
+      pure c
     GloriaCost -> do
       mtarget <- getSkillTestTarget
       case mtarget of
@@ -274,6 +284,15 @@ payCost msg c iid skipAdditionalCosts cost = do
     ExhaustAssetCost matcher -> do
       assets <- select $ matcher <> AssetReady
       push $ chooseOne player $ targetLabels assets $ only . pay . exhaust
+      pure c
+    ExhaustXAssetCost matcher -> do
+      assets <- select $ matcher <> AssetReady
+      push
+        $ chooseSome1 player "Done exhausting"
+        $ targetLabels assets
+        $ only
+        . pay
+        . exhaust
       pure c
     SealCost matcher -> do
       targets <-
@@ -897,6 +916,16 @@ instance RunMessage ActiveCost where
                 canGive <-
                   andM [elem iid <$> select iMatcher, pure $ cardMatch card cMatcher, pure $ iid /= iid']
                 if canGive then getSpendableResources iid' else pure 0
+              CanSpendUsesAsResourceOnCardFromInvestigator assetId uType iMatcher cMatcher -> do
+                canContribute <-
+                  andM
+                    [ iid <=~> iMatcher
+                    , pure $ cardMatch card cMatcher
+                    , pure $ iid == iid' || CannotAffectOtherPlayersWithPlayerEffectsExceptDamage `notElem` modifiers
+                    ]
+                if canContribute
+                  then fieldMap AssetUses (findWithDefault 0 uType) assetId
+                  else pure 0
               _ -> pure 0
         _ -> pure 0
 

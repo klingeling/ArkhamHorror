@@ -456,15 +456,20 @@ allEvents =
     , -- Edge of the Earth
       --- guardian [eote]
       SomeEventCard toeToToe
+    , SomeEventCard getBehindMe
+    , SomeEventCard gangUp1
     , SomeEventCard sweepingKick1
     , SomeEventCard dodge2
+    , SomeEventCard fangOfTyrthrha4
+    , SomeEventCard onTheHunt3
     , --- seeker [eote]
       SomeEventCard unearthTheAncients2
     , --- rogue [eote]
       SomeEventCard scoutAhead
     , SomeEventCard moneyTalks2
     , --- mystic [eote]
-      SomeEventCard parallelFates2
+      SomeEventCard meditativeTrance
+    , SomeEventCard parallelFates2
     , --- rogue/mystic [eote]
       SomeEventCard etherealSlip
     , SomeEventCard etherealSlip2

@@ -7,6 +7,7 @@ import Arkham.Prelude
 import Arkham.Action
 import Arkham.Action.Additional
 import Arkham.Asset.Uses
+import {-# SOURCE #-} Arkham.Calculation
 import {-# SOURCE #-} Arkham.Card (Card, CardCode)
 import Arkham.Card.CardType
 import Arkham.ChaosBag.RevealStrategy
@@ -34,7 +35,8 @@ import Data.Aeson.TH
 import GHC.OverloadedLabels
 
 data ModifierType
-  = AbilityModifier Target Int ModifierType
+  = ForEach GameCalculation [ModifierType]
+  | AbilityModifier Target Int ModifierType
   | ActionCostModifier Int
   | ActionCostOf ActionTarget Int
   | ActionCostSetToModifier Int
@@ -265,6 +267,7 @@ data ModifierType
   | NoMoreThanOneDamageOrHorrorAmongst AssetMatcher
   | NoSurge
   | NonDirectHorrorMustBeAssignToThisFirst
+  | NonDirectDamageMustBeAssignToThisFirst
   | Omnipotent
   | OnlyFirstCopyCardCountsTowardMaximumHandSize
   | PlaceOnBottomOfDeckInsteadOfDiscard
@@ -314,6 +317,7 @@ data ModifierType
   | NoInitialSwarm
   | SwarmingValue Int
   | AttackDealsEitherDamageOrHorror
+  | WillCancelHorror Int
   | -- UI only modifiers
     Ethereal -- from Ethereal Form
   | Explosion -- from Dyanamite Blast

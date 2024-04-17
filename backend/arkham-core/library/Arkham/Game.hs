@@ -308,6 +308,7 @@ withEnemyMetadata a = do
   emEngagedInvestigators <- select $ investigatorEngagedWith (toId a)
   emTreacheries <- select $ TreacheryOnEnemy $ EnemyWithId (toId a)
   emAssets <- select $ EnemyAsset (toId a)
+  emEvents <- select $ EnemyEvent (toId a)
   pure $ a `with` EnemyMetadata {..}
 
 withLocationConnectionData
@@ -335,6 +336,7 @@ withAssetMetadata a = do
   amEvents <- select (EventAttachedToAsset $ AssetWithId $ toId a)
   amAssets <- select (AssetAttachedToAsset $ AssetWithId $ toId a)
   amTreacheries <- select (TreacheryIsAttachedTo $ toTarget a)
+  let amPermanent = cdPermanent $ toCardDef a
   pure $ a `with` AssetMetadata {..}
 
 withSkillTestMetadata :: HasGame m => SkillTest -> m (With SkillTest SkillTestMetadata)
@@ -785,6 +787,7 @@ getInvestigatorsMatching matcher = do
     LeadInvestigator -> \i -> (== toId i) . gameLeadInvestigatorId <$> getGame
     InvestigatorWithTitle title -> pure . (`hasTitle` title)
     DefeatedInvestigator -> pure . attr investigatorDefeated
+    InvestigatorWithToken tkn -> \i -> fieldMap InvestigatorTokens (Token.hasToken tkn) (toId i)
     InvestigatorCanMoveTo source locationMatcher -> \i -> do
       case source of
         CardCostSource cardId -> do
@@ -914,6 +917,9 @@ getInvestigatorsMatching matcher = do
     InvestigatorWithCommittableCard -> \i -> do
       selectAny $ CommittableCard (toId i) (basic AnyCard)
     InvestigatorWithUnhealedHorror -> fieldMap InvestigatorUnhealedHorrorThisRound (> 0) . toId
+    InvestigatorWithFilledSlot sType -> \i -> do
+      slots <- fieldMap InvestigatorSlots (findWithDefault [] sType) (toId i)
+      pure $ count (not . isEmptySlot) slots > 0
     InvestigatorWithMetaKey k -> \i -> do
       meta <- field InvestigatorMeta (toId i)
       case meta of
@@ -1428,6 +1434,7 @@ getLocationsMatching lmatcher = do
       LocationIs cardCode -> pure $ filter ((== cardCode) . toCardCode) ls
       EmptyLocation ->
         filterM (andM . sequence [selectNone . investigatorAt . toId, selectNone . enemyAt . toId]) ls
+      LocationWithToken tkn -> filterM (fieldMap LocationTokens (Token.hasToken tkn) . toId) ls
       HauntedLocation ->
         filterM
           ( \l ->
@@ -2167,6 +2174,8 @@ getEventsMatching matcher = do
   filterMatcher events matcher
  where
   filterMatcher as = \case
+    EnemyEvent eid ->
+      filterM (fieldP EventPlacement (== AttachedToEnemy eid) . toId) as
     NotEvent matcher' -> do
       matches' <- getEventsMatching matcher'
       pure $ filter (`notElem` matches') as
@@ -2185,7 +2194,7 @@ getEventsMatching matcher = do
       pure $ filter ((== placement) . attr eventPlacement) as
     EventControlledBy investigatorMatcher -> do
       iids <- select investigatorMatcher
-      pure $ filter ((`elem` iids) . ownerOfEvent) as
+      pure $ filter (isInPlayPlacement . attr eventPlacement) $ filter ((`elem` iids) . ownerOfEvent) as
     EventWithoutModifier modifierType -> do
       filterM (fmap (notElem modifierType) . getModifiers . toId) as
     EventWithDoom valueMatcher ->
@@ -2326,6 +2335,7 @@ getEnemiesMatching matcher = do
 
 enemyMatcherFilter :: HasGame m => EnemyMatcher -> Enemy -> m Bool
 enemyMatcherFilter = \case
+  EnemyWithToken tkn -> \e -> fieldMap EnemyTokens (Token.hasToken tkn) (toId e)
   DefeatedEnemy matcher -> \e ->
     if attr enemyDefeated e
       then enemyMatcherFilter matcher e
@@ -2952,6 +2962,8 @@ instance Projection Asset where
       AssetOwner -> pure assetOwner
       AssetAssignedHealthHeal -> pure assetAssignedHealthHeal
       AssetAssignedSanityHeal -> pure assetAssignedSanityHeal
+      AssetAssignedHealthDamage -> pure assetAssignedHealthDamage
+      AssetAssignedSanityDamage -> pure assetAssignedSanityDamage
       AssetCustomizations -> pure assetCustomizations
       AssetLocation -> case assetPlacement of
         AtLocation lid -> pure $ Just lid
@@ -3300,6 +3312,7 @@ instance Query ChaosTokenMatcher where
     includeSealed = \case
       IncludeSealed _ -> True
       IncludeTokenPool m -> includeSealed m
+      SealedOnAsset _ _ -> True
       _ -> False
     includeTokenPool = \case
       IncludeSealed m -> includeTokenPool m
@@ -3325,9 +3338,14 @@ instance Query ChaosTokenMatcher where
             $ infestationTokens bag
             <> infestationSetAside bag
             <> maybeToList (infestationCurrentToken bag)
+    go :: HasGame m => ChaosTokenMatcher -> ChaosToken -> m Bool
     go = \case
       InTokenPool m -> go m
       NotChaosToken m -> fmap not . go m
+      SealedOnAsset assetMatcher chaosTokenMatcher -> \t -> do
+        sealedTokens <- selectAgg id AssetSealedChaosTokens assetMatcher
+        isMatch' <- go chaosTokenMatcher t
+        pure $ isMatch' && t `elem` sealedTokens
       WouldReduceYourSkillValueToZero -> \t -> do
         mSkillTest <- getSkillTest
         case mSkillTest of
@@ -3395,6 +3413,15 @@ instance Query ExtendedCardMatcher where
    where
     matches' :: HasGame m => Card -> ExtendedCardMatcher -> m Bool
     matches' c = \case
+      ControlledBy who -> do
+        cards <-
+          concat
+            <$> sequence
+              [ selectFields AssetCard (AssetControlledBy who)
+              , selectFields EventCard (EventControlledBy who)
+              , selectFields SkillCard (SkillControlledBy who)
+              ]
+        pure $ c `elem` cards
       NotThisCard -> error "must be replaced"
       CanCancelRevelationEffect matcher' -> do
         cardIsMatch <- matches' c matcher'

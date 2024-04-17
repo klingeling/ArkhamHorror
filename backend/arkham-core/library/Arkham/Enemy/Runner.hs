@@ -4,6 +4,7 @@
 module Arkham.Enemy.Runner (module Arkham.Enemy.Runner, module X) where
 
 import Arkham.Ability as X
+import Arkham.Calculation as X
 import Arkham.Enemy.Helpers as X hiding (EnemyEvade, EnemyFight)
 import Arkham.Enemy.Types as X
 import Arkham.GameValue as X
@@ -25,6 +26,7 @@ import Arkham.Spawn as X
 import Arkham.Target as X
 
 import Arkham.Action qualified as Action
+import Arkham.Asset.Uses qualified as Uses
 import Arkham.Attack
 import Arkham.Campaigns.TheForgottenAge.Helpers
 import Arkham.Card
@@ -607,7 +609,7 @@ instance RunMessage EnemyAttrs where
           source
           (maybe (toTarget eid) (ProxyTarget (toTarget eid)) mTarget)
           skillType
-          (EnemyMaybeFieldDifficulty eid EnemyFight)
+          (EnemyMaybeFieldCalculation eid EnemyFight)
       pure a
     PassedSkillTest iid (Just Action.Fight) source (Initiator target) _ n | isActionTarget a target -> do
       whenWindow <- checkWindows [mkWhen (Window.SuccessfulAttackEnemy iid enemyId n)]
@@ -698,7 +700,7 @@ instance RunMessage EnemyAttrs where
               source
               (maybe (toTarget eid) (ProxyTarget (toTarget eid)) mTarget)
               skillType
-              (EnemyMaybeFieldDifficulty eid EnemyEvade)
+              (EnemyMaybeFieldCalculation eid EnemyEvade)
         Nothing -> error "No evade value"
       pure a
     PassedSkillTest iid (Just Action.Evade) source (Initiator target) _ n | isActionTarget a target -> do
@@ -739,7 +741,18 @@ instance RunMessage EnemyAttrs where
       pure a
     ChangeEnemyAttackTarget eid target | eid == enemyId -> do
       let details = fromJustNote "missing attack details" enemyAttacking
-      pure $ a & attackingL ?~ details {attackTarget = target}
+          details' = details {attackTarget = target}
+      replaceWindow
+        \case
+          (Window.windowType -> Window.EnemyAttacks d) -> d == details
+          _ -> False
+        \w -> w {Window.windowType = Window.EnemyAttacks details'}
+      replaceWindow
+        \case
+          (Window.windowType -> Window.EnemyAttacksEvenIfCancelled d) -> d == details
+          _ -> False
+        \w -> w {Window.windowType = Window.EnemyAttacksEvenIfCancelled details'}
+      pure $ a & attackingL ?~ details'
     AfterEnemyAttack eid msgs | eid == enemyId -> do
       let details = fromJustNote "missing attack details" enemyAttacking
       pure $ a & attackingL ?~ details {attackAfter = msgs}
@@ -1210,6 +1223,9 @@ instance RunMessage EnemyAttrs where
     RemoveAllDoom _ target | isTarget a target -> pure $ a & tokensL %~ removeAllTokens Doom
     RemoveTokens _ target token amount | isTarget a target -> do
       pure $ a & tokensL %~ subtractTokens token amount
+    MoveTokens source _ tType n | isSource a source -> pure $ a & tokensL %~ subtractTokens tType n
+    MoveTokens _ target tType n | isTarget a target -> pure $ a & tokensL %~ addTokens tType n
+    MoveUses _ target Uses.Leyline n | isTarget a target -> pure $ a & tokensL %~ addTokens Leyline n
     PlaceTokens source target Doom amount | isTarget a target -> do
       cannotPlaceDoom <- hasModifier a CannotPlaceDoomOnThis
       if cannotPlaceDoom
