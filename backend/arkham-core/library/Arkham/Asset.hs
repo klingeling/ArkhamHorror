@@ -767,11 +767,14 @@ allAssets =
       SomeAssetCard forcedLearning
     , SomeAssetCard jeremiahKirbyArcticArchaeologist
     , SomeAssetCard archiveOfConduitsUnidentified
+    , SomeAssetCard hikingBoots1
+    , SomeAssetCard medicalTexts2
     , SomeAssetCard scientificTheory3
     , SomeAssetCard archiveOfConduitsGatewayToTindalos4
     , SomeAssetCard archiveOfConduitsGatewayToAcheron4
     , SomeAssetCard archiveOfConduitsGatewayToAldebaran4
     , SomeAssetCard archiveOfConduitsGatewayToParadise4
+    , SomeAssetCard prophesiaeProfanaAtlasOfTheUnknowable5
     , --- rogue [eote]
       SomeAssetCard underworldSupport
     , SomeAssetCard theRedClockBrokenButReliable2
@@ -794,7 +797,9 @@ allAssets =
     , SomeAssetCard brandOfCthugha4
     , --- seeker/rogue [eote]
       SomeAssetCard pocketTelescope
+    , SomeAssetCard eonChart1
     , SomeAssetCard geneBeauregard3
+    , SomeAssetCard eonChart4
     , --- rogue/survivor [eote]
       SomeAssetCard preciousMementoFromAFormerLife4
     , SomeAssetCard preciousMementoFromAFutureLife4
