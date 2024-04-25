@@ -443,6 +443,7 @@ data Message
   | -- Game State Control
     BeginGame
   | Begin Phase
+  | Again Message -- if we repeat the investigation phase we need to reset actions
   | PhaseStep PhaseStep [Message]
   | BeginRound
   | ReplaceSkillTestSkill FromSkillType ToSkillType
@@ -630,6 +631,7 @@ data Message
   | HealDamageDelayed Target Source Int
   | HealHorrorDelayed Target Source Int
   | MovedHorror Source Target Int
+  | ReassignHorror Source Target Int
   | MovedDamage Source Target Int
   | MovedClues Source Target Int
   | HealHorrorWithAdditional Target Source Int
@@ -709,7 +711,7 @@ data Message
   | InvestigatorResigned InvestigatorId
   | InvestigatorSpendClues InvestigatorId Int
   | InvestigatorWhenDefeated Source InvestigatorId
-  | InvestigatorWhenEliminated Source InvestigatorId
+  | InvestigatorWhenEliminated Source InvestigatorId (Maybe Message)
   | LoadDeck InvestigatorId (Deck PlayerCard) -- used to reset the deck of the investigator
   | LookAtRevealed InvestigatorId Source Target
   | LookAtTopOfDeck InvestigatorId Target Int

@@ -110,6 +110,7 @@ import Arkham.Story.Types qualified as Story
 import Arkham.Target
 import Arkham.Tarot qualified as Tarot
 import Arkham.Timing qualified as Timing
+import Arkham.Token qualified as Token
 import Arkham.Treachery
 import Arkham.Treachery.Types (Field (..), drawnFromL)
 import Arkham.Window (Window (..), mkAfter, mkWhen, mkWindow)
@@ -532,7 +533,8 @@ runGameMessage msg g = case msg of
     pure g
   ChoosePlayer iid SetLeadInvestigator -> do
     let players = view playerOrderL g
-    push $ ChoosePlayerOrder (gameLeadInvestigatorId g) (filter (/= iid) players) [iid]
+        lead = if gameLeadInvestigatorId g == "00000" then iid else gameLeadInvestigatorId g
+    push $ ChoosePlayerOrder lead (filter (/= iid) players) [iid]
     pure $ g & leadInvestigatorIdL .~ iid
   ChoosePlayer iid SetTurnPlayer -> do
     pushAll [BeginTurn iid, After (BeginTurn iid)]
@@ -694,24 +696,28 @@ runGameMessage msg g = case msg of
     popMessageMatching_ $ \case
       Discard _ _ (EnemyTarget eid') -> eid == eid'
       _ -> False
-    enemy <- getEnemy eid
-    swarms <- select $ SwarmOf eid
+    mEnemy <- maybeEnemy eid
+    -- enemy might already be gone (i.e. placed in void)
+    case mEnemy of
+      Nothing -> pure g
+      Just enemy -> do
+        swarms <- select $ SwarmOf eid
 
-    case attr enemyPlacement enemy of
-      AsSwarm _ c -> case toCardOwner c of
-        Just owner -> push $ PutCardOnBottomOfDeck owner (Deck.InvestigatorDeck owner) c
-        Nothing -> error "Missing owner"
-      _ -> do
-        pushAll $ map RemoveEnemy swarms
+        case attr enemyPlacement enemy of
+          AsSwarm _ c -> case toCardOwner c of
+            Just owner -> push $ PutCardOnBottomOfDeck owner (Deck.InvestigatorDeck owner) c
+            Nothing -> error "Missing owner"
+          _ -> do
+            pushAll $ map RemoveEnemy swarms
 
-    pure
-      $ g
-      & entitiesL
-      . enemiesL
-      %~ deleteMap eid
-      & actionRemovedEntitiesL
-      . enemiesL
-      %~ insertEntity enemy
+        pure
+          $ g
+          & entitiesL
+          . enemiesL
+          %~ deleteMap eid
+          & actionRemovedEntitiesL
+          . enemiesL
+          %~ insertEntity enemy
   RemoveSkill sid -> pure $ g & entitiesL . skillsL %~ deleteMap sid
   When (RemoveEnemy enemy) -> do
     pushM $ checkWindows [mkWhen (Window.LeavePlay $ toTarget enemy)]
@@ -804,6 +810,17 @@ runGameMessage msg g = case msg of
   AddAgenda agendaDeckNum card -> do
     let aid = AgendaId $ toCardCode card
     pure $ g & entitiesL . agendasL . at aid ?~ lookupAgenda aid agendaDeckNum (toCardId card)
+  ReassignHorror source target n -> do
+    replaceWindowMany
+      \case
+        Window.PlacedToken _ t Token.Horror _ -> t == sourceToTarget source
+        _ -> False
+      \case
+        Window.PlacedToken s t Token.Horror m
+          | m > n -> [Window.PlacedToken s t Token.Horror (m - n), Window.PlacedToken s target Token.Horror n]
+        Window.PlacedToken s _ Token.Horror _ -> [Window.PlacedToken s target Token.Horror n]
+        _ -> error "impossible"
+    pure g
   CommitCard iid card -> do
     push $ InvestigatorCommittedCard iid card
     case card of
@@ -1443,6 +1460,7 @@ runGameMessage msg g = case msg of
     let
       isDiscardEnemy = \case
         Discard _ _ (EnemyTarget eid') -> eid == eid'
+        RemovedFromPlay (EnemySource eid') -> eid == eid'
         _ -> False
     withQueue_ $ filter (not . isDiscardEnemy)
     enemy <- getEnemy eid
@@ -2133,7 +2151,7 @@ runGameMessage msg g = case msg of
   ReplaceCard cardId card -> do
     replaceCard cardId card -- We must update the IORef
     pure $ g & cardsL %~ insertMap cardId card
-  InvestigatorEliminated iid -> pure $ g & playerOrderL %~ filter (/= iid)
+  After (InvestigatorEliminated iid) -> pure $ g & playerOrderL %~ filter (/= iid)
   SetActiveInvestigator iid -> do
     player <- getPlayer iid
     pure $ g & activeInvestigatorIdL .~ iid & activePlayerIdL .~ player
@@ -2526,11 +2544,11 @@ instance RunMessage Game where
 
 runPreGameMessage :: Runner Game
 runPreGameMessage msg g = case msg of
-  CheckWindow {} -> do
+  CheckWindow _ ws -> do
     push EndCheckWindow
-    pure $ g & windowDepthL +~ 1
+    pure $ g & windowDepthL +~ 1 & windowStackL %~ Just . maybe [ws] (ws :)
   -- We want to empty the queue for triggering a resolution
-  EndCheckWindow -> pure $ g & windowDepthL -~ 1
+  EndCheckWindow -> pure $ g & windowDepthL -~ 1 & windowStackL %~ fmap (drop 1)
   ScenarioResolution _ -> do
     clearQueue
     pure $ g & (skillTestL .~ Nothing) & (skillTestResultsL .~ Nothing)

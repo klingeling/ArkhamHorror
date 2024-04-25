@@ -13,7 +13,6 @@ import Arkham.Location.Cards qualified as Cards (endlessBridge)
 import Arkham.Location.Runner
 import Arkham.Matcher
 import Arkham.Name
-import Arkham.Timing qualified as Timing
 import Control.Monad.Extra (findM)
 
 newtype EndlessBridge = EndlessBridge LocationAttrs
@@ -28,7 +27,7 @@ instance HasAbilities EndlessBridge where
     withRevealedAbilities attrs
       $ [ mkAbility attrs 1
             $ ForcedAbility
-            $ Leaves Timing.After Anyone
+            $ Leaves #after Anyone
             $ LocationWithId
             $ toId attrs
         ]

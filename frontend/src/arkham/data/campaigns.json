@@ -18,8 +18,8 @@
           },
           {
             "type": "Option",
-            "key": "TakeWarenRice",
-            "ckey": "TakeWarenRice",
+            "key": "TakeWarrenRice",
+            "ckey": "TakeWarrenRice",
             "ifRecorded": [
               {
                 "type": "key",
@@ -297,8 +297,8 @@
           },
           {
             "type": "Option",
-            "key": "TakeWarenRice",
-            "ckey": "TakeWarenRice",
+            "key": "TakeWarrenRice",
+            "ckey": "TakeWarrenRice",
             "ifRecorded": [ { "type": "not", "content": { "type": "inSet", "key": "SacrificedToYogSothoth", "recordable": "RecordableCardCode", "content": "02061" } }]
           },
           {
@@ -359,8 +359,8 @@
           },
           {
             "type": "SetKey",
-            "key": "NoBroodEscaped",
-            "ckey": "NoBroodEscaped"
+            "key": "NoBroodEscapedIntoTheWild",
+            "ckey": "NoBroodEscapedIntoTheWild"
           },
           {
             "type": "ChooseNum",
@@ -368,7 +368,7 @@
             "ckey": "BroodEscapedIntoTheWild",
             "min": 1,
             "max": 6,
-            "ifRecorded": [ { "type": "not", "content": { "type": "key", "key": "NoBroodEscaped" } } ]
+            "ifRecorded": [ { "type": "not", "content": { "type": "key", "key": "NoBroodEscapedIntoTheWild" } } ]
           }
         ]
       },

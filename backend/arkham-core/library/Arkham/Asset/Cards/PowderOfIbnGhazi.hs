@@ -49,7 +49,8 @@ instance RunMessage PowderOfIbnGhazi where
           , ZebulonWhateleySurvivedTheDunwichLegacy
           , EarlSawyerSurvivedTheDunwichLegacy
           ]
-      PowderOfIbnGhazi <$> runMessage msg (attrs & tokensL %~ setTokens Clue survivedCount)
+      attrs' <- runMessage msg attrs
+      pure . PowderOfIbnGhazi $ attrs' & tokensL %~ setTokens Clue survivedCount
     UseCardAbility iid source 1 _ _ | isSource attrs source -> do
       player <- getPlayer iid
       targets <-

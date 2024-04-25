@@ -1,12 +1,10 @@
 module Arkham.Asset.Cards.ProfessorWarrenRice where
 
-import Arkham.Prelude
-
 import Arkham.Ability
 import Arkham.Asset.Cards qualified as Cards
 import Arkham.Asset.Runner
 import Arkham.Matcher
-import Arkham.Timing qualified as Timing
+import Arkham.Prelude
 
 newtype ProfessorWarrenRice = ProfessorWarrenRice AssetAttrs
   deriving anyclass (IsAsset)
@@ -28,7 +26,7 @@ instance HasModifiersFor ProfessorWarrenRice where
 instance HasAbilities ProfessorWarrenRice where
   getAbilities (ProfessorWarrenRice a) =
     [ restrictedAbility a 1 ControlsThis
-        $ ReactionAbility (DiscoveringLastClue Timing.After You YourLocation) (exhaust a)
+        $ ReactionAbility (DiscoveringLastClue #after You YourLocation) (exhaust a)
     ]
 
 instance RunMessage ProfessorWarrenRice where

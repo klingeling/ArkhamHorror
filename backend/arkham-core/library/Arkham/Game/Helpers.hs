@@ -38,6 +38,7 @@ import Arkham.Classes.HasGame
 import Arkham.Criteria qualified as Criteria
 import Arkham.DamageEffect
 import Arkham.Deck hiding (InvestigatorDeck, InvestigatorDiscard)
+import Arkham.Deck qualified as Deck
 import Arkham.DefeatedBy
 import Arkham.Effect.Types (Field (..))
 import Arkham.Enemy.Types (Field (..))
@@ -46,6 +47,7 @@ import {-# SOURCE #-} Arkham.Game
 import Arkham.Game.Settings
 import {-# SOURCE #-} Arkham.GameEnv
 import Arkham.Helpers
+import Arkham.Helpers.Calculation
 import Arkham.Helpers.Card
 import Arkham.Helpers.ChaosBag
 import Arkham.Helpers.Investigator (
@@ -755,7 +757,13 @@ hasEvadeActions iid window windows' =
       (Matcher.AbilityIsAction Action.Evade <> Matcher.AbilityWindow window)
 
 getIsPlayable
-  :: (HasCallStack, HasGame m) => InvestigatorId -> Source -> CostStatus -> [Window] -> Card -> m Bool
+  :: (HasCallStack, HasGame m, Sourceable source)
+  => InvestigatorId
+  -> source
+  -> CostStatus
+  -> [Window]
+  -> Card
+  -> m Bool
 getIsPlayable iid source costStatus windows' c = do
   availableResources <- getSpendableResources iid
   getIsPlayableWithResources iid source availableResources costStatus windows' c
@@ -971,7 +979,11 @@ getIsPlayableWithResources iid (toSource -> source) availableResources costStatu
               pure [m | AdditionalCostToResign m <- mods]
         else pure []
 
-    actionCost <- getActionCost attrs (cdActions pcDef)
+    actionCost <-
+      getActionCost attrs (cdActions pcDef) >>= case costStatus of
+        PaidCost -> pure . max 0 . subtract 1
+        UnpaidCost NoAction -> pure . max 0 . subtract 1
+        UnpaidCost NeedsAction -> pure
 
     -- Warning: We check if the source is GameSource, this affects the
     -- PlayableCardWithCostReduction matcher currently only used by Dexter
@@ -980,7 +992,7 @@ getIsPlayableWithResources iid (toSource -> source) availableResources costStatu
       allM
         (getCanAffordCost iid (CardSource c) [] windows')
         $ [ ActionCost actionCost
-          | costStatus /= PaidCost && actionCost > 0 && source /= GameSource && not inFastWindow
+          | actionCost > 0 && source /= GameSource && not inFastWindow
           ]
         <> additionalCosts
         <> investigateCosts
@@ -1064,6 +1076,9 @@ passesCriteria
   -> Criterion
   -> m Bool
 passesCriteria iid mcard source' windows' = \case
+  Criteria.HasCalculation c valueMatcher -> do
+    value <- calculate c
+    gameValueMatches value valueMatcher
   Criteria.HasRemainingBlessTokens -> (> 0) <$> getRemainingBlessTokens
   Criteria.HasRemainingCurseTokens -> (> 0) <$> getRemainingCurseTokens
   Criteria.CanMoveTo matcher -> notNull <$> getCanMoveToMatchingLocations iid source matcher
@@ -1310,7 +1325,13 @@ passesCriteria iid mcard source' windows' = \case
     results <- select cardMatcher
     -- GameSource is important because it allows us to skip the action cost
     anyM
-      (getIsPlayableWithResources iid GameSource (availableResources + n) UnpaidCost updatedWindows)
+      ( getIsPlayableWithResources
+          iid
+          GameSource
+          (availableResources + n)
+          (UnpaidCost NoAction)
+          updatedWindows
+      )
       results
   Criteria.PlayableCardExists costStatus cardMatcher -> do
     mTurnInvestigator <- selectOne Matcher.TurnInvestigator
@@ -1340,7 +1361,7 @@ passesCriteria iid mcard source' windows' = \case
     discards <-
       filter (`cardMatch` cardMatcher)
         <$> concatMapM (field InvestigatorDiscard) investigatorIds
-    anyM (getIsPlayable iid source UnpaidCost windows'' . PlayerCard) discards
+    anyM (getIsPlayable iid source (UnpaidCost NoAction) windows'' . PlayerCard) discards
   Criteria.FirstAction -> fieldP InvestigatorActionsTaken null iid
   Criteria.NoRestriction -> pure True
   Criteria.OnLocation locationMatcher -> do
@@ -1365,12 +1386,12 @@ passesCriteria iid mcard source' windows' = \case
           filter (any (`elem` traitsToMatch) . toTraits) discards
     pure $ notNull filteredDiscards
   Criteria.CanAffordCostIncrease n -> case mcard of
-    Just (card, UnpaidCost) -> do
+    Just (card, UnpaidCost _) -> do
       cost <- getModifiedCardCost iid card
       resources <- getSpendableResources iid
       pure $ resources >= cost + n
     Just (_, PaidCost) -> pure True
-    Nothing -> error "no card for CanAffordCostIncrease"
+    Nothing -> error $ "no card for CanAffordCostIncrease: " <> show source
   Criteria.CardInDiscard discardSignifier cardMatcher -> do
     let
       investigatorMatcher = case discardSignifier of
@@ -1385,7 +1406,7 @@ passesCriteria iid mcard source' windows' = \case
       =<< field InvestigatorLocation iid
   Criteria.EnemyCriteria enemyCriteria ->
     passesEnemyCriteria iid source windows' enemyCriteria
-  Criteria.SetAsideCardExists matcher -> selectAny matcher
+  Criteria.SetAsideCardExists matcher -> selectAny (Matcher.SetAsideCardMatch matcher)
   Criteria.OutOfPlayEnemyExists outOfPlayZone matcher ->
     selectAny $ Matcher.OutOfPlayEnemy outOfPlayZone matcher
   Criteria.OnAct step -> do
@@ -1426,6 +1447,13 @@ passesCriteria iid mcard source' windows' = \case
       _ -> pure True
   Criteria.EventExists matcher -> do
     selectAny (Matcher.replaceYouMatcher iid matcher)
+  Criteria.EventWindowInvestigatorIs whoMatcher -> do
+    windows'' :: [[Window]] <- drop 1 <$> getWindowStack
+    case windows'' of
+      ((windowType -> x) : _) : _ -> case x of
+        Window.DrawCard iid' _ _ -> iid' <=~> Matcher.replaceYouMatcher iid whoMatcher
+        _ -> pure False
+      _ -> pure False
   Criteria.ExcludeWindowAssetExists matcher -> case getWindowAsset windows' of
     Nothing -> pure False
     Just aid -> do
@@ -1604,6 +1632,10 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
   let isMatch = pure True
   let guardTiming t body = if timing' == t then body wType else noMatch
   case mtchr of
+    Matcher.WindowWhen criteria mtchr' -> do
+      (&&)
+        <$> passesCriteria iid Nothing source [window'] criteria
+        <*> windowMatches iid source window' mtchr'
     Matcher.NotAnyWindow -> noMatch
     Matcher.AnyWindow -> isMatch
     Matcher.ScenarioCountIncremented timing k -> guardTiming timing \case
@@ -2077,7 +2109,8 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
         _ -> noMatch
     Matcher.GameEnds timing -> guardTiming timing (pure . (== Window.EndOfGame))
     Matcher.InvestigatorEliminated timing whoMatcher -> guardTiming timing $ \case
-      Window.InvestigatorEliminated who -> matchWho iid who (Matcher.IncludeEliminated whoMatcher)
+      Window.InvestigatorEliminated who ->
+        matchWho iid who (Matcher.IncludeEliminated $ Matcher.replaceYouMatcher iid whoMatcher)
       _ -> noMatch
     Matcher.PutLocationIntoPlay timing whoMatcher locationMatcher ->
       guardTiming timing $ \case
@@ -2091,7 +2124,7 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
       -- TODO: do we need to grab the card source?
       -- cards <- filter (/= c) <$> getList cardMatcher
       cards <- select cardMatcher
-      anyM (getIsPlayable iid source UnpaidCost [window']) cards
+      anyM (getIsPlayable iid source (UnpaidCost NoAction) [window']) cards
     Matcher.PhaseBegins timing phaseMatcher -> guardTiming timing $ \case
       Window.AnyPhaseBegins -> pure $ phaseMatcher == Matcher.AnyPhase
       Window.PhaseBegins p -> matchPhase p phaseMatcher
@@ -2421,7 +2454,7 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
         Window.EnemyDefeated (Just who) defeatedBy enemyId ->
           andM
             [ enemyMatches enemyId enemyMatcher
-            , matchWho iid who whoMatcher
+            , matchWho iid who (Matcher.replaceYouMatcher iid whoMatcher)
             , defeatedByMatches defeatedBy defeatedByMatcher
             ]
         Window.EnemyDefeated Nothing defeatedBy enemyId | whoMatcher == Matcher.You -> do
@@ -3031,7 +3064,9 @@ deckMatch
   -> m Bool
 deckMatch iid deckSignifier = \case
   Matcher.EncounterDeck -> pure $ deckSignifier == EncounterDeck
-  Matcher.DeckOf investigatorMatcher -> matchWho iid iid investigatorMatcher
+  Matcher.DeckOf investigatorMatcher -> case deckSignifier of
+    Deck.InvestigatorDeck iid' -> matchWho iid iid' investigatorMatcher
+    _ -> pure False
   Matcher.AnyDeck -> pure True
   Matcher.DeckIs deckSignifier' -> pure $ deckSignifier == deckSignifier'
   Matcher.DeckOneOf matchers' -> anyM (deckMatch iid deckSignifier) matchers'
@@ -3052,9 +3087,9 @@ actionMatches iid a Matcher.RepeatableAction = do
   actions <- withModifiers iid (toModifiers GameSource [ActionCostModifier (-1)]) $ do
     getActions iid (defaultWindows iid)
 
-  playableCards <- withModifiers iid (toModifiers GameSource [ActionCostOf IsAnyAction (-1)]) $ do
+  playableCards <-
     filter (`cardMatch` Matcher.NotCard Matcher.FastCard)
-      <$> getPlayableCards a' UnpaidCost (defaultWindows iid)
+      <$> getPlayableCards a' (UnpaidCost NoAction) (defaultWindows iid)
 
   canAffordTakeResources <- withModifiers iid (toModifiers GameSource [ActionCostOf IsAnyAction (-1)]) $ do
     getCanAfford a' [#resource]
@@ -3310,13 +3345,18 @@ sourceMatches s = \case
     ScenarioType -> case s of
       ScenarioSource -> True
       _ -> False
-  Matcher.EncounterCardSource -> pure $ case s of
-    ActSource _ -> True
-    AgendaSource _ -> True
-    EnemySource _ -> True
-    LocationSource _ -> True
-    TreacherySource _ -> True
-    _ -> False
+  Matcher.EncounterCardSource ->
+    let
+      check = \case
+        AbilitySource source' _ -> check source'
+        ActSource _ -> True
+        AgendaSource _ -> True
+        EnemySource _ -> True
+        LocationSource _ -> True
+        TreacherySource _ -> True
+        _ -> False
+     in
+      pure $ check s
   Matcher.SourceWithCard cardMatcher -> do
     let
       getCardSource = \case

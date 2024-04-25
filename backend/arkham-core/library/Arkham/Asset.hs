@@ -780,13 +780,15 @@ allAssets =
     , SomeAssetCard theRedClockBrokenButReliable2
     , SomeAssetCard moxie3
     , SomeAssetCard theBlackFan3
+    , SomeAssetCard theRedClockBrokenButReliable5
     , --- mystic [eote]
       SomeAssetCard downTheRabbitHole
     , SomeAssetCard dragonPole
     , SomeAssetCard grounded3
     , --- survivor [eote]
-      SomeAssetCard bandages
+      SomeAssetCard shortSupply
     , SomeAssetCard schoffnersCatalogue
+    , SomeAssetCard bandages
     , SomeAssetCard bangleOfJinxes1
     , SomeAssetCard plucky3
     , --- guardian/seeker [eote]
@@ -801,7 +803,8 @@ allAssets =
     , SomeAssetCard geneBeauregard3
     , SomeAssetCard eonChart4
     , --- rogue/survivor [eote]
-      SomeAssetCard preciousMementoFromAFormerLife4
+      SomeAssetCard unscrupulousLoan3
+    , SomeAssetCard preciousMementoFromAFormerLife4
     , SomeAssetCard preciousMementoFromAFutureLife4
     , --- mystic/survivor [eote]
       SomeAssetCard talismanOfProtection

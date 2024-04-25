@@ -76,6 +76,7 @@ import Arkham.Matcher (
 import Arkham.Message qualified as Msg
 import Arkham.Modifier qualified as Modifier
 import Arkham.Movement
+import Arkham.Phase
 import Arkham.Placement
 import Arkham.Projection
 import Arkham.ScenarioLogKey
@@ -535,9 +536,8 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
         deck <- shuffleM (investigatorDiscard <> coerce investigatorDeck)
         pure $ a & discardL .~ [] & deckL .~ Deck deck
   Resign iid | iid == investigatorId -> do
-    isLead <- (== iid) <$> getLeadInvestigatorId
-    pushAll $ [ChooseLeadInvestigator | isLead] <> resolve (Msg.InvestigatorResigned iid)
-    pure $ a & resignedL .~ True & endedTurnL .~ True
+    pushAll $ resolve (Msg.InvestigatorResigned iid)
+    pure $ a & endedTurnL .~ True
   Msg.InvestigatorDefeated source iid -> do
     -- a card effect defeats an investigator directly
     windowMsg <-
@@ -564,7 +564,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
       $ windowMsg
       : [ChooseLeadInvestigator | isLead]
         <> [InvestigatorKilled (toSource a) iid | killed]
-        <> [InvestigatorWhenEliminated (toSource a) iid]
+        <> [InvestigatorWhenEliminated (toSource a) iid Nothing]
     pure
       $ a
       & (defeatedL .~ True)
@@ -572,11 +572,12 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
       & (physicalTraumaL +~ physicalTrauma)
       & (mentalTraumaL +~ mentalTrauma)
   Msg.InvestigatorResigned iid | iid == investigatorId -> do
+    pushAll [InvestigatorWhenEliminated (toSource a) iid (Just $ Do msg)]
+    pure $ a & endedTurnL .~ True
+  Do (Msg.InvestigatorResigned iid) | iid == investigatorId -> do
     isLead <- (== iid) <$> getLeadInvestigatorId
-    pushAll
-      $ [ChooseLeadInvestigator | isLead && not investigatorResigned]
-      <> [InvestigatorWhenEliminated (toSource a) iid]
-    pure $ a & resignedL .~ True & endedTurnL .~ True
+    pushWhen isLead ChooseLeadInvestigator
+    pure $ a & resignedL .~ True
   -- InvestigatorWhenEliminated is handled by the scenario
   InvestigatorEliminated iid | iid == investigatorId -> do
     mlid <- field InvestigatorLocation iid
@@ -1074,7 +1075,6 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
                    , WhenCanMove
                       iid
                       ( [MoveFrom source iid fromLocationId | fromLocationId <- maybeToList mFromLocation]
-                          <> maybeToList mRunAfterLeaving
                           <> [ runWhenEntering
                              , runAtIfEntering
                              , PayAdditionalCost iid batchId enterCosts
@@ -1083,6 +1083,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
                              ]
                           <> [MoveTo $ move source iid destinationLocationId]
                           <> [runAfterEnteringMoves]
+                          <> maybeToList mRunAfterLeaving
                       )
                    ]
     pure a
@@ -1170,10 +1171,11 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
              | (target, horror) <- mapToList horrorMap
              ]
       checkAssets = nub $ keys horrorMap <> keys damageMap
-    placedWindowMsg <-
-      checkWindows $ concatMap (\t -> map (mkWindow t) placedWindows) [#when, #after]
+    whenPlacedWindowMsg <- checkWindows $ map mkWhen placedWindows
+    afterPlacedWindowMsg <- checkWindows $ map mkAfter placedWindows
     pushAll
-      $ [ placedWindowMsg
+      $ [ whenPlacedWindowMsg
+        , afterPlacedWindowMsg
         , CheckWindow [iid]
             $ [ mkWhen (Window.DealtDamage source damageEffect target damage)
               | target <- nub damageTargets
@@ -1537,8 +1539,11 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
     pure a
   FlipClues target n | isTarget a target -> do
     pure $ a & tokensL %~ flipClues n
-  DiscoverClues iid lid source n isInvestigate maction | iid == investigatorId -> do
+  DiscoverClues iid lid source n1 isInvestigate maction | iid == investigatorId -> do
     modifiers <- getModifiers lid
+    mods <- getModifiers iid
+    let additionalDiscovered = getSum $ fold [Sum x | DiscoveredClues x <- mods]
+    let n = n1 + additionalDiscovered
     let
       getMaybeMax :: ModifierType -> Maybe Int -> Maybe Int
       getMaybeMax (MaxCluesDiscovered x) Nothing = Just x
@@ -1866,6 +1871,8 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
     pure $ a & tokensL %~ addTokens #horror amount
   MovedHorror (isSource a -> True) _ amount -> do
     pure $ a & tokensL %~ subtractTokens #horror amount
+  ReassignHorror (isSource a -> True) _ n -> do
+    pure $ a & assignedSanityDamageL %~ max 0 . subtract n
   MovedDamage source (isTarget a -> True) amount -> do
     push $ checkDefeated source a
     pure $ a & tokensL %~ addTokens #damage amount
@@ -2053,6 +2060,16 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
       & (actionsPerformedL .~ mempty)
       & (beganRoundAtL .~ current)
       & (unhealedHorrorThisRoundL .~ 0)
+  Begin InvestigationPhase -> do
+    pure $ a & endedTurnL .~ False
+  Again (Begin InvestigationPhase) -> do
+    actionsForTurn <- getAbilitiesForTurn a
+    pure
+      $ a
+      & (remainingActionsL .~ actionsForTurn)
+      & (usedAdditionalActionsL .~ mempty)
+      & (actionsTakenL .~ mempty)
+      & (actionsPerformedL .~ mempty)
   DiscardTopOfDeck iid n source mTarget | iid == investigatorId -> do
     let (cs, deck') = draw n investigatorDeck
         (cs', essenceOfTheDreams) = partition ((/= "06113") . toCardCode) cs
@@ -2447,7 +2464,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
     | iid == toId a
     , not (investigatorDefeated || investigatorResigned) || Window.hasEliminatedWindow windows -> do
         actions <- getActions iid windows
-        playableCards <- getPlayableCards a UnpaidCost windows
+        playableCards <- getPlayableCards a (UnpaidCost NeedsAction) windows
         runWindow a windows actions playableCards
         pure a
   SpendActions iid _ _ 0 | iid == investigatorId -> do
@@ -2848,7 +2865,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
             DrawOrPlayFound who n -> do
               let windows' = [mkWhen Window.NonFast, mkWhen (Window.DuringTurn iid)]
               playableCards <- concatForM (mapToList targetCards) $ \(_, cards) ->
-                filterM (getIsPlayable who source UnpaidCost windows') cards
+                filterM (getIsPlayable who source (UnpaidCost NoAction) windows') cards
               let
                 choices =
                   [ targetLabel
@@ -2930,7 +2947,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
             PlayFound who n -> do
               let windows' = [mkWhen Window.NonFast, mkWhen (Window.DuringTurn iid)]
               playableCards <- for (mapToList targetCards) $ \(zone, cards) -> do
-                cards' <- filterM (getIsPlayable who source UnpaidCost windows') cards
+                cards' <- filterM (getIsPlayable who source (UnpaidCost NoAction) windows') cards
                 pure (zone, cards')
               let
                 choices =
@@ -3138,7 +3155,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
                   [UseEffectAction iid effectId windows]
             _ -> Nothing
 
-        playableCards <- getPlayableCards a UnpaidCost windows
+        playableCards <- getPlayableCards a (UnpaidCost NeedsAction) windows
         drawing <- drawCardsF iid a 1
 
         canDraw <- canDo iid #draw
@@ -3174,7 +3191,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = case msg of
     actions <- getActions investigatorId windows
     anyForced <- anyM (isForcedAbility investigatorId) actions
     unless anyForced $ do
-      playableCards <- getPlayableCards a UnpaidCost windows
+      playableCards <- getPlayableCards a (UnpaidCost NeedsAction) windows
       let
         usesAction = not isAdditional
         choices =

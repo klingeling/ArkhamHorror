@@ -19,6 +19,7 @@ import Arkham.Agenda.Types (Field (..))
 import Arkham.Asset.Types (Field (..))
 import Arkham.CampaignLog
 import Arkham.Card
+import Arkham.Card.PlayerCard (setPlayerCardOwner)
 import Arkham.ChaosBag ()
 import Arkham.ChaosToken
 import Arkham.Classes.GameLogger
@@ -139,7 +140,7 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = case msg of
       then do
         playerCount <- getPlayerCount
         (deck', randomWeaknesses) <- addRandomBasicWeaknessIfNeeded playerCount deck
-        weaknesses <- traverse genPlayerCard randomWeaknesses
+        weaknesses <- traverse (`genPlayerCardWith` setPlayerCardOwner iid) randomWeaknesses
         pid <- getPlayer iid
         let purchaseTrauma = initDeckTrauma deck' iid pid (toTarget a)
 
@@ -343,20 +344,18 @@ runScenarioAttrs msg a@ScenarioAttrs {..} = case msg of
     clearQueue
     push (ScenarioResolution NoResolution)
     pure $ a & inResolutionL .~ True -- must set to avoid redundancy when scenario kills investigator
-  InvestigatorWhenEliminated _ iid -> do
-    whenMsg <-
-      checkWindows
-        [mkWindow Timing.When (Window.InvestigatorEliminated iid)]
-    afterMsg <-
-      checkWindows
-        [mkWindow Timing.When (Window.InvestigatorEliminated iid)]
+  InvestigatorWhenEliminated _ iid mmsg -> do
+    whenMsg <- checkWindows [mkWhen (Window.InvestigatorEliminated iid)]
+    afterMsg <- checkWindows [mkAfter (Window.InvestigatorEliminated iid)]
     pushAll
-      [ whenMsg
-      , InvestigatorPlaceAllCluesOnLocation iid (toSource a)
-      , InvestigatorEliminated iid
-      , CheckForRemainingInvestigators
-      , afterMsg
-      ]
+      $ [ whenMsg
+        , InvestigatorEliminated iid
+        ]
+      <> maybeToList mmsg
+      <> [ After (InvestigatorEliminated iid)
+         , afterMsg
+         , CheckForRemainingInvestigators
+         ]
     pure a
   Remember logKey -> do
     send $ "Remember \"" <> format logKey <> "\""

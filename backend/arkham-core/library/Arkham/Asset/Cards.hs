@@ -590,6 +590,7 @@ allPlayerAssetCards =
       , sharpshooter3
       , shieldOfFaith2
       , shiningTrapezohedron4
+      , shortSupply
       , shotgun4
       , showmanship
       , shrewdAnalysis
@@ -666,6 +667,7 @@ allPlayerAssetCards =
       , theNecronomiconPetrusDeDaciaTranslation5
       , thePallidMask
       , theRedClockBrokenButReliable2
+      , theRedClockBrokenButReliable5
       , theRedGlovedMan5
       , theSilverKey
       , theSkeletonKey2
@@ -695,6 +697,7 @@ allPlayerAssetCards =
       , twilaKatherinePrice3
       , twilightBlade
       , underworldSupport
+      , unscrupulousLoan3
       , untilTheEndOfTime
       , valentinoRivas
       , vaultOfKnowledge
@@ -4975,6 +4978,18 @@ theBlackFan3 =
     , cdLevel = Just 3
     }
 
+theRedClockBrokenButReliable5 :: CardDef
+theRedClockBrokenButReliable5 =
+  (asset "08058" ("The Red Clock" <:> "Broken but Reliable") 2 Rogue)
+    { cdCardTraits = setFromList [Item, Relic]
+    , cdSkills = [#wild, #wild]
+    , cdSlots = [#accessory]
+    , cdUnique = True
+    , cdExceptional = True
+    , cdLevel = Just 5
+    , cdUses = uses Charge 0
+    }
+
 downTheRabbitHole :: CardDef
 downTheRabbitHole =
   permanent
@@ -4999,6 +5014,14 @@ grounded3 =
     , cdLimits = [LimitPerTrait Composure 1]
     , cdLevel = Just 3
     }
+
+shortSupply :: CardDef
+shortSupply =
+  permanent
+    $ (asset "08071" "Short Supply" 0 Survivor)
+      { cdCardTraits = setFromList [Talent]
+      , cdDeckRestrictions = [PerDeckLimit 1, PurchaseAtDeckCreation]
+      }
 
 schoffnersCatalogue :: CardDef
 schoffnersCatalogue =
@@ -5110,6 +5133,14 @@ eonChart4 =
     , cdUses = uses Secret 3
     , cdLevel = Just 4
     , cdSlots = [#accessory]
+    }
+
+unscrupulousLoan3 :: CardDef
+unscrupulousLoan3 =
+  (multiClassAsset "08113" "Unscrupulous Loan" 0 [Rogue, Survivor])
+    { cdCardTraits = setFromList [Item, Charm, Blessed]
+    , cdLimits = [LimitPerInvestigator 1]
+    , cdLevel = Just 3
     }
 
 preciousMementoFromAFormerLife4 :: CardDef

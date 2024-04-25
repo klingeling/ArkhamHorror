@@ -322,6 +322,7 @@ data ModifierType
   | -- UI only modifiers
     Ethereal -- from Ethereal Form
   | Explosion -- from Dyanamite Blast
+  | Locus -- from Prophesiae Profana
   deriving stock (Show, Eq, Ord, Data)
 
 pattern CannotMoveExceptByScenarioCardEffects :: ModifierType
@@ -334,6 +335,9 @@ instance IsLabel "combat" (Int -> ModifierType) where
 
 instance IsLabel "agility" (Int -> ModifierType) where
   fromLabel = SkillModifier #agility
+
+instance IsLabel "agility" (Integer -> ModifierType) where
+  fromLabel = SkillModifier #agility . fromIntegral
 
 instance IsLabel "intellect" (Int -> ModifierType) where
   fromLabel = SkillModifier #intellect

@@ -242,7 +242,9 @@ instance RunMessage EnemyAttrs where
             =<< traverse
               (\eid' -> checkWindows (($ Window.EnemyEnters eid' lid) <$> [mkWhen, mkAfter]))
               (eid : swarm)
-          pure $ a & placementL .~ AtLocation lid
+          case a.placement of
+            InThreatArea {} -> pure a
+            _ -> pure $ a & placementL .~ AtLocation lid
     Ready (isTarget a -> True) -> do
       mods <- getModifiers a
       phase <- getPhase
@@ -344,7 +346,7 @@ instance RunMessage EnemyAttrs where
             pushAll $ fromMaybe [] leaveWindows <> [EnemyEntered eid lid, EnemyCheckEngagement eid]
             pure $ a & placementL .~ AtLocation lid
           else a <$ push (EnemyCheckEngagement eid)
-    After (EndTurn _) -> a <$ push (EnemyCheckEngagement $ toId a)
+    After (EndTurn _) | not enemyDefeated -> a <$ push (EnemyCheckEngagement $ toId a)
     EnemyCheckEngagement eid | eid == enemyId && not (isSwarm a) -> do
       keywords <- getModifiedKeywords a
       mods <- getModifiers eid
@@ -603,23 +605,26 @@ instance RunMessage EnemyAttrs where
               }
       pure a
     AttackEnemy iid eid source mTarget skillType | eid == enemyId -> do
-      push
-        $ fight
-          iid
-          source
-          (maybe (toTarget eid) (ProxyTarget (toTarget eid)) mTarget)
-          skillType
-          (EnemyMaybeFieldCalculation eid EnemyFight)
+      whenWindow <- checkWindows [mkWhen (Window.EnemyAttacked iid source enemyId)]
+      afterWindow <- checkWindows [mkAfter (Window.EnemyAttacked iid source enemyId)]
+      pushAll
+        [ whenWindow
+        , fight
+            iid
+            source
+            (maybe (toTarget eid) (ProxyTarget (toTarget eid)) mTarget)
+            skillType
+            (EnemyMaybeFieldCalculation eid EnemyFight)
+        , afterWindow
+        ]
       pure a
     PassedSkillTest iid (Just Action.Fight) source (Initiator target) _ n | isActionTarget a target -> do
       whenWindow <- checkWindows [mkWhen (Window.SuccessfulAttackEnemy iid enemyId n)]
       afterSuccessfulWindow <- checkWindows [mkAfter (Window.SuccessfulAttackEnemy iid enemyId n)]
-      afterWindow <- checkWindows [mkAfter (Window.EnemyAttacked iid source enemyId)]
       pushAll
         [ whenWindow
         , Successful (Action.Fight, toProxyTarget target) iid source (toActionTarget target) n
         , afterSuccessfulWindow
-        , afterWindow
         ]
 
       pure a
@@ -1071,6 +1076,8 @@ instance RunMessage EnemyAttrs where
       pure $ a & defeatedL .~ True
     Discard miid source target | a `isTarget` target -> do
       windows' <- windows [Window.WouldBeDiscarded (toTarget a)]
+      whenLeavePlay <- checkWindows [mkWhen $ Window.LeavePlay (toTarget a)]
+      afterLeavePlay <- checkWindows [mkWhen $ Window.LeavePlay (toTarget a)]
       windows'' <- windows [Window.EntityDiscarded source (toTarget a)]
       let
         card = case enemyPlacement of
@@ -1079,7 +1086,9 @@ instance RunMessage EnemyAttrs where
       pushAll
         $ windows'
         <> windows''
-        <> [ RemovedFromPlay $ toSource a
+        <> [ whenLeavePlay
+           , RemovedFromPlay $ toSource a
+           , afterLeavePlay
            , Discarded (toTarget a) source card
            , Do (Discarded (toTarget a) source card)
            ]
@@ -1096,11 +1105,9 @@ instance RunMessage EnemyAttrs where
       pure a
     RemovedFromPlay source | isSource a source -> do
       enemyAssets <- select $ EnemyAsset enemyId
-      windowMsg <- checkWindows $ ($ Window.LeavePlay (toTarget a)) <$> [mkWhen, mkAfter]
       pushAll
-        $ windowMsg
-        : map (toDiscard GameSource) enemyAssets
-          <> [UnsealChaosToken token | token <- enemySealedChaosTokens]
+        $ map (toDiscard GameSource) enemyAssets
+        <> [UnsealChaosToken token | token <- enemySealedChaosTokens]
       pure a
     EnemyEngageInvestigator eid iid | eid == enemyId -> do
       case enemyPlacement of

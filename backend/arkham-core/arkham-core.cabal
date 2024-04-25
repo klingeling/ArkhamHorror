@@ -867,6 +867,7 @@ library
       Arkham.Asset.Cards.Sharpshooter3
       Arkham.Asset.Cards.ShieldOfFaith2
       Arkham.Asset.Cards.ShiningTrapezohedron4
+      Arkham.Asset.Cards.ShortSupply
       Arkham.Asset.Cards.Shotgun4
       Arkham.Asset.Cards.Showmanship
       Arkham.Asset.Cards.ShrewdAnalysis
@@ -946,6 +947,7 @@ library
       Arkham.Asset.Cards.TheNecronomiconPetrusDeDaciaTranslation5
       Arkham.Asset.Cards.ThePallidMask
       Arkham.Asset.Cards.TheRedClockBrokenButReliable2
+      Arkham.Asset.Cards.TheRedClockBrokenButReliable5
       Arkham.Asset.Cards.TheRedGlovedMan5
       Arkham.Asset.Cards.Thermos
       Arkham.Asset.Cards.TheSilverKey
@@ -977,6 +979,7 @@ library
       Arkham.Asset.Cards.TwilaKatherinePrice3
       Arkham.Asset.Cards.TwilightBlade
       Arkham.Asset.Cards.UnderworldSupport
+      Arkham.Asset.Cards.UnscrupulousLoan3
       Arkham.Asset.Cards.UntilTheEndOfTime
       Arkham.Asset.Cards.ValentinoRivas
       Arkham.Asset.Cards.VaultOfKnowledge
@@ -1405,6 +1408,7 @@ library
       Arkham.Event.Cards.Barricade3
       Arkham.Event.Cards.BellyOfTheBeast
       Arkham.Event.Cards.BindMonster2
+      Arkham.Event.Cards.BlackMarket2
       Arkham.Event.Cards.BlindingLight
       Arkham.Event.Cards.BlindingLight2
       Arkham.Event.Cards.BloodEclipse1
@@ -1419,11 +1423,13 @@ library
       Arkham.Event.Cards.CheapShot
       Arkham.Event.Cards.CheapShot2
       Arkham.Event.Cards.CheatDeath5
+      Arkham.Event.Cards.CheatTheSystem1
       Arkham.Event.Cards.CleanThemOut
       Arkham.Event.Cards.CloseCall2
       Arkham.Event.Cards.ConnectTheDots
       Arkham.Event.Cards.Contraband
       Arkham.Event.Cards.Contraband2
+      Arkham.Event.Cards.Counterespionage1
       Arkham.Event.Cards.Counterpunch
       Arkham.Event.Cards.Counterpunch2
       Arkham.Event.Cards.Counterspell2
@@ -1654,11 +1660,13 @@ library
       Arkham.Event.Cards.Trusted
       Arkham.Event.Cards.TruthFromFiction
       Arkham.Event.Cards.TruthFromFiction2
+      Arkham.Event.Cards.TwentyOneOrBust
       Arkham.Event.Cards.UncageTheSoul
       Arkham.Event.Cards.UnderSurveillance1
       Arkham.Event.Cards.UnearthTheAncients
       Arkham.Event.Cards.UnearthTheAncients2
       Arkham.Event.Cards.UnsolvedCase
+      Arkham.Event.Cards.UntimelyTransaction1
       Arkham.Event.Cards.VantagePoint
       Arkham.Event.Cards.VoiceOfRa
       Arkham.Event.Cards.WardOfProtection
@@ -2571,6 +2579,7 @@ library
       Arkham.Skill.Cards.RiseToTheOccasion
       Arkham.Skill.Cards.RiseToTheOccasion3
       Arkham.Skill.Cards.RunForYourLife
+      Arkham.Skill.Cards.Savant1
       Arkham.Skill.Cards.SayYourPrayers
       Arkham.Skill.Cards.SealOfTheElderSign5
       Arkham.Skill.Cards.SelfSacrifice

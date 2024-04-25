@@ -201,6 +201,7 @@ newGame scenarioOrCampaignId seed playerCount difficulty includeTarotReadings =
    in Game
         { gameCards = mempty
         , gameWindowDepth = 0
+        , gameWindowStack = Nothing
         , gameRunWindows = True
         , gameDepthLock = 0
         , gameRoundHistory = mempty
@@ -1180,6 +1181,7 @@ abilityMatches a@Ability {..} = \case
       let ab = applyAbilityModifiers a modifiers'
       iid <- view activeInvestigatorIdL <$> getGame
       getCanPerformAbility iid (Window.defaultWindows iid) ab
+  NotAbility inner -> not <$> abilityMatches a inner
   AnyAbility -> pure True
   HauntedAbility -> pure $ abilityType == Haunted
   AssetAbility assetMatcher -> do
@@ -1205,7 +1207,7 @@ abilityMatches a@Ability {..} = \case
     ProxySource (StorySource sid') _ -> elem sid' <$> select storyMatcher
     _ -> pure False
   AbilityIsAction action -> pure $ action `elem` abilityActions a
-  AbilityIsActionAbility -> pure $ abilityIsActionAbility a
+  AbilityIsActionAbility -> pure $ abilityIsActionAbility a && not (abilityIndex >= 100 && abilityIndex <= 102)
   AbilityIsFastAbility -> pure $ abilityIsFastAbility a
   AbilityIsForcedAbility -> pure $ abilityIsForcedAbility a
   AbilityIsReactionAbility -> pure $ abilityIsReactionAbility a
@@ -2349,6 +2351,19 @@ enemyMatcherFilter = \case
         iids <- select investigatorMatcher
         pure $ discardee `elem` iids
   EnemyWithHealth -> fieldMap EnemyHealth isJust . toId
+  CanBeAttackedBy matcher -> \enemy -> do
+    iids <- select matcher
+    modifiers' <- concatMapM (getModifiers . InvestigatorTarget) iids
+    let
+      enemyFilters =
+        mapMaybe
+          ( \case
+              CannotFight m -> Just m
+              _ -> Nothing
+          )
+          modifiers'
+
+    notElem (toId enemy) <$> select (oneOf $ EnemyWithModifier CannotBeAttacked : enemyFilters)
   SwarmingEnemy -> \enemy -> do
     modifiers <- getModifiers (toTarget enemy)
     keywords <- field EnemyKeywords (toId enemy)
@@ -2602,7 +2617,7 @@ enemyMatcherFilter = \case
         _ -> error "multiple overrides found"
     excluded <-
       elem (toId enemy)
-        <$> select (mconcat $ EnemyWithModifier CannotBeAttacked : enemyFilters)
+        <$> select (oneOf $ EnemyWithModifier CannotBeAttacked : enemyFilters)
     if excluded
       then pure False
       else
@@ -3479,7 +3494,7 @@ instance Query ExtendedCardMatcher where
       VictoryDisplayCardMatch matcher' -> do
         cards <- scenarioField ScenarioVictoryDisplay
         pure $ c `elem` filter (`cardMatch` matcher') cards
-      PlayableCardWithCostReduction n matcher' -> do
+      PlayableCardWithCostReduction actionStatus n matcher' -> do
         mTurnInvestigator <- selectOne TurnInvestigator
         case mTurnInvestigator of
           Nothing -> pure False
@@ -3489,7 +3504,13 @@ instance Query ExtendedCardMatcher where
             availableResources <- getSpendableResources iid
             playable <-
               filterM
-                (getIsPlayableWithResources iid GameSource (availableResources + n) Cost.UnpaidCost windows')
+                ( getIsPlayableWithResources
+                    iid
+                    GameSource
+                    (availableResources + n)
+                    (Cost.UnpaidCost actionStatus)
+                    windows'
+                )
                 results
             pure $ c `elem` playable
       PlayableCard costStatus matcher' -> do
@@ -3501,7 +3522,7 @@ instance Query ExtendedCardMatcher where
             results <- select matcher'
             playable <- filterM (getIsPlayable iid GameSource costStatus windows') results
             pure $ c `elem` playable
-      PlayableCardWithCriteria override matcher' -> do
+      PlayableCardWithCriteria actionStatus override matcher' -> do
         mTurnInvestigator <- selectOne TurnInvestigator
         activeInvestigator <- selectJust ActiveInvestigator
         let iid = fromMaybe activeInvestigator mTurnInvestigator
@@ -3513,7 +3534,7 @@ instance Query ExtendedCardMatcher where
                 (CardIdTarget $ toCardId r)
                 [toModifier GameSource $ CanPlayWithOverride override]
                 $ do
-                  getIsPlayable iid GameSource UnpaidCost windows' r
+                  getIsPlayable iid GameSource (UnpaidCost actionStatus) windows' r
             )
             results
         pure $ c `elem` playable
@@ -3796,6 +3817,7 @@ eventField e fld = do
     attrs@EventAttrs {..} = toAttrs e
     cdef = toCardDef attrs
   case fld of
+    EventWindows -> pure eventWindows
     EventCardId -> pure eventCardId
     EventSealedChaosTokens -> pure eventSealedChaosTokens
     EventUses -> pure eventUses
@@ -4206,6 +4228,7 @@ preloadModifiers g = case gameMode g of
                   (toList $ entitiesInvestigators $ gameEntities g)
                 <> map (AbilityTarget (gameActiveInvestigatorId g)) (getAbilities g)
                 <> map ActiveCostTarget (keys $ gameActiveCost g)
+                <> map PhaseTarget [minBound ..]
           )
     allModifiers `seq` pure $ g {gameModifiers = Map.map (filter modifierFilter) allModifiers}
  where

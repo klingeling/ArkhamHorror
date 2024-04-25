@@ -468,7 +468,12 @@ allEvents =
     , SomeEventCard unearthTheAncients2
     , --- rogue [eote]
       SomeEventCard scoutAhead
+    , SomeEventCard twentyOneOrBust
+    , SomeEventCard counterespionage1
+    , SomeEventCard cheatTheSystem1
+    , SomeEventCard untimelyTransaction1
     , SomeEventCard moneyTalks2
+    , SomeEventCard blackMarket2
     , --- mystic [eote]
       SomeEventCard meditativeTrance
     , SomeEventCard parallelFates2

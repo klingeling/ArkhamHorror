@@ -5,6 +5,7 @@ import Arkham.Prelude
 import Arkham.Action qualified as Action
 import Arkham.Agenda.AdvancementReason
 import Arkham.Asset.Uses qualified as Uses
+import Arkham.Calculation
 import Arkham.Capability
 import Arkham.Card.CardCode
 import Arkham.Card.CardDef
@@ -75,6 +76,7 @@ allPlayerEventCards =
       , barricade3
       , bellyOfTheBeast
       , bindMonster2
+      , blackMarket2
       , blindingLight
       , blindingLight2
       , bloodEclipse1
@@ -89,12 +91,14 @@ allPlayerEventCards =
       , cheapShot
       , cheapShot2
       , cheatDeath5
+      , cheatTheSystem1
       , cleanThemOut
       , closeCall2
       , connectTheDots
       , contraband
       , contraband2
       , coupDeGrace
+      , counterespionage1
       , counterpunch
       , counterpunch2
       , counterspell2
@@ -323,10 +327,12 @@ allPlayerEventCards =
       , trusted
       , truthFromFiction
       , truthFromFiction2
+      , twentyOneOrBust
       , uncageTheSoul
       , underSurveillance1
       , unearthTheAncients
       , unearthTheAncients2
+      , untimelyTransaction1
       , unsolvedCase
       , vantagePoint
       , voiceOfRa
@@ -2807,6 +2813,45 @@ scoutAhead =
     , cdCriteria = Just $ youExist can.move
     }
 
+twentyOneOrBust :: CardDef
+twentyOneOrBust =
+  (event "08048" "21 or Bust" 2 Rogue)
+    { cdSkills = [#combat, #agility]
+    , cdCardTraits = setFromList [Fortune, Gambit]
+    }
+
+counterespionage1 :: CardDef
+counterespionage1 =
+  (event "08049" "Counterespionage" 2 Rogue)
+    { cdSkills = [#willpower, #willpower]
+    , cdCardTraits = setFromList [Favor, Service]
+    , cdCriteria = Just $ oneOf [Criteria.EventWindowInvestigatorIs You, Criteria.CanAffordCostIncrease 2] -- WindowInvestigatorIs only handles draw card right now
+    , cdFastWindow = Just $ DrawCard #when Anyone (basic NonWeaknessTreachery) AnyDeck
+    , cdCardInHandEffects = True
+    }
+
+cheatTheSystem1 :: CardDef
+cheatTheSystem1 =
+  (event "08050" "Cheat the System" 0 Rogue)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Trick, Synergy]
+    , cdCriteria =
+        Just
+          $ youExist can.gain.resources
+          <> Criteria.HasCalculation (DifferentClassAmong $ ControlledBy You) (atLeast 1)
+    , cdFastWindow = Just FastPlayerWindow
+    , cdLevel = Just 1
+    }
+
+untimelyTransaction1 :: CardDef
+untimelyTransaction1 =
+  (event "08051" "Untimely Transaction" 0 Rogue)
+    { cdSkills = [#wild]
+    , cdCardTraits = setFromList [Favor]
+    , cdCriteria = Just $ youExist $ can.reveal.cards <> HandWith (HasCard $ CardWithTrait Item)
+    , cdLevel = Just 1
+    }
+
 moneyTalks2 :: CardDef
 moneyTalks2 =
   (event "08054" "Money Talks" 0 Rogue)
@@ -2820,6 +2865,16 @@ moneyTalks2 =
             AnySkillType
             AnySkillTestValue
             #any
+    , cdLevel = Just 2
+    }
+
+blackMarket2 :: CardDef
+blackMarket2 =
+  (event "08055" "Black Market" 1 Rogue)
+    { cdSkills = [#wild]
+    , cdCardTraits = setFromList [Favor]
+    , cdCriteria = Just $ exists (affectsOthers can.manipulate.deck) <> youExist can.reveal.cards
+    , cdFastWindow = Just $ PhaseBegins #after #investigation
     , cdLevel = Just 2
     }
 
