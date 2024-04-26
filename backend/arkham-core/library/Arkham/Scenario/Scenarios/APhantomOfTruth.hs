@@ -135,7 +135,7 @@ instance RunMessage APhantomOfTruth where
         , ShuffleCardsIntoDeck (InvestigatorDeck leadId) [theManInThePallidMask]
         ]
       pure s
-    Setup -> do
+    PreScenarioSetup -> do
       investigatorIds <- allInvestigatorIds
       lead <- getLeadPlayer
       players <- allPlayers
@@ -196,16 +196,31 @@ instance RunMessage APhantomOfTruth where
               lead
               [ Label
                   "“How could any of this be beautiful to you?”"
-                  [SetupStep (toTarget attrs) 11]
+                  [DoStep 11 PreScenarioSetup]
               , Label
                   "“What exactly am I looking at?”"
-                  [SetupStep (toTarget attrs) 12]
+                  [DoStep 12 PreScenarioSetup]
               ]
              | chasingTheStranger > 3
              ]
-          <> [SetupStep (toTarget attrs) 13 | chasingTheStranger <= 3]
-      APhantomOfTruth <$> runMessage msg attrs
-    SetupStep (isTarget attrs -> True) n -> do
+          <> [DoStep 13 PreScenarioSetup | chasingTheStranger <= 3]
+      pure s
+    DoStep n PreScenarioSetup -> do
+      doubt <- getRecordCount Doubt
+
+      jordanInterviewed <- interviewed Assets.jordanPerry
+      investigatorIds <- allInvestigatorIds
+      players <- allPlayers
+
+      pushAll
+        $ [story players dream11 | n == 11]
+        <> [story players dream12 | n == 12]
+        <> [RecordCount Doubt (doubt + 1) | n == 12]
+        <> [story players dream13, story players awakening]
+        <> [story players jordansInformation | jordanInterviewed]
+        <> [setupModifier attrs iid (StartingResources 3) | jordanInterviewed, iid <- investigatorIds]
+      pure s
+    Setup -> do
       conviction <- getRecordCount Conviction
       doubt <- getRecordCount Doubt
 
@@ -254,8 +269,6 @@ instance RunMessage APhantomOfTruth where
       gardensOfLuxembourg <- genCard Locations.gardensOfLuxembourg
 
       jordanInterviewed <- interviewed Assets.jordanPerry
-      investigatorIds <- allInvestigatorIds
-      players <- allPlayers
 
       (montparnasseId, placeMontparnasse) <- placeLocation montparnasse
       (gareDOrsayId, placeGareDOrsay) <- placeLocation gareDOrsay
@@ -278,13 +291,7 @@ instance RunMessage APhantomOfTruth where
           ]
 
       pushAll
-        $ [story players dream11 | n == 11]
-        <> [story players dream12 | n == 12]
-        <> [RecordCount Doubt (doubt + 1) | n == 12]
-        <> [story players dream13, story players awakening]
-        <> [story players jordansInformation | jordanInterviewed]
-        <> [setupModifier attrs iid (StartingResources 3) | jordanInterviewed, iid <- investigatorIds]
-        <> [SetEncounterDeck encounterDeck, SetAgendaDeck, SetActDeck]
+        $ [SetEncounterDeck encounterDeck, SetAgendaDeck, SetActDeck]
         <> (placeMontparnasse : placeGareDOrsay : otherPlacements)
         <> [MoveAllTo (toSource attrs) startingLocation]
 
@@ -301,19 +308,18 @@ instance RunMessage APhantomOfTruth where
               & (actStackL . at 1 ?~ acts)
               & (agendaStackL . at 1 ?~ agendas)
           )
-    ResolveChaosToken _ chaosTokenFace _ -> do
-      case chaosTokenFace of
-        Cultist | isHardExpert attrs -> cultistEffect
-        Tablet ->
-          pushAll
-            [ CreateWindowModifierEffect
-                EffectSkillTestWindow
-                (EffectModifiers $ toModifiers attrs [CancelSkills])
-                (ChaosTokenEffectSource chaosTokenFace)
-                SkillTestTarget
-            , CancelSkillEffects
-            ]
-        _ -> pure ()
+    ResolveChaosToken _ Cultist _ -> do
+      when (isHardExpert attrs) cultistEffect
+      pure s
+    ResolveChaosToken _ Tablet _ -> do
+      pushAll
+        [ CreateWindowModifierEffect
+            EffectSkillTestWindow
+            (EffectModifiers $ toModifiers attrs [CancelSkills])
+            (ChaosTokenEffectSource Tablet)
+            SkillTestTarget
+        , CancelSkillEffects
+        ]
       pure s
     FailedSkillTest iid _ _ (ChaosTokenTarget token) _ n -> case chaosTokenFace token of
       Cultist | isEasyStandard attrs -> s <$ cultistEffect
