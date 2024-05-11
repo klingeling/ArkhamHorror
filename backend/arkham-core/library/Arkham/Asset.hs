@@ -784,6 +784,7 @@ allAssets =
     , --- mystic [eote]
       SomeAssetCard downTheRabbitHole
     , SomeAssetCard dragonPole
+    , SomeAssetCard closeTheCircle1
     , SomeAssetCard grounded3
     , --- survivor [eote]
       SomeAssetCard shortSupply
@@ -797,6 +798,9 @@ allAssets =
     , --- guardian/mystic [eote]
       SomeAssetCard brandOfCthugha1
     , SomeAssetCard brandOfCthugha4
+    , --- guardian/survivor [eote]
+      SomeAssetCard sledgehammer
+    , SomeAssetCard sledgehammer4
     , --- seeker/rogue [eote]
       SomeAssetCard pocketTelescope
     , SomeAssetCard eonChart1
@@ -832,6 +836,8 @@ allAssets =
     , SomeAssetCard fingerprintKit4
     , --- rogue [tsk]
       SomeAssetCard chuckFergus2
+    , --- neutral [tsk]
+      SomeAssetCard hyperphysicalShotcasterTheoreticalDevice
     , -- The Feast of Hemloch Vale
       --- guardian [tsk]
       SomeAssetCard blessedBlade4

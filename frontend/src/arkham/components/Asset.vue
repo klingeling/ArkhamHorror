@@ -188,6 +188,7 @@ const assetStory = computed(() => {
             :src="image"
             class="card"
             @click="clicked"
+            :data-customizations="asset.customizations"
           />
         </div>
         <div v-if="hasPool" class="pool">

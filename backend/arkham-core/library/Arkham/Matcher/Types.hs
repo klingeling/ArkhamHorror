@@ -174,9 +174,10 @@ data PreyMatcher
   deriving stock (Show, Eq, Ord, Data)
 
 pattern AssetCanHaveUses :: UseType -> AssetMatcher
-pattern AssetCanHaveUses uType <- AssetOneOf [AssetWithUseType uType, AssetWithoutUses]
+pattern AssetCanHaveUses uType <-
+  AssetOneOf [AssetMatches [AssetWithUseType uType, AssetNotAtUseLimit], AssetWithoutUses]
   where
-    AssetCanHaveUses uType = AssetOneOf [AssetWithUseType uType, AssetWithoutUses]
+    AssetCanHaveUses uType = AssetOneOf [AssetMatches [AssetWithUseType uType, AssetNotAtUseLimit], AssetWithoutUses]
 
 data AssetMatcher
   = AssetWithTitle Text
@@ -623,6 +624,7 @@ data TreacheryMatcher
   | TreacheryIsNonWeakness
   | TreacheryWithResolvedEffectsBy InvestigatorMatcher
   | TreacheryDiscardedBy InvestigatorMatcher
+  | TreacheryWithModifier ModifierType
   | AnyTreachery
   | InPlayTreachery
   | TreacheryOwnedBy InvestigatorMatcher
@@ -630,6 +632,9 @@ data TreacheryMatcher
   | TreacheryOneOf [TreacheryMatcher]
   | NotTreachery TreacheryMatcher
   deriving stock (Show, Eq, Ord, Data)
+
+instance Not TreacheryMatcher where
+  not_ = NotTreachery
 
 instance Semigroup TreacheryMatcher where
   AnyTreachery <> x = x
@@ -662,6 +667,7 @@ data ExtendedCardMatcher
   | ExtendedCardWithOneOf [ExtendedCardMatcher]
   | ExtendedCardMatches [ExtendedCardMatcher]
   | PlayableCardWithCostReduction ActionStatus Int ExtendedCardMatcher
+  | PlayableCardWithNoCost ActionStatus ExtendedCardMatcher
   | PlayableCard CostStatus ExtendedCardMatcher
   | PlayableCardWithCriteria ActionStatus CriteriaOverride ExtendedCardMatcher
   | CommittableCard InvestigatorId ExtendedCardMatcher
@@ -719,6 +725,7 @@ data CardMatcher
   | CardWithKeyword Keyword
   | CardWithClass ClassSymbol
   | CardWithAction Action
+  | CardWithoutAction
   | CardWithSkillIcon SkillIcon
   | CardWithOneOf [CardMatcher]
   | CardMatches [CardMatcher]
@@ -1303,6 +1310,7 @@ data AbilityMatcher
   | AbilityOneOf [AbilityMatcher]
   | AbilityIs Source Int
   | AnyAbility
+  | BasicAbility
   | AbilityOnEncounterCard
   | AbilityOnCard CardMatcher
   | AbilityOnCardControlledBy InvestigatorId
@@ -1362,6 +1370,7 @@ data AgendaMatcher
   | AgendaWithSequence AgendaSequence
   | AgendaWithSide AgendaSide
   | AgendaWithDeckId Int
+  | AgendaWithModifier ModifierType
   | NotAgenda AgendaMatcher
   | AgendaMatches [AgendaMatcher]
   | AgendaCanWheelOfFortuneX

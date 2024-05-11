@@ -32,7 +32,6 @@ import Arkham.GameValue
 import Arkham.Helpers
 import Arkham.Helpers.ChaosBag
 import Arkham.Helpers.Message
-import Arkham.Helpers.Ref
 import Arkham.Helpers.SkillTest (beginSkillTest, getSkillTestDifficulty, getSkillTestTarget)
 import Arkham.Id
 import Arkham.Investigator.Cards qualified as Investigators
@@ -108,7 +107,7 @@ getActionCostModifier ac = do
   actions = case ac.actions of
     [] -> error "expected action"
     as -> as
-  applyModifier takenActions performedActions (ActionCostOf match m) n =
+  applyModifier takenActions performedActions (AdditionalActionCostOf match m) n =
     -- For cards we've already calculated the cost as an additional cost for
     -- the action specifically
     case ac.target of
@@ -186,6 +185,11 @@ payCost msg c iid skipAdditionalCosts cost = do
           | location <- locations
           ]
       pure c
+    NonBlankedCost cost' -> do
+      mods <- getModifiers (sourceToTarget source)
+      if Blank `elem` mods
+        then pure c
+        else payCost msg c iid skipAdditionalCosts cost'
     GloriaCost -> do
       mtarget <- getSkillTestTarget
       case mtarget of
@@ -937,7 +941,7 @@ instance RunMessage ActiveCost where
         else do
           case c.target of
             ForAdditionalCost batchId -> push $ IgnoreBatch batchId
-            _ -> pure ()
+            _ -> error $ "Can't afford cost: " <> show cost
           pure c
     SetCost acId cost | acId == c.id -> do
       pure $ c {activeCostCosts = cost}

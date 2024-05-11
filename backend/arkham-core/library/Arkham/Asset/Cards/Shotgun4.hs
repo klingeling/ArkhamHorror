@@ -25,9 +25,14 @@ instance RunMessage Shotgun4 where
       pure a
     FailedThisSkillTestBy iid (isAbilitySource attrs 1 -> True) n -> do
       let val = max 1 (min 5 n)
-      push $ skillTestModifier (attrs.ability 1) iid (DamageDealtToInvestigator val)
+      -- sort of annoying but we need to handle oops here, but also the investigator damage
+      push
+        $ skillTestModifiers
+          (attrs.ability 1)
+          iid
+          [NoStandardDamage, DamageDealt 1, DamageDealtToInvestigator (val - 1)]
       pure a
     PassedThisSkillTestBy iid (isAbilitySource attrs 1 -> True) n -> do
-      push $ skillTestModifier (attrs.ability 1) iid (DamageDealt $ max 1 (min 5 n))
+      push $ skillTestModifiers (attrs.ability 1) iid [NoStandardDamage, DamageDealt $ max 1 (min 5 n)]
       pure a
     _ -> Shotgun4 <$> runMessage msg attrs

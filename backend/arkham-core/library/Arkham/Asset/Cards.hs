@@ -221,6 +221,7 @@ allPlayerAssetCards =
       , clairvoyance3
       , clairvoyance5
       , claspOfBlackOnyx
+      , closeTheCircle1
       , coltVestPocket
       , coltVestPocket2
       , cornered2
@@ -396,6 +397,7 @@ allPlayerAssetCards =
       , hyperawareness
       , hyperawareness2
       , hyperawareness4
+      , hyperphysicalShotcasterTheoreticalDevice
       , hypnoticTherapy
       , ichtacaTheForgottenGuardian
       , ikiaqTheCouncilsChosen3
@@ -606,6 +608,8 @@ allPlayerAssetCards =
       , sixthSense
       , sixthSense4
       , sledDog
+      , sledgehammer
+      , sledgehammer4
       , sleuth3
       , smokingPipe
       , solemnVow
@@ -5006,6 +5010,16 @@ dragonPole =
     , cdSlots = [#hand, #hand]
     }
 
+closeTheCircle1 :: CardDef
+closeTheCircle1 =
+  (asset "08062" "Close the Circle" 3 Mystic)
+    { cdCardTraits = setFromList [Ritual, Synergy]
+    , cdSkills = [#combat, #agility]
+    , cdSlots = [#arcane]
+    , cdLevel = Just 1
+    , cdUses = uses Charge 0
+    }
+
 grounded3 :: CardDef
 grounded3 =
   (asset "08069" "Grounded" 0 Mystic)
@@ -5095,6 +5109,22 @@ brandOfCthugha4 =
     , cdLevel = Just 4
     , cdUses = uses Charge 9
     , cdSlots = [#arcane]
+    }
+
+sledgehammer :: CardDef
+sledgehammer =
+  (multiClassAsset "08094" "Sledgehammer" 3 [Guardian, Survivor])
+    { cdSkills = [#combat]
+    , cdCardTraits = setFromList [Item, Tool, Weapon, Melee]
+    , cdSlots = [#hand, #hand]
+    }
+
+sledgehammer4 :: CardDef
+sledgehammer4 =
+  (multiClassAsset "08096" "Sledgehammer" 3 [Guardian, Survivor])
+    { cdSkills = [#combat, #combat, #combat]
+    , cdCardTraits = setFromList [Item, Tool, Weapon, Melee]
+    , cdSlots = [#hand, #hand]
     }
 
 pocketTelescope :: CardDef
@@ -5309,6 +5339,25 @@ chuckFergus2 =
     , cdSlots = [#ally]
     , cdLevel = Just 2
     , cdUnique = True
+    }
+
+hyperphysicalShotcasterTheoreticalDevice :: CardDef
+hyperphysicalShotcasterTheoreticalDevice =
+  (asset "09119" ("Hyperphysical Shotcaster" <:> "Theoretical Device") 4 Neutral)
+    { cdCardTraits = setFromList [Item, Relic, Weapon, Firearm]
+    , cdSkills = [#wild]
+    , cdKeywords = setFromList [Keyword.Customizable]
+    , cdUses = uses Aether 4
+    , cdCustomizations =
+        mapFromList
+          [ (Railshooter, 2)
+          , (Telescanner, 2)
+          , (Translocator, 2)
+          , (Realitycollapser, 2)
+          , (Matterweaver, 2)
+          , (AethericLink, 4)
+          , (EmpoweredConfiguration, 4)
+          ]
     }
 
 blessedBlade4 :: CardDef

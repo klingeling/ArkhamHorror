@@ -56,7 +56,6 @@ import Arkham.Helpers.Message hiding (
   InvestigatorResigned,
   createEnemy,
  )
-import Arkham.Helpers.Ref
 import Arkham.History
 import Arkham.Id
 import Arkham.Investigator (
@@ -1084,7 +1083,6 @@ runGameMessage msg g = case msg of
           , getModifiers (CardTarget card)
           , getModifiers iid
           ]
-    investigator' <- getInvestigator iid
     let
       isFast = case card of
         PlayerCard pc ->
@@ -1093,27 +1091,17 @@ runGameMessage msg g = case msg of
             `elem` allModifiers
         _ -> False
       isPlayAction = if isFast then NotPlayAction else IsPlayAction
-      actions = case cdActions (toCardDef card) of
-        [] -> [Action.Play | not isFast]
-        as -> as
     activeCost <- createActiveCostForCard iid card isPlayAction windows'
-
-    actionCost <-
-      if isFast
-        then pure Cost.Free
-        else Cost.ActionCost <$> getActionCost (toAttrs investigator') actions
-
-    let activeCost' = addActiveCostCost actionCost activeCost
 
     let historyItem = mempty {historyPlayedCards = [card]}
         turn = isJust $ view turnPlayerInvestigatorIdL g
         setTurnHistory = if turn then turnHistoryL %~ insertHistory iid historyItem else id
 
-    push $ CreatedCost $ activeCostId activeCost'
+    push $ CreatedCost $ activeCostId activeCost
     pure
       $ g
       & activeCostL
-      %~ insertMap (activeCostId activeCost') activeCost'
+      %~ insertMap (activeCostId activeCost) activeCost
       & (phaseHistoryL %~ insertHistory iid historyItem)
       & setTurnHistory
   PlayCard iid card mtarget payment windows' False -> do
@@ -1683,13 +1671,16 @@ runGameMessage msg g = case msg of
     pure $ g & phaseL .~ EnemyPhase
   EnemyAttackFromDiscard iid source card -> do
     enemyId <- getRandom
-    let enemy = createEnemy card enemyId
-    push
-      $ EnemyWillAttack
-      $ (enemyAttack enemyId source iid)
-        { attackDamageStrategy = enemyDamageStrategy (toAttrs enemy)
-        }
-    pure $ g & encounterDiscardEntitiesL . enemiesL . at enemyId ?~ enemy
+    let enemy = overAttrs (\a -> a {enemyPlacement = StillInEncounterDiscard}) (createEnemy card enemyId)
+    pushAll
+      [ EnemyWillAttack
+          $ (enemyAttack enemyId source iid)
+            { attackDamageStrategy = enemyDamageStrategy (toAttrs enemy)
+            }
+      , RemoveEnemy enemyId
+      ]
+
+    pure $ g & entitiesL . enemiesL . at enemyId ?~ enemy
   EndEnemy -> do
     pushAll
       . (: [EndPhase, After EndPhase])
@@ -2532,6 +2523,7 @@ instance RunMessage Game where
           (inDiscardEntitiesL . itraversed)
           (\i -> runMessage (InDiscard i msg))
         >>= (inDiscardEntitiesL . itraversed) (runMessage msg)
+        >>= encounterDiscardEntitiesL (runMessage msg)
         >>= inSearchEntitiesL (runMessage (InSearch msg))
         >>= (outOfPlayEntitiesL . itraversed) (runMessage (InOutOfPlay msg))
         >>= (skillTestL . traverse) (runMessage msg)

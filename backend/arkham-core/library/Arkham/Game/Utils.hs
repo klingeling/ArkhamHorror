@@ -1,6 +1,7 @@
 module Arkham.Game.Utils where
 
 import Arkham.Act.Types (Act)
+import Arkham.Action qualified as Action
 import Arkham.ActiveCost
 import Arkham.Agenda.Types (Agenda)
 import Arkham.Asset.Types (Asset, Field (..))
@@ -21,6 +22,7 @@ import Arkham.Game.Helpers hiding (
   getSpendableClueCount,
   withModifiers,
  )
+import Arkham.Helpers.Investigator (getActionCost)
 import Arkham.Id
 import Arkham.Investigator.Types (Field (..), Investigator, investigatorResources)
 import Arkham.Keyword (Sealing (..))
@@ -77,6 +79,14 @@ getInDiscardEntity lensFunc entityId game =
     $ map
       (preview (lensFunc . ix entityId))
       (toList $ view inDiscardEntitiesL game)
+
+getInEncounterDiscardEntity
+  :: (entityId ~ EntityId entity, Ord entityId)
+  => Lens' Entities (EntityMap entity)
+  -> entityId
+  -> Game
+  -> Maybe entity
+getInEncounterDiscardEntity lensFunc entityId game = preview (lensFunc . ix entityId) (view encounterDiscardEntitiesL game)
 
 getRemovedEntity
   :: (entityId ~ EntityId entity, Ord entityId)
@@ -148,6 +158,7 @@ getPlacementLocation = \case
   InThreatArea investigator -> field InvestigatorLocation investigator
   StillInHand _ -> pure Nothing
   StillInDiscard _ -> pure Nothing
+  StillInEncounterDiscard -> pure Nothing
   AttachedToEnemy enemy -> field EnemyLocation enemy
   AttachedToAsset asset _ -> field AssetLocation asset
   AttachedToAct _ -> pure Nothing
@@ -208,6 +219,7 @@ maybeEnemy eid = do
   pure
     $ preview (entitiesL . enemiesL . ix eid) g
     <|> getInDiscardEntity enemiesL eid g
+    <|> getInEncounterDiscardEntity enemiesL eid g
     <|> getRemovedEntity enemiesL eid g
 
 getActiveInvestigator :: HasGame m => m Investigator
@@ -232,6 +244,9 @@ createActiveCostForCard iid card isPlayAction windows' = do
   resources <- getModifiedCardCost iid card
   investigator' <- getInvestigator iid
   let
+    actions = case cdActions (toCardDef card) of
+      [] -> [Action.Play | isPlayAction == IsPlayAction]
+      as -> as
     resourceCost =
       if resources == 0
         then
@@ -250,15 +265,26 @@ createActiveCostForCard iid card isPlayAction windows' = do
           SealUpToX _ -> Nothing
         _ -> Nothing
 
+  additionalActionCosts <-
+    sum <$> flip mapMaybeM allModifiers \case
+      AdditionalCost (Cost.ActionCost n) -> pure $ Just n
+      AdditionalActionCostOf match n -> do
+        performedActions <- field InvestigatorActionsPerformed iid
+        takenActions <- field InvestigatorActionsTaken iid
+        pure
+          $ if any (matchTarget takenActions performedActions match) (cdActions $ toCardDef card)
+            then Just n
+            else Nothing
+      _ -> pure Nothing
+
+  actionCost <-
+    if isPlayAction == NotPlayAction
+      then pure $ if additionalActionCosts > 0 then Cost.ActionCost additionalActionCosts else Cost.Free
+      else Cost.ActionCost . (+ additionalActionCosts) <$> getActionCost (toAttrs investigator') actions
+
   additionalCosts <- flip mapMaybeM allModifiers $ \case
+    AdditionalCost (Cost.ActionCost _) -> pure Nothing
     AdditionalCost c -> pure $ Just c
-    ActionCostOf match n -> do
-      performedActions <- field InvestigatorActionsPerformed iid
-      takenActions <- field InvestigatorActionsTaken iid
-      pure
-        $ if any (matchTarget takenActions performedActions match) (cdActions $ toCardDef card)
-          then Just (Cost.ActionCost n)
-          else Nothing
     _ -> pure Nothing
 
   let
@@ -266,6 +292,7 @@ createActiveCostForCard iid card isPlayAction windows' = do
       mconcat
         $ [resourceCost]
         <> (maybe [] pure . cdAdditionalCost $ toCardDef card)
+        <> [actionCost]
         <> additionalCosts
         <> sealChaosTokenCosts
   pure

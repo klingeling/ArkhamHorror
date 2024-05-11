@@ -165,6 +165,7 @@ data Cost
   | OptionalCost Cost
   | UnpayableCost
   | AsIfAtLocationCost LocationId Cost
+  | NonBlankedCost Cost
   | DrawEncounterCardsCost Int
   | GloriaCost -- lol, not going to attempt to make this generic
   | ArchiveOfConduitsUnidentifiedCost -- this either
@@ -192,6 +193,7 @@ displayCostType = \case
   UnpayableCost -> "Unpayable"
   OptionalCost c -> "Optional: " <> displayCostType c
   DrawEncounterCardsCost n -> "Draw " <> pluralize n "Encounter Card"
+  NonBlankedCost c -> displayCostType c
   GloriaCost ->
     "Discard an encounter card that shares a Trait with that encounter card from beneath Gloria Goldberg"
   ArchiveOfConduitsUnidentifiedCost ->
@@ -299,6 +301,7 @@ displayCostType = \case
   ScenarioResourceCost n -> pluralize n "Resource from the scenario reference"
   EventUseCost _ b c -> displayCostType (UseCost AnyAsset b c)
   UseCost _ uType n -> case uType of
+    Aether -> tshow n <> " Aether"
     Ammo -> tshow n <> " Ammo"
     Supply -> if n == 1 then "1 Supply" else tshow n <> " Supplies"
     Secret -> pluralize n "Secret"
@@ -313,6 +316,7 @@ displayCostType = \case
     Evidence -> tshow n <> " Evidence"
     Leyline -> pluralize n "Leyline"
   DynamicUseCost _ uType _ -> case uType of
+    Aether -> "X Aether"
     Ammo -> "X Ammo"
     Supply -> "X Supplies"
     Secret -> "X Secrets"
@@ -327,6 +331,7 @@ displayCostType = \case
     Evidence -> "X Evidence"
     Leyline -> "X Leylines"
   UseCostUpTo _ uType n m -> case uType of
+    Aether -> tshow n <> "-" <> tshow m <> " Aether"
     Ammo -> tshow n <> "-" <> tshow m <> " Ammo"
     Supply -> tshow n <> "-" <> tshow m <> " Supplies"
     Secret -> tshow n <> "-" <> tshow m <> " Secrets"

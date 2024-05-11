@@ -470,14 +470,15 @@ withDrawCardUnderneathAction x =
 
 instance HasAbilities LocationAttrs where
   getAbilities l =
-    [ investigateAbility l 101 mempty (onLocation l)
-    , restrictedAbility
-        l
-        102
-        ( CanMoveTo (LocationWithId l.id)
-            <> OnLocation (accessibleTo l)
-            <> exists (You <> can.move <> noModifier (CannotEnter l.id))
-        )
+    [ basicAbility $ investigateAbility l 101 mempty (onLocation l)
+    , basicAbility
+        $ restrictedAbility
+          l
+          102
+          ( CanMoveTo (LocationWithId l.id)
+              <> OnLocation (accessibleTo l)
+              <> exists (You <> can.move <> noModifier (CannotEnter l.id))
+          )
         $ ActionAbility [#move] moveCost
     ]
       <> [ withTooltip ("Take " <> keyName k <> " key")
@@ -488,7 +489,7 @@ instance HasAbilities LocationAttrs where
          , (idx, k) <- withIndex l.keys
          ]
    where
-    moveCost = if l.revealed then ActionCost 1 else locationCostToEnterUnrevealed l
+    moveCost = if l.revealed then ActionCost 1 else NonBlankedCost (locationCostToEnterUnrevealed l)
 
 getShouldSpawnNonEliteAtConnectingInstead :: HasGame m => LocationAttrs -> m Bool
 getShouldSpawnNonEliteAtConnectingInstead attrs = do

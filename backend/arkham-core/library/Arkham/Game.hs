@@ -140,7 +140,6 @@ import Arkham.ScenarioLogKey
 import Arkham.Scenarios.WakingNightmare.InfestationBag
 import Arkham.Skill.Types (Field (..), Skill, SkillAttrs (..))
 import Arkham.SkillTest.Runner
-import Arkham.SkillType
 import Arkham.Source
 import Arkham.Story
 import Arkham.Story.Cards qualified as Stories
@@ -934,13 +933,10 @@ getInvestigatorsMatching matcher = do
       case mSkillTest of
         Nothing -> pure False
         Just st -> do
+          skillIcons <- getSkillTestMatchingSkillIcons
           let
             cards = findWithDefault [] (toId i) $ skillTestCommittedCards st
-          skillTestCount <-
-            length
-              <$> concatMapM
-                (fmap (map CommittedSkillIcon) . iconsForCard)
-                cards
+          skillTestCount <- count (`elem` skillIcons) <$> concatMapM iconsForCard cards
           gameValueMatches skillTestCount valueMatcher
     HealableInvestigator _source damageType matcher' -> \i -> do
       mods <- getActiveInvestigatorModifiers
@@ -1041,6 +1037,9 @@ getAgendasMatching matcher = do
     AgendaWithSide s ->
       pure . (== s) . AS.agendaSide . attr agendaSequence
     AgendaWithDeckId n -> pure . (== n) . attr agendaDeckId
+    AgendaWithModifier modifierType -> \a -> do
+      modifiers' <- getModifiers (toTarget a)
+      pure $ modifierType `elem` modifiers'
     AgendaCanWheelOfFortuneX -> pure . not . attr agendaUsedWheelOfFortuneX
     FinalAgenda -> \a -> do
       card <- field AgendaCard (toId a)
@@ -1117,6 +1116,9 @@ getTreacheriesMatching matcher = do
     TreacheryWithResolvedEffectsBy investigatorMatcher -> \t -> do
       iids <- select investigatorMatcher
       pure $ any (`elem` attr treacheryResolved t) iids
+    TreacheryWithModifier modifierType -> \t -> do
+      modifiers' <- getModifiers (toTarget t)
+      pure $ modifierType `elem` modifiers'
     TreacheryDiscardedBy investigatorMatcher -> \t -> do
       let discardee = fromMaybe (attr treacheryDrawnBy t) (attr treacheryDiscardedBy t)
       iids <- select investigatorMatcher
@@ -1183,6 +1185,7 @@ abilityMatches a@Ability {..} = \case
       getCanPerformAbility iid (Window.defaultWindows iid) ab
   NotAbility inner -> not <$> abilityMatches a inner
   AnyAbility -> pure True
+  BasicAbility -> pure abilityBasic
   HauntedAbility -> pure $ abilityType == Haunted
   AssetAbility assetMatcher -> do
     abilities <- concatMap getAbilities <$> (traverse getAsset =<< select assetMatcher)
@@ -2027,7 +2030,7 @@ getAssetsMatching matcher = do
         UsesWithLimit uType _ pl -> do
           l <- getPlayerCountValue pl
           fieldMap AssetUses ((< l) . findWithDefault 0 uType) (toId a)
-        Uses {} -> pure False
+        Uses {} -> pure True
         NoUses -> pure True
     AssetNotAtUsesX -> do
       filterM
@@ -2998,6 +3001,7 @@ instance Projection Asset where
         OutOfPlay _ -> pure Nothing
         StillInHand _ -> pure Nothing
         StillInDiscard _ -> pure Nothing
+        StillInEncounterDiscard -> pure Nothing
         AsSwarm {} -> error "AssetLocation: AsSwarm"
       AssetCardCode -> pure assetCardCode
       AssetCardId -> pure assetCardId
@@ -3508,6 +3512,24 @@ instance Query ExtendedCardMatcher where
                     iid
                     GameSource
                     (availableResources + n)
+                    (Cost.UnpaidCost actionStatus)
+                    windows'
+                )
+                results
+            pure $ c `elem` playable
+      PlayableCardWithNoCost actionStatus matcher' -> do
+        mTurnInvestigator <- selectOne TurnInvestigator
+        case mTurnInvestigator of
+          Nothing -> pure False
+          Just iid -> do
+            let windows' = Window.defaultWindows iid
+            results <- select matcher'
+            playable <-
+              filterM
+                ( getIsPlayableWithResources
+                    iid
+                    GameSource
+                    1000
                     (Cost.UnpaidCost actionStatus)
                     windows'
                 )
@@ -4172,15 +4194,72 @@ runMessages mLogger = do
                 overGame $ enemyEvadingL ?~ eid
               _ -> pure ()
 
+            -- Before we preload, store the as if at's
+            -- After we preload check diff, if there is a diff, we need to
+            -- manually adjust enemies if they could not enter the new location
+
+            asIfLocations <- runWithEnv getAsIfLocationMap
+
             runWithEnv
               ( getGame
                   >>= runMessage msg
                   >>= preloadModifiers
+                  >>= handleAsIfChanges asIfLocations
                   >>= handleTraitRestrictedModifiers
                   >>= handleBlanked
               )
               >>= putGame
             runMessages mLogger
+
+getAsIfLocationMap :: HasGame m => m (Map InvestigatorId LocationId)
+getAsIfLocationMap = do
+  g <- getGame
+  investigators <- getInvestigators
+
+  Map.fromList <$> forMaybeM investigators \iid -> do
+    let mods = Map.findWithDefault [] (toTarget iid) (gameModifiers g)
+        mAsIf = listToMaybe [loc | (modifierType -> AsIfAt loc) <- mods]
+    pure $ (iid,) <$> mAsIf
+
+handleAsIfChanges :: Map InvestigatorId LocationId -> Game -> GameT Game
+handleAsIfChanges asIfMap g = go (Map.toList asIfMap) g
+ where
+  go [] g' = pure g'
+  go ((iid, loc) : rest) g' = do
+    let mods = Map.findWithDefault [] (toTarget iid) (gameModifiers g')
+        mAsIf = listToMaybe [loc' | (modifierType -> AsIfAt loc') <- mods]
+        handleEnemy Nothing g'' enemy = do
+          stillExists <- loc <=~> LocationWithId loc
+          runMessage
+            ( if stillExists
+                then PlaceEnemy enemy $ AtLocation loc
+                else Discard Nothing GameSource (toTarget enemy)
+            )
+            g''
+        handleEnemy (Just newLoc) g'' enemy = do
+          canEnter <- newLoc <=~> LocationCanBeEnteredBy enemy
+          if canEnter
+            then pure g''
+            else do
+              stillExists <- loc <=~> LocationWithId loc
+              runMessage
+                ( if stillExists
+                    then PlaceEnemy enemy (AtLocation loc)
+                    else Discard Nothing GameSource (toTarget enemy)
+                )
+                g''
+    case mAsIf of
+      Just newLoc | newLoc == loc -> pure g' -- nothing changed
+      Just newLoc -> do
+        -- we moved to a new as if location
+        enemies <- select $ enemyEngagedWith iid
+        foldM (handleEnemy (Just newLoc)) g' enemies >>= go rest
+      Nothing -> do
+        -- we stopped being at an asif location
+        enemies <- select $ enemyEngagedWith iid
+        inv <- getInvestigator iid
+        mLocation <- Helpers.placementLocation inv.placement
+        foldM (handleEnemy mLocation) g' enemies >>= go rest
 
 getTurnInvestigator :: HasGame m => m (Maybe Investigator)
 getTurnInvestigator =

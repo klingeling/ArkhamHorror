@@ -17,7 +17,6 @@ import Arkham.Deck qualified as Deck
 import Arkham.Game.Helpers
 import Arkham.Helpers.Card
 import Arkham.Helpers.Message
-import Arkham.Helpers.Ref
 import Arkham.Matcher hiding (IgnoreChaosToken, RevealChaosToken)
 import Arkham.Message qualified as Msg
 import Arkham.Projection
@@ -76,8 +75,7 @@ calculateSkillTestResultsData s = do
 autoFailSkillTestResultsData :: HasGame m => SkillTest -> m SkillTestResultsData
 autoFailSkillTestResultsData s = do
   modifiedSkillTestDifficulty <- getModifiedSkillTestDifficulty s
-  chaosTokenValues <- totalChaosTokenValues s
-  pure $ SkillTestResultsData 0 0 chaosTokenValues modifiedSkillTestDifficulty Nothing False
+  pure $ SkillTestResultsData 0 0 0 modifiedSkillTestDifficulty Nothing False
 
 subtractSkillIconCount :: HasGame m => SkillTest -> m Int
 subtractSkillIconCount SkillTest {..} =
