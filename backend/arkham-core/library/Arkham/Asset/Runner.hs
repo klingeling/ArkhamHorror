@@ -7,7 +7,7 @@ module Arkham.Asset.Runner (
 
 import Arkham.Prelude
 
-import Arkham.Asset.Helpers as X hiding (defeated)
+import Arkham.Asset.Helpers as X hiding (defeated, getMeta)
 import Arkham.Asset.Types as X
 import Arkham.Asset.Uses as X
 import Arkham.Calculation as X
@@ -24,20 +24,23 @@ import Arkham.ChaosToken
 import Arkham.Classes.HasGame
 import Arkham.Damage
 import Arkham.DefeatedBy
+import Arkham.Event.Types (Field (EventUses))
+import Arkham.Helpers.Calculation (calculate)
+import Arkham.Helpers.Customization
 import Arkham.Helpers.Placement
 import Arkham.Helpers.Use
 import Arkham.Matcher (
   AssetMatcher (AnyAsset, AssetAttachedToAsset, AssetWithId),
  )
 import Arkham.Message qualified as Msg
-import Arkham.Placement
 import Arkham.Projection
 import Arkham.Timing qualified as Timing
-import Arkham.Token
 import Arkham.Token qualified as Token
 import Arkham.Window (mkAfter, mkWindow)
 import Arkham.Window qualified as Window
 import Control.Lens (non)
+import Data.IntMap.Strict qualified as IntMap
+import Data.Map.Strict qualified as Map
 
 defeated :: HasGame m => AssetAttrs -> Source -> m (Maybe DefeatedBy)
 defeated AssetAttrs {assetId, assetAssignedHealthDamage, assetAssignedSanityDamage} source = do
@@ -63,6 +66,12 @@ instance RunMessage Asset where
 
 instance RunMessage AssetAttrs where
   runMessage msg a@AssetAttrs {..} = case msg of
+    IncreaseCustomization iid cardCode customization choices | toCardCode a == cardCode && a `ownedBy` iid -> do
+      case customizationIndex a customization of
+        Nothing -> pure a
+        Just i ->
+          pure
+            $ a {assetCustomizations = IntMap.adjust (second (const choices) . first (+ 1)) i assetCustomizations}
     SetOriginalCardCode cardCode -> pure $ a & originalCardCodeL .~ cardCode
     SealedChaosToken token card | toCardId card == toCardId a -> do
       pure $ a & sealedChaosTokensL %~ (token :)
@@ -78,16 +87,70 @@ instance RunMessage AssetAttrs where
           else a <$ push (Ready $ toTarget a)
       _ -> a <$ push (Ready $ toTarget a)
     RemoveAllDoom _ target | isTarget a target -> pure $ a & tokensL %~ removeAllTokens Doom
-    PlaceTokens _ target tType n | isTarget a target -> pure $ a & tokensL %~ addTokens tType n
-    MoveTokens source _ tType n | isSource a source -> pure $ a & tokensL %~ subtractTokens tType n
-    MoveTokens _ target tType n | isTarget a target -> pure $ a & tokensL %~ addTokens tType n
-    RemoveClues _ target n | isTarget a target -> do
-      when (assetClues a - n <= 0)
+    PlaceTokens source target tType n | isTarget a target -> do
+      pushM $ checkAfter $ Window.PlacedToken source target tType n
+      when (tType == Doom && a.doom == 0) do
+        pushM $ checkAfter $ Window.PlacedDoomCounterOnTargetWithNoDoom source target n
+      if tokenIsUse tType
+        then case assetPrintedUses of
+          NoUses -> pure $ a & tokensL . at tType . non 0 %~ (+ n)
+          Uses useType'' _ | tType == useType'' -> do
+            pure $ a & tokensL . at tType . non 0 %~ (+ n)
+          UsesWithLimit useType'' _ pl | tType == useType'' -> do
+            l <- calculate pl
+            pure $ a & tokensL . at tType . non 0 %~ min l . (+ n)
+          _ ->
+            error
+              $ "Trying to add the wrong use type, has "
+              <> show assetPrintedUses
+              <> ", but got: "
+              <> show tType
+        else pure $ a & tokensL %~ addTokens tType n
+    MoveTokens s source _ tType n | isSource a source -> do
+      runMessage (RemoveTokens s (toTarget a) tType n) a
+    MoveTokens s _ target tType n | isTarget a target -> do
+      a' <- runMessage (PlaceTokens s (toTarget a) tType n) a
+      pushWhen (tType `elem` [Horror, Damage]) $ checkDefeated s a'
+      pure a'
+    ClearTokens target | isTarget a target -> do
+      when (assetClues a > 0)
         $ pushAll
         =<< windows
           [Window.LastClueRemovedFromAsset (toId a)]
-      pure $ a & tokensL %~ subtractTokens Clue n
+      for_ assetWhenNoUses \case
+        DiscardWhenNoUses -> push $ Discard assetController GameSource (toTarget a)
+        ReturnToHandWhenNoUses ->
+          for_ assetController \iid ->
+            push $ ReturnToHand iid $ toTarget a
+        NotifySelfOfNoUses -> push $ SpentAllUses (toTarget a)
+      pure $ a & tokensL .~ mempty
     RemoveTokens _ target tType n | isTarget a target -> do
+      when (tType == Clue && assetClues a - n <= 0)
+        $ pushAll
+        =<< windows
+          [Window.LastClueRemovedFromAsset (toId a)]
+      when (tokenIsUse tType) do
+        case assetPrintedUses of
+          NoUses -> pure ()
+          Uses tType' _ | tType == tType' -> do
+            let m = findWithDefault 0 tType assetTokens
+            let remainingUses = max 0 (m - n)
+            when (remainingUses == 0) $ for_ assetWhenNoUses \case
+              DiscardWhenNoUses -> push $ Discard assetController GameSource (toTarget a)
+              ReturnToHandWhenNoUses ->
+                for_ assetController \iid ->
+                  push $ ReturnToHand iid $ toTarget a
+              NotifySelfOfNoUses -> push $ SpentAllUses (toTarget a)
+          UsesWithLimit tType' _ _ | tType == tType' -> do
+            let m = findWithDefault 0 tType assetTokens
+            let remainingUses = max 0 (m - n)
+            when (remainingUses == 0) $ for_ assetWhenNoUses \case
+              DiscardWhenNoUses -> push $ Discard assetController GameSource (toTarget a)
+              ReturnToHandWhenNoUses ->
+                for_ assetController \iid ->
+                  push $ ReturnToHand iid $ toTarget a
+              NotifySelfOfNoUses -> push $ SpentAllUses (toTarget a)
+          _ -> error "Trying to use the wrong use type"
       pure $ a & tokensL %~ subtractTokens tType n
     CheckDefeated source (isTarget a -> True) -> do
       mDefeated <- defeated a source
@@ -102,24 +165,20 @@ instance RunMessage AssetAttrs where
           )
         & (assignedHealthDamageL .~ 0)
         & (assignedSanityDamageL .~ 0)
+    CancelAssetDamage aid _ n | aid == assetId -> do
+      pushM $ checkAfter $ Window.CancelledOrIgnoredCardOrGameEffect (toSource a)
+      pure $ a & tokensL %~ decrementTokensBy Token.Damage n
     AssetDefeated aid | aid == assetId -> do
       push $ toDiscard GameSource a
       pure a
     Msg.AssetDamageWithCheck aid source damage horror doCheck | aid == assetId -> do
+      mods <- getModifiers a
+      let n = sum [x | DamageTaken x <- mods]
       pushAll
-        $ [PlaceDamage source (toTarget a) damage | damage > 0]
+        $ [PlaceDamage source (toTarget a) (damage + n) | damage > 0]
         <> [PlaceHorror source (toTarget a) horror | horror > 0]
         <> [checkDefeated source aid | doCheck]
       pure a
-    MovedClues _ (isTarget a -> True) amount -> do
-      pure $ a & tokensL %~ addTokens #clue amount
-    MovedClues (isSource a -> True) _ amount -> do
-      pure $ a & tokensL %~ subtractTokens #clue amount
-    MovedHorror (isSource a -> True) _ n -> do
-      pure $ a & tokensL %~ subtractTokens #horror n
-    MovedHorror source (isTarget a -> True) n -> do
-      push $ checkDefeated source a
-      pure $ a & tokensL %~ addTokens #horror n
     ReassignHorror source (isTarget a -> True) n -> do
       alreadyChecked <- assertQueue \case
         CheckDefeated _ target -> target == toTarget a
@@ -134,11 +193,6 @@ instance RunMessage AssetAttrs where
             _ -> error "Invalid match"
 
       pure $ a & assignedSanityDamageL +~ n
-    MovedDamage source (isTarget a -> True) amount -> do
-      push $ checkDefeated source a
-      pure $ a & tokensL %~ addTokens #damage amount
-    MovedDamage (isSource a -> True) _ amount -> do
-      pure $ a & tokensL %~ subtractTokens #damage amount
     ApplyHealing source -> do
       let health = findWithDefault 0 source assetAssignedHealthHeal
       let sanity = findWithDefault 0 source assetAssignedSanityHeal
@@ -148,24 +202,48 @@ instance RunMessage AssetAttrs where
           $ [mkWindow Timing.After (Window.Healed DamageType (toTarget a) source health) | health > 0]
           <> [mkWindow Timing.After (Window.Healed DamageType (toTarget a) source sanity) | sanity > 0]
       pure $ a & tokensL %~ subtractTokens Token.Damage health . subtractTokens Token.Horror sanity
-    HealDamage (isTarget a -> True) source n -> do
+    HealDamage (isTarget a -> True) source amount -> do
+      mods <- getModifiers a
+      let n = sum [x | HealingTaken x <- mods]
+      let amount' = amount + n
       afterWindow <- checkWindows [mkWindow Timing.After (Window.Healed DamageType (toTarget a) source n)]
+      push $ AssignedHealing (toTarget a)
       push afterWindow
-      pure $ a & tokensL %~ subtractTokens Token.Damage n
-    HealDamageDelayed (isTarget a -> True) source n -> do
-      pure $ a & assignedHealthHealL %~ insertWith (+) source n
-    HealHorror (isTarget a -> True) source n -> do
+      runMessage (RemoveTokens source (toTarget a) Token.Damage amount') a
+    HealDamageDelayed (isTarget a -> True) source amount -> do
+      mods <- getModifiers a
+      let n = sum [x | HealingTaken x <- mods]
+      let amount' = amount + n
+      push $ AssignedHealing (toTarget a)
+      pure $ a & assignedHealthHealL %~ insertWith (+) source amount'
+    HealHorror (isTarget a -> True) source amount -> do
+      mods <- getModifiers a
+      let n = sum [x | HealingTaken x <- mods]
+      let amount' = amount + n
+      push $ AssignedHealing (toTarget a)
       afterWindow <- checkWindows [mkWindow Timing.After (Window.Healed HorrorType (toTarget a) source n)]
       push afterWindow
-      pure $ a & tokensL %~ subtractTokens Horror n
-    HealHorrorDelayed (isTarget a -> True) source n -> do
-      pure $ a & assignedSanityHealL %~ insertWith (+) source n
-    HealHorrorDirectly target _ amount | isTarget a target -> do
+      runMessage (RemoveTokens source (toTarget a) Token.Horror amount') a
+    HealHorrorDelayed (isTarget a -> True) source amount -> do
+      mods <- getModifiers a
+      let n = sum [x | HealingTaken x <- mods]
+      let amount' = amount + n
+      push $ AssignedHealing (toTarget a)
+      pure $ a & assignedSanityHealL %~ insertWith (+) source amount'
+    HealHorrorDirectly target source amount | isTarget a target -> do
       -- USE ONLY WHEN NO CALLBACKS
-      pure $ a & tokensL %~ subtractTokens Horror amount
-    HealDamageDirectly target _ amount | isTarget a target -> do
+      mods <- getModifiers a
+      let n = sum [x | HealingTaken x <- mods]
+      let amount' = amount + n
+      push $ AssignedHealing (toTarget a)
+      runMessage (RemoveTokens source (toTarget a) Token.Horror amount') a
+    HealDamageDirectly target source amount | isTarget a target -> do
       -- USE ONLY WHEN NO CALLBACKS
-      pure $ a & tokensL %~ subtractTokens Token.Damage amount
+      mods <- getModifiers a
+      let n = sum [x | HealingTaken x <- mods]
+      let amount' = amount + n
+      push $ AssignedHealing (toTarget a)
+      runMessage (RemoveTokens source (toTarget a) Token.Damage amount') a
     When (InvestigatorResigned iid) -> do
       let
         shouldResignWith = case assetPlacement of
@@ -173,7 +251,7 @@ instance RunMessage AssetAttrs where
           InThreatArea iid' -> iid == iid'
           AttachedToInvestigator iid' -> iid == iid'
           _ -> False
-      when shouldResignWith $ push $ ResignWith (AssetTarget assetId)
+      pushWhen shouldResignWith $ ResignWith (AssetTarget assetId)
       pure a
     InvestigatorEliminated iid -> do
       let
@@ -182,34 +260,31 @@ instance RunMessage AssetAttrs where
           InThreatArea iid' -> iid == iid'
           AttachedToInvestigator iid' -> iid == iid'
           _ -> a.controller == Just iid
-      when shouldDiscard $ push $ toDiscard GameSource assetId
+      pushWhen shouldDiscard $ toDiscard GameSource assetId
       pure a
-    AddUses aid useType' n | aid == assetId -> case assetPrintedUses of
-      NoUses -> pure $ a & usesL . at useType' . non 0 %~ (+ n)
-      Uses useType'' _ | useType' == useType'' -> do
-        pure $ a & usesL . ix useType' +~ n
-      UsesWithLimit useType'' _ pl | useType' == useType'' -> do
-        l <- getPlayerCountValue pl
-        pure $ a & usesL . ix useType' %~ min l . (+ n)
-      _ ->
-        error $ "Trying to add the wrong use type, has " <> show assetUses <> ", but got: " <> show useType'
-    MoveUses (isSource a -> True) _ useType' n -> do
-      runMessage (Do (SpendUses (toTarget a) useType' n)) a
-    MoveUses _ (isTarget a -> True) useType' n -> do
-      runMessage (AddUses a.id useType' n) a
-    SpendUses target useType' n | isTarget a target -> do
+    AddUses source aid useType' n | aid == assetId -> runMessage (PlaceTokens source (toTarget a) useType' n) a
+    SpendUses source target useType' n | isTarget a target -> do
       mods <- getModifiers a
-      let otherSources = [source | ProvidesUses uType source <- mods, uType == useType']
-      otherSourcePairs <- for otherSources \source -> do
-        case source of
-          AssetSource aid' -> do
-            uses <- fieldMap AssetUses (findWithDefault 0 useType') aid'
-            pure (AssetTarget aid', uses)
-          _ -> error $ "Unhandled source: " <> show source
-
-      -- window should be independent of other sources since they are spent from this asset
-      for_ assetController $ \controller ->
-        pushM $ checkWindows [mkAfter $ Window.SpentUses controller (toId a) useType' n]
+      otherSourcePairs <- forMaybeM mods \case
+        ProvidesUses uType s | uType == useType' -> do
+          case s of
+            AssetSource aid' -> do
+              uses <- fieldMap AssetUses (findWithDefault 0 useType') aid'
+              pure $ Just (AssetTarget aid', uType, uses)
+            EventSource eid' -> do
+              uses <- fieldMap EventUses (findWithDefault 0 useType') eid'
+              pure $ Just (EventTarget eid', uType, uses)
+            _ -> error $ "Unhandled source: " <> show source
+        ProvidesProxyUses pType uType s | uType == useType' -> do
+          case s of
+            AssetSource aid' -> do
+              uses <- fieldMap AssetUses (findWithDefault 0 pType) aid'
+              pure $ Just (AssetTarget aid', pType, uses)
+            EventSource eid' -> do
+              uses <- fieldMap EventUses (findWithDefault 0 pType) eid'
+              pure $ Just (EventTarget eid', pType, uses)
+            _ -> error $ "Unhandled source: " <> show source
+        _ -> pure Nothing
 
       if null otherSourcePairs
         then push $ Do msg
@@ -225,34 +300,47 @@ instance RunMessage AssetAttrs where
               $ chooseN player n
               $ replicate (a.use useType') (targetLabel a [Do msg])
               <> concat
-                [ replicate x (targetLabel otherTarget [Do $ SpendUses otherTarget useType' n])
-                | (otherTarget, x) <- otherSourcePairs
+                [ replicate x (targetLabel otherTarget [Do $ SpendUses source otherTarget actualUseType n])
+                | (otherTarget, actualUseType, x) <- otherSourcePairs
                 ]
       pure a
-    Do (SpendUses target useType' n) | isTarget a target -> do
-      case assetPrintedUses of
-        NoUses -> pure $ a & usesL . ix useType' %~ max 0 . subtract n
-        Uses useType'' _ | useType' == useType'' -> do
-          let m = findWithDefault 0 useType' assetUses
-          let remainingUses = max 0 (m - n)
-          when (remainingUses == 0) $ for_ assetWhenNoUses \case
-            DiscardWhenNoUses -> push $ Discard assetController GameSource (toTarget a)
-            ReturnToHandWhenNoUses ->
-              for_ assetController \iid ->
-                push $ ReturnToHand iid $ toTarget a
-            NotifySelfOfNoUses -> push $ SpentAllUses (toTarget a)
-          pure $ a & usesL . ix useType' .~ remainingUses
-        UsesWithLimit useType'' _ _ | useType' == useType'' -> do
-          let m = findWithDefault 0 useType' assetUses
-          let remainingUses = max 0 (m - n)
-          when (remainingUses == 0) $ for_ assetWhenNoUses \case
-            DiscardWhenNoUses -> push $ Discard assetController GameSource (toTarget a)
-            ReturnToHandWhenNoUses ->
-              for_ assetController \iid ->
-                push $ ReturnToHand iid $ toTarget a
-            NotifySelfOfNoUses -> push $ SpentAllUses (toTarget a)
-          pure $ a & usesL . ix useType' .~ remainingUses
-        _ -> error "Trying to use the wrong use type"
+    Do (SpendUses source target useType' n) | isTarget a target -> do
+      when (n >= a.use useType') do
+        -- N.B. we either need to find the end of the attack and insert this
+        -- when it ends or an effect. This window is currently only specific to
+        -- One in the Chamber and this might not be exhaustive so if a bug
+        -- comes in this could be a likely culprit. It might also have to do
+        -- with when we actually issue the resolved play card message
+        afterLast <- checkAfter $ Window.AttackOrEffectSpentLastUse source (toTarget a) useType'
+        case source of
+          AbilitySource s i -> insertAfterMatching [afterLast] \case
+            ResolvedAbility ab -> ab.source == s && ab.index == i
+            _ -> False
+          CardSource c -> insertAfterMatching [afterLast] \case
+            ResolvedPlayCard _ c' -> c.id == c'.id
+            _ -> False
+          EventSource e -> do
+            mAbility <- findFromQueue \case
+              ResolvedAbility _ -> True
+              _ -> False
+            case mAbility of
+              Nothing -> insertAfterMatching [afterLast] \case
+                FinishedEvent e' -> e == e'
+                _ -> False
+              Just msg' -> insertAfterMatching [afterLast] (== msg')
+          _ -> pure ()
+      runQueueT do
+        (before, _, after) <- frame $ Window.SpentToken source (toTarget a) useType' n
+        -- window should be independent of other sources since they are spent from this asset
+        push before
+        for_ assetController $ \controller ->
+          when (tokenIsUse useType') do
+            (before1, _, after1) <- frame $ Window.SpentUses controller source (toId a) useType' n
+            push before1
+            push after1
+        push after
+
+      runMessage (RemoveTokens source target useType' n) a
     AttachAsset aid target | aid == assetId -> do
       case target of
         LocationTarget lid -> push $ PlaceAsset aid (AttachedToLocation lid)
@@ -261,16 +349,18 @@ instance RunMessage AssetAttrs where
       pure a
     RemoveFromGame target | a `isTarget` target -> do
       a <$ push (RemoveFromPlay $ toSource a)
-    Discard _ source target | a `isTarget` target -> do
+    Discard mInvestigator source target | a `isTarget` target -> do
       removeFromGame <- a `hasModifier` RemoveFromGameInsteadOfDiscard
       windows' <- windows [Window.WouldBeDiscarded (toTarget a)]
+      afterWindows <- checkAfter $ Window.Discarded mInvestigator source (toCard a)
       let discardMsg = if removeFromGame then RemoveFromGame (toTarget a) else Discarded (toTarget a) source (toCard a)
       pushAll
         $ windows'
-        <> [RemoveFromPlay $ toSource a, discardMsg]
+        <> [RemoveFromPlay $ toSource a, discardMsg, afterWindows]
       pure a
     Exile target | a `isTarget` target -> do
-      a <$ pushAll [RemoveFromPlay $ toSource a, Exiled target (toCard a)]
+      pushAll [RemoveFromPlay $ toSource a, Exiled target (toCard a)]
+      pure $ a & exiledL .~ True
     RemoveFromPlay source | isSource a source -> do
       attachedAssets <- select $ AssetAttachedToAsset $ AssetWithId (toId a)
       windowMsg <-
@@ -305,17 +395,10 @@ instance RunMessage AssetAttrs where
       -- we specifically use the investigator source here because the
       -- asset has no knowledge of being owned yet, and this will allow
       -- us to bring the investigator's id into scope
-      modifiers <- getModifiers (toTarget a)
+      modifiers <- getCombinedModifiers [toTarget a, CardIdTarget (toCardId a)]
       let printedUses = cdUses (toCardDef a)
-      startingUses <- toStartingUses printedUses
-      let
-        applyModifier usesMap (AdditionalStartingUses n) = case printedUses of
-          Uses uType _ -> pure $ adjustMap (+ n) uType usesMap
-          UsesWithLimit uType _ pl -> do
-            l <- getPlayerCountValue pl
-            pure $ adjustMap (min l . (+ n)) uType usesMap
-          _ -> pure usesMap
-        applyModifier m _ = pure m
+      startingUses <- toModifiedStartingUses a printedUses
+      let startingDoom = sum [n | EntersPlayWithDoom n <- modifiers]
       whenEnterMsg <-
         checkWindows
           [mkWindow Timing.When (Window.EnterPlay $ toTarget a)]
@@ -325,7 +408,9 @@ instance RunMessage AssetAttrs where
 
       pushAll
         $ [ActionCannotBeUndone | not assetCanLeavePlayByNormalMeans]
-        <> [whenEnterMsg, afterEnterMsg]
+        <> [whenEnterMsg]
+        <> [PlaceDoom GameSource (toTarget a) startingDoom | startingDoom > 0]
+        <> [afterEnterMsg]
 
       let placementF = case assetPlacement of
             Unplaced -> placementL .~ InPlayArea iid
@@ -333,17 +418,15 @@ instance RunMessage AssetAttrs where
           controllerF = case assetController of
             Nothing -> controllerL ?~ iid
             Just _ -> id
+          currentUses = Map.filterWithKey (\k _ -> tokenIsUse k) assetTokens
 
-      uses <-
-        if assetUses == mempty
-          then foldM applyModifier startingUses modifiers
-          else pure assetUses
+      let uses = if currentUses == mempty then startingUses else mempty
 
       pure
         $ a
         & placementF
         & controllerF
-        & (usesL .~ uses)
+        & (tokensL %~ Map.unionWith (+) uses . coerce)
     TakeControlOfAsset iid aid | aid == assetId -> do
       push
         =<< checkWindows
@@ -351,6 +434,8 @@ instance RunMessage AssetAttrs where
               <$> [Timing.When, Timing.After]
           )
       pure $ a & placementL .~ InPlayArea iid & controllerL ?~ iid
+    LoseControlOfAsset aid | aid == assetId -> do
+      pure $ a & controllerL .~ Nothing
     ReplacedInvestigatorAsset iid aid | aid == assetId -> do
       pure $ a & placementL .~ InPlayArea iid & controllerL ?~ iid
     AddToScenarioDeck key target | isTarget a target -> do
@@ -379,12 +464,20 @@ instance RunMessage AssetAttrs where
       pure $ a & cardsUnderneathL <>~ cards
     AddToDiscard _ c -> do
       pure $ a & cardsUnderneathL %~ filter (/= toCard c)
+    AddToEncounterDiscard c -> do
+      pure $ a & cardsUnderneathL %~ filter (/= toCard c)
     CommitCard _ card -> do
       pure $ a & cardsUnderneathL %~ filter (/= card)
     AddToHand _ cards -> do
       pure $ a & cardsUnderneathL %~ filter (`notElem` cards)
+    InvestigatorDrewPlayerCard _ card -> do
+      pure $ a & cardsUnderneathL %~ filter (/= toCard card)
+    InvestigatorDrewEncounterCard _ card -> do
+      pure $ a & cardsUnderneathL %~ filter (/= toCard card)
     PlaceAsset aid placement | aid == assetId -> do
       -- we should update control here if need be
+      for_ placement.attachedTo \target ->
+        pushM $ checkAfter $ Window.AttachCard a.controller (toCard a) target
       checkEntersThreatArea a placement
       pure $ a & placementL .~ placement
     Blanked msg' -> runMessage msg' a

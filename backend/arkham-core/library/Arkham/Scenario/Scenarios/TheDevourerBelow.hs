@@ -33,7 +33,7 @@ import Arkham.Token
 import Arkham.Trait hiding (Cultist)
 
 newtype TheDevourerBelow = TheDevourerBelow ScenarioAttrs
-  deriving stock (Generic)
+  deriving stock Generic
   deriving anyclass (IsScenario, HasModifiersFor)
   deriving newtype (Show, ToJSON, FromJSON, Entity, Eq)
 
@@ -71,8 +71,8 @@ agendaDeck =
 
 instance RunMessage TheDevourerBelow where
   runMessage msg s@(TheDevourerBelow attrs) = runQueueT $ case msg of
-    SetChaosTokensForScenario -> do
-      whenM getIsStandalone $ push $ SetChaosTokens (chaosBagContents $ scenarioDifficulty attrs)
+    StandaloneSetup -> do
+      push $ SetChaosTokens (chaosBagContents $ scenarioDifficulty attrs)
       pure s
     PreScenarioSetup -> do
       story intro
@@ -153,4 +153,4 @@ instance RunMessage TheDevourerBelow where
             forceAddCampaignCardToDeckChoice investigators Assets.litaChantler
           _ -> error $ "Unhandled option: " <> show option
       pure s
-    _ -> TheDevourerBelow <$> lift (runMessage msg attrs)
+    _ -> TheDevourerBelow <$> liftRunMessage msg attrs

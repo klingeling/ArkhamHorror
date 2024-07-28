@@ -55,11 +55,17 @@ affectsOthers matcher =
 class OneOf a where
   oneOf :: [a] -> a
 
+mapOneOf :: OneOf b => (a -> b) -> [a] -> b
+mapOneOf f = oneOf . map f
+
+notOneOf :: (Not a, OneOf a) => [a] -> a
+notOneOf = not_ . oneOf
+
+instance OneOf SourceMatcher where
+  oneOf = SourceMatchesAny
+
 instance OneOf SkillTestMatcher where
   oneOf = SkillTestOneOf
-
-instance OneOf SkillTestTypeMatcher where
-  oneOf = SkillTestTypeOneOf
 
 instance OneOf AbilityMatcher where
   oneOf = AbilityOneOf
@@ -180,6 +186,15 @@ assetIs = AssetIs . toCardCode
 assetControlledBy :: InvestigatorId -> AssetMatcher
 assetControlledBy = AssetControlledBy . InvestigatorWithId
 
+assetAttachedToAsset :: AssetId -> AssetMatcher
+assetAttachedToAsset = AssetAttachedToAsset . AssetWithId
+
+assetInPlayAreaOf :: InvestigatorId -> AssetMatcher
+assetInPlayAreaOf = AssetInPlayAreaOf . InvestigatorWithId
+
+assetWithAttachedEvent :: (AsId a, IdOf a ~ EventId) => a -> AssetMatcher
+assetWithAttachedEvent = AssetWithAttachedEvent . EventWithId . asId
+
 assetAt :: (AsId a, IdOf a ~ LocationId) => a -> AssetMatcher
 assetAt = AssetAt . LocationWithId . asId
 
@@ -196,6 +211,9 @@ enemyAt = EnemyAt . LocationWithId . asId
 
 enemyAtLocationWith :: InvestigatorId -> EnemyMatcher
 enemyAtLocationWith = EnemyAt . locationWithInvestigator
+
+canParleyEnemy :: InvestigatorId -> EnemyMatcher
+canParleyEnemy = CanParleyEnemy . InvestigatorWithId
 
 enemyEngagedWith :: InvestigatorId -> EnemyMatcher
 enemyEngagedWith = EnemyIsEngagedWith . InvestigatorWithId
@@ -229,6 +247,10 @@ locationWithEnemy = LocationWithEnemy . EnemyWithId . asId
 locationWithInvestigator :: InvestigatorId -> LocationMatcher
 locationWithInvestigator = LocationWithInvestigator . InvestigatorWithId
 {-# INLINE locationWithInvestigator #-}
+
+locationWithLowerPrintedShroudThan :: (AsId a, IdOf a ~ LocationId) => a -> LocationMatcher
+locationWithLowerPrintedShroudThan = LocationWithLowerPrintedShroudThan . LocationWithId . asId
+{-# INLINE locationWithLowerPrintedShroudThan #-}
 
 locationWithDiscoverableCluesBy :: InvestigatorId -> LocationMatcher
 locationWithDiscoverableCluesBy =
@@ -308,6 +330,9 @@ fromSets = oneOf . map CardFromEncounterSet
 
 -- ** Extended Card Helpers **
 
+inDeckOf :: InvestigatorId -> ExtendedCardMatcher
+inDeckOf = InDeckOf . InvestigatorWithId
+
 inHandOf :: InvestigatorId -> ExtendedCardMatcher
 inHandOf = InHandOf . InvestigatorWithId
 
@@ -316,6 +341,9 @@ inDiscardOf = InDiscardOf . InvestigatorWithId
 
 basic :: CardMatcher -> ExtendedCardMatcher
 basic = BasicCardMatch
+
+basicCardIs :: HasCardCode a => a -> ExtendedCardMatcher
+basicCardIs = basic . cardIs
 
 -- ** Card List Helpers **
 
@@ -328,6 +356,7 @@ replaceThisCard :: Data a => CardId -> a -> a
 replaceThisCard cardId = over biplate (transform replace)
  where
   replace NotThisCard = basic (NotCard $ CardWithId cardId)
+  replace IsThisCard = basic (CardWithId cardId)
   replace m = m
 
 replaceLocationMatcher :: Data a => LocationId -> LocationMatcher -> a -> a

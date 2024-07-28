@@ -15,6 +15,7 @@ import Arkham.Classes.HasGame
 import Arkham.Classes.HasQueue
 import Arkham.Classes.Query
 import Arkham.Damage
+import Arkham.Discover (IsInvestigate (..))
 import Arkham.GameValue
 import Arkham.Helpers
 import Arkham.Helpers.Modifiers
@@ -22,8 +23,11 @@ import Arkham.Helpers.Slot
 import Arkham.Helpers.Source
 import Arkham.Id
 import Arkham.Investigator.Types
-import Arkham.Matcher hiding (InvestigatorDefeated)
-import Arkham.Message (IsInvestigate (..), Message (InvestigatorMulligan))
+import Arkham.Location.Types (Field (..))
+import Arkham.Matcher hiding (InvestigatorDefeated, InvestigatorResigned)
+import Arkham.Message (
+  Message (HealDamageDirectly, HealHorrorDirectly, InvestigatorMulligan, RunWindow),
+ )
 import Arkham.Name
 import Arkham.Placement
 import Arkham.Projection
@@ -31,39 +35,49 @@ import Arkham.SkillType
 import Arkham.Source
 import Arkham.Stats
 import Arkham.Target
+import Arkham.Window (Window (..), WindowType (Healed))
 import Data.Foldable (foldrM)
 import Data.Function (on)
 import Data.List (nubBy)
+import Data.Monoid
 
 getSkillValue :: HasGame m => SkillType -> InvestigatorId -> m Int
-getSkillValue st iid = case st of
-  SkillWillpower -> field InvestigatorWillpower iid
-  SkillIntellect -> field InvestigatorIntellect iid
-  SkillCombat -> field InvestigatorCombat iid
-  SkillAgility -> field InvestigatorAgility iid
+getSkillValue st iid = do
+  mods <- getModifiers iid
+  let
+    fld =
+      case st of
+        SkillWillpower -> InvestigatorWillpower
+        SkillIntellect -> InvestigatorIntellect
+        SkillCombat -> InvestigatorCombat
+        SkillAgility -> InvestigatorAgility
+  base <- field fld iid
+  let canBeIncreased = SkillCannotBeIncreased st `notElem` mods
+  let x = if canBeIncreased then sum [n | SkillModifier st' n <- mods, st' == st] else 0
+  pure $ fromMaybe (x + base) $ minimumMay [n | SetSkillValue st' n <- mods, st' == st]
 
 skillValueFor
   :: forall m
    . HasGame m
   => SkillType
   -> Maybe Action
-  -> [ModifierType]
   -> InvestigatorId
   -> m Int
-skillValueFor skill maction tempModifiers iid = go 2 skill
+skillValueFor skill maction iid = go 2 skill =<< getModifiers iid
  where
-  go :: Int -> SkillType -> m Int
-  go 0 _ = error "possible skillValueFor infinite loop"
-  go depth s = do
-    base <- baseSkillValueFor s maction tempModifiers iid
-    base' <- foldrM applyBaseModifier base tempModifiers
-    foldrM applyModifier base' tempModifiers
+  go :: Int -> SkillType -> [ModifierType] -> m Int
+  go 0 _ _ = error "possible skillValueFor infinite loop"
+  go depth s modifiers = do
+    base <- baseSkillValueFor s maction iid
+    base' <- foldrM applyBaseModifier base modifiers
+    foldrM applyModifier base' modifiers
    where
-    canBeIncreased = SkillCannotBeIncreased skill `notElem` tempModifiers
-    matchingSkills = s : mapMaybe maybeAdditionalSkill tempModifiers -- must be the skill we are looking at
+    canBeIncreased = SkillCannotBeIncreased skill `notElem` modifiers
+    matchingSkills = s : mapMaybe maybeAdditionalSkill modifiers -- must be the skill we are looking at
     maybeAdditionalSkill = \case
       SkillModifiersAffectOtherSkill s' t | t == skill -> Just s'
       _ -> Nothing
+    applyBaseModifier (SetSkillValue s' n) m | s == s' && (n <= m || canBeIncreased) = pure n
     applyBaseModifier DoubleBaseSkillValue n | canBeIncreased = pure (n * 2)
     applyBaseModifier _ n = pure n
     applyModifier (AddSkillValue sv) n | canBeIncreased = do
@@ -73,7 +87,7 @@ skillValueFor skill maction tempModifiers iid = go 2 skill
       m <- getSkillValue sv iid'
       pure $ max 0 (n + m)
     applyModifier (AddSkillToOtherSkill svAdd svType) n | canBeIncreased && svType `elem` matchingSkills = do
-      m <- go (depth - 1) svAdd
+      m <- go (depth - 1) svAdd modifiers
       pure $ max 0 (n + m)
     applyModifier (SkillModifier skillType m) n | canBeIncreased || m < 0 = do
       pure $ if skillType `elem` matchingSkills then max 0 (n + m) else n
@@ -88,18 +102,28 @@ baseSkillValueFor
   :: HasGame m
   => SkillType
   -> Maybe Action
-  -> [ModifierType]
   -> InvestigatorId
   -> m Int
-baseSkillValueFor skill _maction tempModifiers iid = do
-  baseValue <- getSkillValue skill iid
-  pure $ foldr applyModifier baseValue tempModifiers
+baseSkillValueFor skill _maction iid = do
+  modifiers <- getModifiers iid
+  let
+    fld =
+      case skill of
+        SkillWillpower -> InvestigatorWillpower
+        SkillIntellect -> InvestigatorIntellect
+        SkillCombat -> InvestigatorCombat
+        SkillAgility -> InvestigatorAgility
+  baseValue <- field fld iid
+  pure $ foldr applyAfterModifier (foldr applyModifier baseValue modifiers) modifiers
  where
   applyModifier (BaseSkillOf skillType m) _ | skillType == skill = m
+  applyModifier (BaseSkill m) _ = m
   applyModifier _ n = n
+  applyAfterModifier (SetSkillValue skillType m) _ | skillType == skill = m
+  applyAfterModifier _ n = n
 
 data DamageFor = DamageForEnemy | DamageForInvestigator
-  deriving stock (Eq)
+  deriving stock Eq
 
 damageValueFor :: HasGame m => Int -> InvestigatorId -> DamageFor -> m Int
 damageValueFor baseValue iid damageFor = do
@@ -147,8 +171,9 @@ getAbilitiesForTurn attrs = do
 getCanDiscoverClues
   :: HasGame m => IsInvestigate -> InvestigatorId -> LocationId -> m Bool
 getCanDiscoverClues isInvestigation iid lid = do
-  modifiers <- getModifiers (toTarget iid)
-  not <$> anyM match modifiers
+  modifiers <- getModifiers iid
+  hasClues <- fieldSome LocationClues lid
+  (&& hasClues) . not <$> anyM match modifiers
  where
   match CannotDiscoverClues {} = pure True
   match (CannotDiscoverCluesAt matcher) = elem lid <$> select matcher
@@ -163,6 +188,9 @@ getCanSpendClues attrs = do
   match CannotSpendClues {} = True
   match _ = False
 
+providedSlot :: Sourceable source => InvestigatorAttrs -> source -> Bool
+providedSlot attrs source = any (isSlotSource source) $ concat $ toList (investigatorSlots attrs)
+
 removeFromSlots
   :: AssetId -> Map SlotType [Slot] -> Map SlotType [Slot]
 removeFromSlots aid = fmap (map (removeIfMatches aid))
@@ -172,11 +200,7 @@ data FitsSlots = FitsSlots | MissingSlots [SlotType]
 fitsAvailableSlots :: HasGame m => AssetId -> InvestigatorAttrs -> m FitsSlots
 fitsAvailableSlots aid a = do
   assetCard <- field Field.AssetCard aid
-  slotTypes <- do
-    baseSlots <- field Field.AssetSlots aid
-    modifiers <- getModifiers aid
-    pure $ filter ((`notElem` modifiers) . DoNotTakeUpSlot) baseSlots
-
+  slotTypes <- field Field.AssetSlots aid
   canHoldMap :: Map SlotType [SlotType] <- do
     mods <- getModifiers a
     let
@@ -353,6 +377,8 @@ investigator f cardDef Stats {..} =
                 , investigatorDrawnCards = []
                 , investigatorIsYithian = False
                 , investigatorDiscarding = Nothing
+                , investigatorDiscover = Nothing
+                , investigatorDrawing = Nothing
                 , investigatorLog = mkCampaignLog
                 , investigatorDeckBuildingAdjustments = mempty
                 , investigatorBeganRoundAt = Nothing
@@ -360,6 +386,7 @@ investigator f cardDef Stats {..} =
         }
 
 matchTarget :: InvestigatorAttrs -> ActionTarget -> Action -> Bool
+matchTarget attrs (AnyActionTarget as) action = any (\atarget -> matchTarget attrs atarget action) as
 matchTarget attrs (FirstOneOfPerformed as) action =
   action `elem` as && all (\a -> all (notElem a) $ investigatorActionsPerformed attrs) as
 matchTarget _ (IsAction a) action = action == a
@@ -449,9 +476,7 @@ getMaybeLocation
 getMaybeLocation = field InvestigatorLocation
 
 withLocationOf :: HasGame m => InvestigatorId -> (LocationId -> m ()) -> m ()
-withLocationOf iid f = do
-  mLocation <- getMaybeLocation iid
-  maybe (pure ()) f mLocation
+withLocationOf iid = forField InvestigatorLocation iid
 
 enemiesColocatedWith :: InvestigatorId -> EnemyMatcher
 enemiesColocatedWith = EnemyAt . LocationWithInvestigator . InvestigatorWithId
@@ -459,13 +484,12 @@ enemiesColocatedWith = EnemyAt . LocationWithInvestigator . InvestigatorWithId
 modifiedStatsOf
   :: HasGame m => Maybe Action -> InvestigatorId -> m Stats
 modifiedStatsOf maction i = do
-  modifiers' <- getModifiers (InvestigatorTarget i)
   remainingHealth <- field InvestigatorRemainingHealth i
   remainingSanity <- field InvestigatorRemainingSanity i
-  willpower' <- skillValueFor SkillWillpower maction modifiers' i
-  intellect' <- skillValueFor SkillIntellect maction modifiers' i
-  combat' <- skillValueFor SkillCombat maction modifiers' i
-  agility' <- skillValueFor SkillAgility maction modifiers' i
+  willpower' <- skillValueFor SkillWillpower maction i
+  intellect' <- skillValueFor SkillIntellect maction i
+  combat' <- skillValueFor SkillCombat maction i
+  agility' <- skillValueFor SkillAgility maction i
   pure
     Stats
       { willpower = willpower'
@@ -502,11 +526,16 @@ canHaveDamageHealed a = selectAny . HealableInvestigator (toSource a) DamageType
 additionalActionCovers
   :: HasGame m => Source -> [Action] -> AdditionalAction -> m Bool
 additionalActionCovers source actions (AdditionalAction _ _ aType) = case aType of
+  PlayCardRestrictedAdditionalAction matcher -> case source of
+    CardSource c -> elem c <$> select matcher
+    PlayerCardSource pc -> elem (toCard pc) <$> select matcher
+    _ -> pure False
   TraitRestrictedAdditionalAction t actionRestriction -> case actionRestriction of
     NoRestriction -> member t <$> sourceTraits source
     AbilitiesOnly -> case source of
       AbilitySource {} -> member t <$> sourceTraits source
       _ -> pure False
+  AbilityRestrictedAdditionalAction s idx -> pure $ isAbilitySource s idx source
   ActionRestrictedAdditionalAction a -> pure $ a `elem` actions
   EffectAction _ _ -> pure False
   AnyAdditionalAction -> pure True
@@ -578,3 +607,34 @@ getInMulligan = fromQueue (any isMulligan)
 
 setMeta :: ToJSON a => a -> InvestigatorAttrs -> InvestigatorAttrs
 setMeta meta attrs = attrs & metaL .~ toJSON meta
+
+healAdditional
+  :: (Sourceable source, HasQueue Message m) => source -> DamageType -> [Window] -> Int -> m ()
+healAdditional (toSource -> source) dType ws' additional = do
+  -- this is meant to heal additional so we'd directly heal one more
+  -- (without triggering a window), and then overwrite the original window
+  -- to heal for one more
+  let
+    updateHealed = \case
+      Window timing (Healed dType' t s n) mBatchId
+        | dType == dType' ->
+            Window timing (Healed dType' t s (n + additional)) mBatchId
+      other -> other
+    getHealedTarget = \case
+      (windowType -> Healed dType' t _ _) | dType == dType' -> Just t
+      _ -> Nothing
+    healedTarget =
+      fromJustNote "wrong call"
+        $ getFirst
+        $ foldMap (First . getHealedTarget) ws'
+
+  replaceMessageMatching
+    \case
+      RunWindow _ ws -> ws == ws'
+      _ -> False
+    \case
+      RunWindow iid' ws -> [RunWindow iid' $ map updateHealed ws]
+      _ -> error "invalid window"
+  case dType of
+    HorrorType -> push $ HealHorrorDirectly healedTarget source 1
+    DamageType -> push $ HealDamageDirectly healedTarget source 1

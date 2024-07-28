@@ -40,7 +40,7 @@ instance RunMessage ArchiveOfConduitsGatewayToAcheron4 where
       locations <- select RevealedLocation
       chooseOne
         iid
-        [ targetLabel location [MoveUses (toSource attrs) (toTarget location) Leyline 1]
+        [ targetLabel location [MoveTokens (attrs.ability 1) (toSource attrs) (toTarget location) Leyline 1]
         | location <- locations
         ]
       pure a
@@ -59,8 +59,9 @@ instance RunMessage ArchiveOfConduitsGatewayToAcheron4 where
           $ LocationWithToken Token.Leyline
           <> CanEnterLocation (InvestigatorWithId iid')
       player <- getPlayer iid
+      sid <- getRandom
       choices <- for locations \location -> do
-        investigate <- mkInvestigateLocation iid' (attrs.ability 2) location
+        investigate <- mkInvestigateLocation sid iid' (attrs.ability 2) location
         pure
           $ targetLabel
             location
@@ -78,4 +79,4 @@ instance RunMessage ArchiveOfConduitsGatewayToAcheron4 where
 
       chooseOrRunOne iid choices
       pure a
-    _ -> ArchiveOfConduitsGatewayToAcheron4 <$> lift (runMessage msg attrs)
+    _ -> ArchiveOfConduitsGatewayToAcheron4 <$> liftRunMessage msg attrs

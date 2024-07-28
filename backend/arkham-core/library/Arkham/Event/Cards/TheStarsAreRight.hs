@@ -28,16 +28,17 @@ instance RunMessage TheStarsAreRight where
       player <- getPlayer iid
       investigators <- select $ affectsOthers UneliminatedInvestigator
       iid' <- getActiveInvestigatorId
+      turn <- selectJust TurnInvestigator
       investigatorsWithChoice <- for investigators $ \investigator -> do
         canDraw <- can.draw.cards investigator
         canGainResources <- can.gain.resources investigator
-        drawing <- drawCards investigator (toSource attrs) 1
+        let drawing = drawCards investigator (toSource attrs) 1
         pure
           ( investigator
           , [drawing | canDraw]
               <> [takeResources investigator (toSource attrs) 1 | canGainResources]
               <> [SetActiveInvestigator iid | iid /= iid']
-              <> [ turnModifier attrs iid
+              <> [ turnModifier turn attrs iid
                     $ GiveAdditionalAction
                     $ AdditionalAction "The Stars Are Right" (toSource attrs) #any
                  , PlayerWindow iid [] False

@@ -17,7 +17,8 @@ tasteOfLifeblood = treachery TasteOfLifeblood Cards.tasteOfLifeblood
 instance RunMessage TasteOfLifeblood where
   runMessage msg t@(TasteOfLifeblood attrs) = runQueueT $ case msg of
     Revelation iid (isSource attrs -> True) -> do
-      revelationSkillTest iid attrs #willpower (Fixed 3)
+      sid <- getRandom
+      revelationSkillTest sid iid attrs #willpower (Fixed 3)
       pure t
     FailedThisSkillTestBy _iid (isSource attrs -> True) n -> do
       push $ DoStep n msg
@@ -37,10 +38,12 @@ instance RunMessage TasteOfLifeblood where
             "Place 1 of your clues on nearest enemy"
             [ Msg.chooseOrRunOne
                 player
-                [targetLabel enemy [MovedClues (toSource iid) (toTarget enemy) 1] | enemy <- enemies]
+                [ targetLabel enemy [Msg.MovedClues (toSource attrs) (toSource iid) (toTarget enemy) 1]
+                | enemy <- enemies
+                ]
             ]
            | clues > 0 && notNull enemies
            ]
       push $ DoStep (n - 1) msg'
       pure t
-    _ -> TasteOfLifeblood <$> lift (runMessage msg attrs)
+    _ -> TasteOfLifeblood <$> liftRunMessage msg attrs

@@ -3,6 +3,7 @@ module Arkham.Location.Cards.NarrowShaft (narrowShaft, narrowShaftEffect, Narrow
 import Arkham.Ability
 import Arkham.Classes
 import Arkham.Direction
+import Arkham.Draw.Types
 import Arkham.Effect.Runner hiding (RevealLocation)
 import Arkham.GameValue
 import Arkham.Location.Cards qualified as Cards
@@ -29,7 +30,10 @@ instance HasAbilities NarrowShaft where
   getAbilities (NarrowShaft attrs) =
     withRevealedAbilities
       attrs
-      [ mkAbility attrs 1 $ forced $ Moves #when You AnySource (be attrs) UnrevealedLocation
+      [ skillTestAbility
+          $ mkAbility attrs 1
+          $ forced
+          $ Moves #when You AnySource (be attrs) UnrevealedLocation
       , restrictedAbility
           attrs
           2
@@ -49,16 +53,17 @@ instance RunMessage NarrowShaft where
       let
         target = InvestigatorTarget iid
         effectMetadata = Just $ EffectMessages (catMaybes [moveFrom, moveTo])
+      sid <- getRandom
       pushAll
         [ createCardEffect Cards.narrowShaft effectMetadata (attrs.ability 1) target
-        , beginSkillTest iid (attrs.ability 1) target SkillAgility (Fixed 3)
+        , beginSkillTest sid iid (attrs.ability 1) target SkillAgility (Fixed 3)
         ]
       pure l
     UseCardAbility iid (isSource attrs -> True) 2 _ _ -> do
-      push (DrawFromScenarioDeck iid CatacombsDeck (toTarget attrs) 1)
+      push $ DrawCards iid $ targetCardDraw attrs CatacombsDeck 1
       pure l
-    DrewFromScenarioDeck iid _ (isTarget attrs -> True) cards -> do
-      case cards of
+    DrewCards iid drewCards | maybe False (isTarget attrs) drewCards.target -> do
+      case drewCards.cards of
         [card] -> do
           placeAbove <- placeAtDirection Above attrs >>= \f -> f card
           placeRight <- placeAtDirection RightOf attrs >>= \f -> f card

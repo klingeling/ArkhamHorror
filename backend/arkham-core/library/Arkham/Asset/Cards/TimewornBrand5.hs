@@ -31,22 +31,24 @@ instance RunMessage TimewornBrand5 where
   runMessage msg a@(TimewornBrand5 attrs) = case msg of
     UseThisAbility iid (isSource attrs -> True) 1 -> do
       let source = attrs.ability 1
-      chooseFight <- toMessage <$> mkChooseFight iid source
+      sid <- getRandom
+      chooseFight <- toMessage <$> mkChooseFight sid iid source
       pushAll
-        [ skillTestModifiers source iid [SkillModifier #combat 2, DamageDealt 1]
+        [ skillTestModifiers sid source iid [SkillModifier #combat 2, DamageDealt 1]
         , chooseFight
         ]
       pure a
     UseThisAbility iid (isSource attrs -> True) 2 -> do
       let source = attrs.ability 2
-      chooseFight <- toMessage <$> mkChooseFight iid source
+      sid <- getRandom
+      chooseFight <- toMessage <$> mkChooseFight sid iid source
       pushAll
-        [ skillTestModifiers source iid [AddSkillValue #willpower, DamageDealt 3]
+        [ skillTestModifiers sid source iid [AddSkillValue #willpower, DamageDealt 3]
         , chooseFight
         ]
       pure a
     EnemyDefeated _ _ (isAbilitySource attrs 2 -> True) traits | Elite `elem` traits -> do
       for_ attrs.controller \iid -> do
-        pushM $ drawCards iid (attrs.ability 2) 3
+        push $ drawCards iid (attrs.ability 2) 3
       pure a
     _ -> TimewornBrand5 <$> runMessage msg attrs

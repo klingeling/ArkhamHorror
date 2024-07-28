@@ -503,16 +503,28 @@ instance RunMessage ChaosBag where
         & (chaosTokensL %~ filter (`notElem` tokensToPool))
         & (setAsideChaosTokensL %~ filter (`notElem` tokensToPool))
         & (tokenPoolL <>~ filter ((`elem` [#bless, #curse]) . (.face)) tokensToPool)
+    PassSkillTest -> do
+      removeAllMessagesMatching \case
+        NextChaosBagStep {} -> True
+        RunBag {} -> True
+        _ -> False
+      runMessage (ResetChaosTokens GameSource) c
+    FailSkillTest -> do
+      removeAllMessagesMatching \case
+        NextChaosBagStep {} -> True
+        RunBag {} -> True
+        _ -> False
+      runMessage (ResetChaosTokens GameSource) c
     ResetChaosTokens _source -> do
       returnAllBlessed <-
-        getIsSkillTest >>= \case
-          True -> hasModifier SkillTestTarget ReturnBlessedToChaosBag
-          False -> pure True
+        getSkillTestId >>= \case
+          Just sid -> hasModifier (SkillTestTarget sid) ReturnBlessedToChaosBag
+          Nothing -> pure True
 
       returnAllCursed <-
-        getIsSkillTest >>= \case
-          True -> hasModifier SkillTestTarget ReturnCursedToChaosBag
-          False -> pure True
+        getSkillTestId >>= \case
+          Just sid -> hasModifier (SkillTestTarget sid) ReturnCursedToChaosBag
+          Nothing -> pure True
 
       -- TODO: We need to decide which tokens to keep, i.e. Blessed Blade (4)
       (tokensToReturn, tokensToPool) <- flip partitionM chaosBagSetAsideChaosTokens \token -> do

@@ -30,16 +30,16 @@ instance RunMessage TheRedClockBrokenButReliable2 where
       let charges = attrs.use Charge
       let
         otherMessages
-          | charges == 1 = [Msg.skillTestModifier (attrs.ability 1) iid (AnySkillValue 3)]
+          | charges == 1 = [Msg.nextSkillTestModifier (attrs.ability 1) iid (AnySkillValue 3)]
           | charges == 2 = [DoStep 2 msg]
           | charges == 3 = [GainActions iid (attrs.ability 1) 1]
           | otherwise = []
       chooseOrRunOne
         iid
-        $ [Label "Place 1 charge here" [AddUses attrs.id Charge 1]]
+        $ [Label "Place 1 charge here" [AddUses (attrs.ability 1) attrs.id Charge 1]]
         <> [ Label
             "Take all charges here as resources"
-            $ MoveUses (toSource attrs) (ResourceTarget iid) Charge charges
+            $ MoveTokens (attrs.ability 1) (toSource attrs) (ResourceTarget iid) Charge charges
             : otherMessages
            | charges > 0
            ]
@@ -54,4 +54,4 @@ instance RunMessage TheRedClockBrokenButReliable2 where
             | location <- locations
             ]
       pure a
-    _ -> TheRedClockBrokenButReliable2 <$> lift (runMessage msg attrs)
+    _ -> TheRedClockBrokenButReliable2 <$> liftRunMessage msg attrs

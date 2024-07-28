@@ -18,7 +18,8 @@ closeWatch = treachery CloseWatch Cards.closeWatch
 instance RunMessage CloseWatch where
   runMessage msg t@(CloseWatch attrs) = runQueueT $ case msg of
     Revelation iid (isSource attrs -> True) -> do
-      push $ revelationSkillTest iid attrs #agility (Fixed 4)
+      sid <- getRandom
+      push $ revelationSkillTest sid iid attrs #agility (Fixed 4)
       pure t
     FailedThisSkillTest iid (isSource attrs -> True) -> do
       anyAssets <- selectAny $ AssetWithHighestPrintedCost $ assetControlledBy iid <> DiscardableAsset
@@ -30,4 +31,4 @@ instance RunMessage CloseWatch where
           ]
         <> [Label "Raise your alarm level by 1" [PlaceTokens (toSource attrs) (toTarget iid) AlarmLevel 1]]
       pure t
-    _ -> CloseWatch <$> lift (runMessage msg attrs)
+    _ -> CloseWatch <$> liftRunMessage msg attrs

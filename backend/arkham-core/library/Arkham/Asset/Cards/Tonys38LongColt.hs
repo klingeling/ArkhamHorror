@@ -12,7 +12,7 @@ import Arkham.Projection
 import Arkham.Token qualified as Token
 
 newtype Tonys38LongColt = Tonys38LongColt AssetAttrs
-  deriving anyclass (IsAsset)
+  deriving anyclass IsAsset
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
 
 tonys38LongColt :: AssetCard Tonys38LongColt
@@ -42,12 +42,13 @@ instance RunMessage Tonys38LongColt where
       pure a
     UseThisAbility iid (isSource attrs -> True) 2 -> do
       let source = attrs.ability 2
-      chooseFight <- toMessage <$> mkChooseFight iid source
-      pushAll [skillTestModifier source iid (DamageDealt 1), chooseFight]
+      sid <- getRandom
+      chooseFight <- toMessage <$> mkChooseFight sid iid source
+      pushAll [skillTestModifier sid source iid (DamageDealt 1), chooseFight]
       pure a
     EnemyDefeated eid _ (isAbilitySource attrs 2 -> True) _ -> do
       hadBounty <- eid <=~> EnemyWithBounty
       bountyContracts <- selectJust $ assetIs Cards.bountyContracts
-      pushWhen hadBounty $ AddUses bountyContracts Bounty 1
+      pushWhen hadBounty $ AddUses (attrs.ability 2) bountyContracts Bounty 1
       pure a
     _ -> Tonys38LongColt <$> runMessage msg attrs

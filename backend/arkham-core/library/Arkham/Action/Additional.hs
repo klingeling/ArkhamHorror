@@ -7,6 +7,7 @@ import Arkham.Prelude
 
 import Arkham.Action
 import Arkham.Id
+import {-# SOURCE #-} Arkham.Matcher.Types
 import {-# SOURCE #-} Arkham.Source
 import Arkham.Trait
 import Data.Aeson.TH
@@ -18,6 +19,8 @@ data ActionRestriction = AbilitiesOnly | NoRestriction
 data AdditionalActionType
   = TraitRestrictedAdditionalAction Trait ActionRestriction
   | ActionRestrictedAdditionalAction Action
+  | AbilityRestrictedAdditionalAction Source Int
+  | PlayCardRestrictedAdditionalAction ExtendedCardMatcher
   | EffectAction Text EffectId
   | AnyAdditionalAction
   | BountyAction -- Tony Morgan

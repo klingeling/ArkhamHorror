@@ -33,7 +33,7 @@ import Arkham.Trait hiding (Cultist)
 import Data.List.NonEmpty qualified as NE
 
 newtype CarnevaleOfHorrors = CarnevaleOfHorrors ScenarioAttrs
-  deriving stock (Generic)
+  deriving stock Generic
   deriving anyclass (IsScenario, HasModifiersFor)
   deriving newtype (Show, ToJSON, FromJSON, Entity, Eq)
 
@@ -321,7 +321,7 @@ instance RunMessage CarnevaleOfHorrors where
       pure s
     FailedSkillTest iid _ _ (ChaosTokenTarget token) _ _ -> do
       case chaosTokenFace token of
-        Cultist -> push $ InvestigatorDrawEncounterCard iid
+        Cultist -> push $ drawEncounterCard iid Cultist
         Tablet -> do
           player <- getPlayer iid
           lid <- getJustLocation iid

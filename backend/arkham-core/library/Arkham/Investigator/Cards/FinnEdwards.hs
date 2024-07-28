@@ -12,11 +12,13 @@ import Arkham.Investigator.Cards qualified as Cards
 import Arkham.Investigator.Runner
 import Arkham.Location.Types (Field (..))
 import Arkham.Matcher
+import Arkham.Message qualified as Msg
 import Arkham.Projection
 
 newtype FinnEdwards = FinnEdwards InvestigatorAttrs
   deriving anyclass (IsInvestigator, HasAbilities)
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock (Data)
 
 finnEdwards :: InvestigatorCard FinnEdwards
 finnEdwards =
@@ -46,7 +48,7 @@ instance RunMessage FinnEdwards where
           player <- getPlayer iid
           pushWhen (hasClues && canDiscover)
             $ chooseOne player
-            $ [ Label "Discover 1 clue at your location" [toMessage $ discoverAtYourLocation iid attrs 1]
+            $ [ Label "Discover 1 clue at your location" [Msg.DiscoverClues iid $ discoverAtYourLocation attrs 1]
               , Label "Do not discover a clue" []
               ]
       pure i

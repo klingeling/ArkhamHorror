@@ -28,7 +28,9 @@ import Arkham.Act.Types (Field (..))
 import Arkham.Action (Action)
 import Arkham.Action qualified as Action
 import Arkham.Action.Additional (AdditionalActionType (BobJenkinsAction), additionalActionType)
-import Arkham.Asset.Types (Field (..))
+import {-# SOURCE #-} Arkham.Asset (createAsset)
+import Arkham.Asset.Cards qualified as Assets
+import Arkham.Asset.Types (Asset, AssetAttrs (assetCardCode), Field (..))
 import Arkham.Attack
 import Arkham.Capability
 import Arkham.Card
@@ -37,13 +39,14 @@ import Arkham.ClassSymbol
 import Arkham.Classes hiding (isMatch)
 import Arkham.Classes.HasGame
 import Arkham.Criteria qualified as Criteria
+import Arkham.Customization
 import Arkham.DamageEffect
 import Arkham.Deck hiding (InvestigatorDeck, InvestigatorDiscard)
 import Arkham.Deck qualified as Deck
 import Arkham.DefeatedBy
 import Arkham.Effect.Types (Field (..))
 import Arkham.Enemy.Types (Field (..))
-import Arkham.Event.Types (Field (..))
+import Arkham.Event.Types (Event, Field (..))
 import {-# SOURCE #-} Arkham.Game
 import Arkham.Game.Settings
 import {-# SOURCE #-} Arkham.GameEnv
@@ -51,13 +54,14 @@ import Arkham.Helpers
 import Arkham.Helpers.Calculation
 import Arkham.Helpers.Card
 import Arkham.Helpers.ChaosBag
+import Arkham.Helpers.Customization
 import Arkham.Helpers.Investigator (
   baseSkillValueFor,
   getActionCost,
   getCanAfford,
  )
 import Arkham.Helpers.Message hiding (AssetDamage, InvestigatorDamage, PaidCost)
-import Arkham.Helpers.SkillTest (getSkillTestDifficulty)
+import Arkham.Helpers.SkillTest (getIsPerilous, getSkillTestDifficulty)
 import Arkham.Helpers.Tarot
 import Arkham.History
 import Arkham.Id
@@ -71,6 +75,7 @@ import Arkham.Phase
 import Arkham.Placement
 import Arkham.Projection
 import Arkham.Scenario.Types (Field (..), ScenarioDeckKey (ExplorationDeck))
+import Arkham.ScenarioLogKey
 import Arkham.Scenarios.BeforeTheBlackThrone.Cosmos qualified as Cosmos
 import Arkham.Scenarios.BeforeTheBlackThrone.Helpers
 import Arkham.Skill.Types (Field (..))
@@ -82,7 +87,7 @@ import Arkham.Source
 import Arkham.Story.Types (Field (..))
 import Arkham.Target
 import Arkham.Timing qualified as Timing
-import Arkham.Trait (toTraits)
+import Arkham.Trait (Trait (Spell), toTraits)
 import Arkham.Treachery.Types (Field (..))
 import Arkham.Window (Window (..), defaultWindows, mkWhen)
 import Arkham.Window qualified as Window
@@ -178,7 +183,7 @@ getAsIfInHandCards iid = do
     <> cardsAddedViaModifiers
 
 getCanPerformAbility
-  :: HasGame m => InvestigatorId -> [Window] -> Ability -> m Bool
+  :: (HasCallStack, HasGame m) => InvestigatorId -> [Window] -> Ability -> m Bool
 getCanPerformAbility !iid !ws !ability = do
   -- can perform an ability means you can afford it
   -- it is in the right window
@@ -189,9 +194,10 @@ getCanPerformAbility !iid !ws !ability = do
     actions = case abilityType ability of
       ActionAbilityWithBefore _ beforeAction _ -> [beforeAction]
       _ -> abilityActions ability
-    additionalCosts = flip mapMaybe abilityModifiers $ \case
-      AdditionalCost x -> Just x
-      _ -> Nothing
+    additionalCosts =
+      abilityAdditionalCosts ability <> flip mapMaybe abilityModifiers \case
+        AdditionalCost x -> Just x
+        _ -> Nothing
     cost = abilityCost ability
     criteria = foldr setCriteria (abilityCriteria ability) abilityModifiers
     setCriteria :: ModifierType -> Criterion -> Criterion
@@ -203,7 +209,7 @@ getCanPerformAbility !iid !ws !ability = do
     [ getCanAffordCost iid (toSource ability) actions ws cost
     , meetsActionRestrictions iid ws ability
     , anyM (\window -> windowMatches iid (toSource ability) window (abilityWindow ability)) ws
-    , passesCriteria iid Nothing (toSource ability) ws criteria
+    , passesCriteria iid Nothing ability.source ability.requestor ws criteria
     , allM (getCanAffordCost iid (abilitySource ability) actions ws) additionalCosts
     , not <$> preventedByInvestigatorModifiers iid ability
     ]
@@ -225,7 +231,9 @@ preventedByInvestigatorModifiers iid ability = do
       if any (`elem` as) (abilityActions ability)
         then fieldP InvestigatorActionsTaken (\taken -> all (\a -> all (notElem a) taken) as) iid
         else pure False
+    IsAction Action.Activate -> pure $ abilityIsActivate ability
     IsAction a -> pure $ a `elem` abilityActions ability
+    AnyActionTarget as -> anyM preventsAbility as
     EnemyAction a matcher -> case abilitySource ability of
       EnemySource eid ->
         if a `elem` abilityActions ability then eid <=~> matcher else pure False
@@ -251,11 +259,13 @@ meetsActionRestrictions iid _ ab@Ability {..} = go abilityType
         else anyM (canDoAction iid ab) actions
     FastAbility' _ [] -> pure True
     FastAbility' _ actions -> anyM (canDoAction iid ab) actions
+    CustomizationReaction {} -> pure True
     ReactionAbility _ _ -> pure True
     ForcedAbility _ -> pure True
     SilentForcedAbility _ -> pure True
     ForcedAbilityWithCost _ _ -> pure True
     AbilityEffect _ -> pure True
+    ServitorAbility _ -> pure True
 
 canDoAction :: HasGame m => InvestigatorId -> Ability -> Action -> m Bool
 canDoAction iid ab@Ability {abilitySource, abilityIndex} = \case
@@ -302,10 +312,10 @@ canDoAction iid ab@Ability {abilitySource, abilityIndex} = \case
         [o] -> notNull <$> select (Matcher.CanEngageEnemyWithOverride o)
         _ -> error "multiple overrides found"
   Action.Parley -> case abilitySource of
-    EnemySource eid -> eid <=~> Matcher.CanParleyEnemy iid
+    EnemySource eid -> eid <=~> Matcher.canParleyEnemy iid
     AssetSource _ -> pure True
     LocationSource _ -> pure True
-    _ -> selectAny (Matcher.CanParleyEnemy iid)
+    _ -> selectAny (Matcher.canParleyEnemy iid)
   Action.Investigate -> case abilitySource of
     LocationSource _ -> pure True
     _ -> notNull <$> select Matcher.InvestigatableLocation
@@ -373,6 +383,7 @@ getCanAffordAbilityCost iid a@Ability {..} = do
   go costF abilityType
  where
   go f = \case
+    ServitorAbility _ -> pure True
     Haunted -> pure True
     Cosmos -> pure True
     ActionAbility actions cost ->
@@ -382,6 +393,7 @@ getCanAffordAbilityCost iid a@Ability {..} = do
     ActionAbilityWithBefore _ beforeAction cost ->
       getCanAffordCost iid (toSource a) [beforeAction] [] (f cost)
     ReactionAbility _ cost -> getCanAffordCost iid (toSource a) [] [] (f cost)
+    CustomizationReaction _ _ cost -> getCanAffordCost iid (toSource a) [] [] (f cost)
     FastAbility' cost actions -> getCanAffordCost iid (toSource a) actions [] (f cost)
     ForcedAbilityWithCost _ cost ->
       getCanAffordCost iid (toSource a) [] [] (f cost)
@@ -446,6 +458,8 @@ getCanAffordUseWith f canIgnoreAbilityLimit iid ability ws = do
           go = \case
             ReactionAbility _ _ ->
               pure $ notElem ability (map usedAbility usedAbilities)
+            CustomizationReaction {} ->
+              pure $ notElem ability (map usedAbility usedAbilities)
             ForcedWhen _ aType -> go aType
             ForcedAbility _ -> pure $ notElem ability (map usedAbility usedAbilities)
             SilentForcedAbility _ ->
@@ -460,6 +474,7 @@ getCanAffordUseWith f canIgnoreAbilityLimit iid ability ws = do
             Objective {} -> pure True
             Haunted -> pure True
             Cosmos -> pure True
+            ServitorAbility _ -> pure True -- should be disabled by the servitor
         go (abilityType ability)
       PlayerLimit (PerSearch trait) n -> do
         let traitMatchingUsedAbilities = filter (elem trait . usedAbilityTraits) usedAbilities
@@ -645,13 +660,15 @@ getActionsWith iid ws f = do
   pure $ nub $ if null forcedActions then actions''' else forcedActions
 
 hasFightActions
-  :: HasGame m
+  :: (Sourceable source, HasGame m)
   => InvestigatorId
+  -> source
   -> Matcher.WindowMatcher
   -> [Window]
   -> m Bool
-hasFightActions iid window windows' =
+hasFightActions iid requestor window windows' =
   anyM (\a -> getCanPerformAbility iid windows' $ decreaseAbilityActionCost a 1)
+    . map (setRequestor requestor)
     =<< select (Matcher.AbilityIsAction #fight <> Matcher.AbilityWindow window)
 
 hasEvadeActions
@@ -718,20 +735,6 @@ getIsPlayableWithResources iid (toSource -> source) availableResources costStatu
   prevents (CannotPlay matcher) = cardMatch c matcher
   prevents (CannotPutIntoPlay matcher) = cardMatch c matcher
   prevents _ = False
-  passesLimit :: forall n. HasGame n => CardLimit -> n Bool
-  passesLimit (LimitPerInvestigator m) = case toCardType c of
-    AssetType -> do
-      n <- selectCount $ Matcher.assetControlledBy iid <> Matcher.AssetWithTitle (nameTitle $ toName c)
-      pure $ m > n
-    _ -> error $ "Not handling card type: " <> show (toCardType c)
-  passesLimit (LimitPerTrait t m) = case toCardType c of
-    AssetType -> do
-      n <- selectCount (Matcher.AssetWithTrait t)
-      pure $ m > n
-    _ -> error $ "Not handling card type: " <> show (toCardType c)
-  passesLimit (MaxPerGame m) = do
-    n <- getCardUses (toCardCode c)
-    pure $ m > n
   go :: forall n. HasGame n => n Bool
   go = withDepthGuard 3 False $ do
     attrs <- getAttrs @Investigator iid
@@ -821,15 +824,24 @@ getIsPlayableWithResources iid (toSource -> source) availableResources costStatu
       handleCriteriaReplacement m _ = m
       duringTurnWindow = mkWhen (Window.DuringTurn iid)
       notFastWindow = any (`elem` windows') [duringTurnWindow]
-      canBecomeFast = CannotPlay Matcher.FastCard `notElem` modifiers && foldr applyModifier False modifiers
-      canBecomeFastWindow = guard canBecomeFast $> Matcher.DuringTurn Matcher.You
+      canBecomeFast =
+        CannotPlay Matcher.FastCard
+          `notElem` modifiers
+          && foldr applyModifier False (nub $ cardModifiers <> modifiers)
+      canBecomeFastWindow =
+        guard canBecomeFast
+          $> fromMaybe
+            (Matcher.DuringTurn Matcher.You)
+            (listToMaybe [w | BecomesFast w <- cardModifiers <> modifiers])
+      applyModifier (BecomesFast _) _ = True
       applyModifier (CanBecomeFast cardMatcher) _ = cardMatch c cardMatcher
       applyModifier (CanBecomeFastOrReduceCostOf cardMatcher _) _ = canAffordCost && cardMatch c cardMatcher
       applyModifier _ val = val
+      source' = replaceThisCardSource source
     passesCriterias <-
       maybe
         (pure True)
-        (passesCriteria iid (Just (c, costStatus)) (replaceThisCardSource source) windows')
+        (passesCriteria iid (Just (c, costStatus)) source' (CardSource c) windows')
         (foldl' handleCriteriaReplacement (replaceThisCardSource $ cdCriteria pcDef) cardModifiers)
 
     inFastWindow <-
@@ -849,10 +861,11 @@ getIsPlayableWithResources iid (toSource -> source) availableResources costStatu
       if inFastWindow
         then
           asIfTurn iid
-            $ hasFightActions iid (Matcher.DuringTurn Matcher.You) (defaultWindows iid <> windows')
-        else hasFightActions iid (Matcher.DuringTurn Matcher.You) (defaultWindows iid <> windows')
+            $ hasFightActions iid (CardSource c) (Matcher.DuringTurn Matcher.You) (defaultWindows iid <> windows')
+        else
+          hasFightActions iid (CardSource c) (Matcher.DuringTurn Matcher.You) (defaultWindows iid <> windows')
 
-    passesLimits <- allM passesLimit (cdLimits pcDef)
+    passesLimits' <- passesLimits iid c
     let
       additionalCosts = flip mapMaybe cardModifiers $ \case
         AdditionalCost x -> Just x
@@ -862,7 +875,7 @@ getIsPlayableWithResources iid (toSource -> source) availableResources costStatu
           Keyword.Sealing matcher -> do
             if costStatus == PaidCost then Nothing else Just $ SealCost matcher
           Keyword.SealUpTo n matcher -> do
-            if costStatus == PaidCost then Nothing else Just $ UpTo n (SealCost matcher)
+            if costStatus == PaidCost then Nothing else Just $ UpTo (Fixed n) (SealCost matcher)
           Keyword.SealUpToX _ -> Nothing
         _ -> Nothing
 
@@ -931,7 +944,7 @@ getIsPlayableWithResources iid (toSource -> source) availableResources costStatu
             || cdOverrideActionPlayableIfCriteriaMet pcDef
          )
       && passesCriterias
-      && passesLimits
+      && passesLimits'
       && passesUnique
       && passesSlots
       && canAffordAdditionalCosts
@@ -976,16 +989,76 @@ onSameLocation iid = \case
   StillInHand _ -> pure False
   StillInDiscard _ -> pure False
   StillInEncounterDiscard -> pure False
+  HiddenInHand _ -> pure False
+  OnTopOfDeck _ -> pure False
+  NextToAgenda -> pure False
 
 passesCriteria
   :: (HasCallStack, HasGame m)
   => InvestigatorId
   -> Maybe (Card, CostStatus)
   -> Source
+  -> Source
   -> [Window]
   -> Criterion
   -> m Bool
-passesCriteria iid mcard source' windows' = \case
+passesCriteria iid mcard source' requestor windows' = \case
+  Criteria.IfYouOweBiancaDieKatz -> do
+    let
+      isValid = \case
+        (YouOweBiancaResources (Labeled _ iid') _) -> iid == iid'
+        _ -> False
+    any isValid <$> scenarioField ScenarioRemembered
+  Criteria.OnlySources mtchr -> sourceMatches requestor mtchr
+  Criteria.HasCustomization c -> do
+    case mcard of
+      (Just (PlayerCard card, _)) -> pure $ hasCustomization_ (cdCustomizations $ toCardDef card) card.customizations c
+      _ -> case source' of
+        EventSource aid -> do
+          attrs <- getAttrs @Event aid
+          pure $ hasCustomization attrs c
+        _ -> error $ "Unhandled source: " <> show source' <> " " <> show mcard
+  Criteria.ChosenCustomizationCardIsInPlay -> do
+    case mcard of
+      (Just (PlayerCard card, _)) -> do
+        let customizations = pcCustomizations card
+        let titles = [t | ChosenCard t <- concatMap snd (toList customizations)]
+        selectAny
+          $ Matcher.basic (Matcher.oneOf $ Matcher.CardWithTitle <$> titles)
+          <> Matcher.InPlayAreaOf (Matcher.InvestigatorWithId iid)
+      _ -> case source' of
+        EventSource aid -> do
+          customizations <- field EventCustomizations aid
+          let titles = [t | ChosenCard t <- concatMap snd (toList customizations)]
+          selectAny
+            $ Matcher.basic (Matcher.oneOf $ Matcher.CardWithTitle <$> titles)
+            <> Matcher.InPlayAreaOf (Matcher.InvestigatorWithId iid)
+        _ -> error $ "Unhandled source: " <> show source' <> " " <> show mcard
+  Criteria.HasTrueMagick -> do
+    trueMagick <- selectJust $ Matcher.assetIs Assets.trueMagickReworkingReality5
+    attrs <- getAttrs @Asset trueMagick
+    hand <-
+      fieldMap
+        InvestigatorHand
+        (filter (`cardMatch` (Matcher.CardWithType AssetType <> Matcher.CardWithTrait Spell)))
+        iid
+    let
+      replaceAssetId = const attrs.id
+      replaceAssetIds = over biplate replaceAssetId
+    let handEntities =
+          map
+            (overAttrs (\attrs' -> attrs {assetCardCode = assetCardCode attrs'}) . (`createAsset` attrs.id))
+            hand
+    let handAbilities =
+          map
+            ( \ab -> case ab.source of
+                AssetSource aid ->
+                  overCost replaceAssetIds
+                    $ ab {abilitySource = proxy attrs (CardIdSource $ unsafeMakeCardId $ unAssetId aid)}
+                _ -> error "wrong source"
+            )
+            (concatMap getAbilities handEntities)
+    anyM (getCanPerformAbility iid windows') handAbilities
   Criteria.HasCalculation c valueMatcher -> do
     value <- calculate c
     gameValueMatches value valueMatcher
@@ -1030,7 +1103,7 @@ passesCriteria iid mcard source' windows' = \case
     doomCount <- getDoomCount
     gameValueMatches doomCount valueMatcher
   Criteria.Negate restriction ->
-    not <$> passesCriteria iid mcard source windows' restriction
+    not <$> passesCriteria iid mcard source requestor windows' restriction
   Criteria.AllUndefeatedInvestigatorsResigned ->
     andM
       [ selectNone Matcher.UneliminatedInvestigator
@@ -1076,10 +1149,15 @@ passesCriteria iid mcard source' windows' = \case
           else do
             -- todo we should make a cleaner method for this
             fieldMap InDiscardAssetCardId (`elem` discard) aid
+      SkillSource aid -> do
+        inPlay <- selectAny $ Matcher.SkillWithId aid
+        if inPlay
+          then pure False
+          else pure $ unsafeToCardId aid `elem` discard
       InvestigatorSource _ -> case mcard of
         Just (card, _) -> pure $ toCardId card `elem` discard
         _ -> error "No card available to check"
-      _ -> error $ "source not handled for in your hand: " <> show source
+      _ -> error $ "source not handled for in your discard: " <> show source
   Criteria.InThreatAreaOf (Matcher.replaceYouMatcher iid -> who) -> do
     case source of
       TreacherySource tid ->
@@ -1126,6 +1204,7 @@ passesCriteria iid mcard source' windows' = \case
   Criteria.ControlsThis ->
     let
       go = \case
+        ProxySource (CardIdSource _) s -> go s
         ProxySource s _ -> go s
         AssetSource aid ->
           elem aid
@@ -1136,6 +1215,26 @@ passesCriteria iid mcard source' windows' = \case
         SkillSource sid ->
           elem sid
             <$> select (Matcher.SkillControlledBy $ Matcher.InvestigatorWithId iid)
+        _ -> pure False
+     in
+      go source
+  Criteria.OwnsThis ->
+    let
+      go = \case
+        ProxySource (CardIdSource _) s -> go s
+        ProxySource s _ -> go s
+        AssetSource aid ->
+          elem aid
+            <$> select (Matcher.AssetOwnedBy $ Matcher.InvestigatorWithId iid)
+        EventSource eid ->
+          elem eid
+            <$> select (Matcher.EventOwnedBy $ Matcher.InvestigatorWithId iid)
+        SkillSource sid ->
+          elem sid
+            <$> select (Matcher.SkillOwnedBy $ Matcher.InvestigatorWithId iid)
+        EnemySource eid ->
+          elem eid
+            <$> select (Matcher.EnemyOwnedBy $ Matcher.InvestigatorWithId iid)
         _ -> pure False
      in
       go source
@@ -1179,39 +1278,18 @@ passesCriteria iid mcard source' windows' = \case
   Criteria.ScenarioDeckWithCard key -> notNull <$> getScenarioDeck key
   Criteria.Uncontrolled -> case source of
     AssetSource aid -> fieldP AssetController isNothing aid
+    ProxySource (CardIdSource _) (AssetSource aid) -> fieldP AssetController isNothing aid
     ProxySource (AssetSource aid) _ -> fieldP AssetController isNothing aid
     _ -> error $ "missing ControlsThis check for source: " <> show source
   Criteria.OnSameLocation -> case source of
-    StorySource sid -> do
-      placement <- field StoryPlacement sid
-      onSameLocation iid placement
-    AssetSource aid -> do
-      placement <- field AssetPlacement aid
-      onSameLocation iid placement
-    EnemySource eid -> do
-      placement <- field EnemyPlacement eid
-      case placement of
-        Global -> pure True
-        _ ->
-          liftA2
-            (==)
-            (selectOne $ Matcher.LocationWithEnemy $ Matcher.EnemyWithId eid)
-            (field InvestigatorLocation iid)
-    TreacherySource tid ->
-      field TreacheryAttachedTarget tid >>= \case
-        Just (LocationTarget lid) ->
-          fieldP InvestigatorLocation (== Just lid) iid
-        Just (InvestigatorTarget iid') ->
-          if iid == iid'
-            then pure True
-            else do
-              l1 <- field InvestigatorLocation iid
-              l2 <- field InvestigatorLocation iid'
-              pure $ isJust l1 && l1 == l2
-        Just _ -> pure False
-        Nothing -> pure False
-    ProxySource (AssetSource aid) _ ->
-      liftA2 (==) (field AssetLocation aid) (field InvestigatorLocation iid)
+    StorySource sid -> onSameLocation iid =<< field StoryPlacement sid
+    AssetSource aid -> onSameLocation iid =<< field AssetPlacement aid
+    EnemySource eid -> onSameLocation iid =<< field EnemyPlacement eid
+    TreacherySource tid -> onSameLocation iid =<< field TreacheryPlacement tid
+    ProxySource (CardIdSource _) (AssetSource aid) -> do
+      onSameLocation iid =<< field AssetPlacement aid
+    ProxySource (AssetSource aid) _ -> do
+      onSameLocation iid =<< field AssetPlacement aid
     _ -> error $ "missing OnSameLocation check for source: " <> show source
   Criteria.DuringTurn (Matcher.replaceYouMatcher iid -> who) -> selectAny (Matcher.TurnInvestigator <> who)
   Criteria.CardExists cardMatcher -> selectAny cardMatcher
@@ -1224,8 +1302,11 @@ passesCriteria iid mcard source' windows' = \case
     case mSkillTest of
       Nothing -> pure False
       Just st -> cardListMatches (concat $ toList (skillTestCommittedCards st)) cardListMatcher
-  Criteria.PlayableCardExistsWithCostReduction n cardMatcher -> do
+  Criteria.PlayableCardExistsWithCostReduction reduction cardMatcher -> do
     mTurnInvestigator <- selectOne Matcher.TurnInvestigator
+    let n = case reduction of
+          Reduce x -> x
+          ReduceBySuccessAmount -> getPassedBy windows'
     let
       updatedWindows = case mTurnInvestigator of
         Nothing -> windows'
@@ -1339,6 +1420,8 @@ passesCriteria iid mcard source' windows' = \case
       ]
   Criteria.AssetExists matcher -> do
     selectAny (Matcher.replaceYouMatcher iid matcher)
+  Criteria.TargetExists matcher -> do
+    selectAny (Matcher.replaceYouMatcher iid matcher)
   Criteria.DifferentAssetsExist matcher1 matcher2 -> do
     m1 <- select (Matcher.replaceYouMatcher iid matcher1)
     m2 <- select (Matcher.replaceYouMatcher iid matcher2)
@@ -1383,8 +1466,8 @@ passesCriteria iid mcard source' windows' = \case
           InvestigatorClues
           (Matcher.InvestigatorWithoutModifier CannotSpendClues)
     total `gameValueMatches` valueMatcher
-  Criteria.Criteria rs -> allM (passesCriteria iid mcard source' windows') rs
-  Criteria.AnyCriterion rs -> anyM (passesCriteria iid mcard source' windows') rs
+  Criteria.Criteria rs -> allM (passesCriteria iid mcard source' requestor windows') rs
+  Criteria.AnyCriterion rs -> anyM (passesCriteria iid mcard source' requestor windows') rs
   Criteria.LocationExists matcher -> do
     selectAny (Matcher.replaceYouMatcher iid matcher)
   Criteria.LocationCount n matcher -> do
@@ -1430,7 +1513,7 @@ passesCriteria iid mcard source' windows' = \case
         <$> scenarioFieldMap ScenarioRemembered Set.toList
     gameValueMatches n (Matcher.AtLeast value)
   Criteria.AtLeastNCriteriaMet n criteria -> do
-    m <- countM (passesCriteria iid mcard source windows') criteria
+    m <- countM (passesCriteria iid mcard source requestor windows') criteria
     pure $ m >= n
   Criteria.DuringAction -> case mcard of
     Just (_, PaidCost) -> pure False -- If the cost is paid we're in a play action so we have to assume it is always False or it will never trigger
@@ -1526,8 +1609,12 @@ cardInFastWindows
   -> [Window]
   -> Matcher.WindowMatcher
   -> m Bool
-cardInFastWindows iid source _ windows' matcher =
-  anyM (\window -> windowMatches iid source window matcher) windows'
+cardInFastWindows iid source card windows' matcher =
+  anyM (\window -> windowMatches iid source' window matcher) windows'
+ where
+  source' = case card of
+    PlayerCard pc -> BothSource source (PlayerCardSource pc)
+    _ -> source
 
 windowMatches
   :: (HasGame m, HasCallStack)
@@ -1537,25 +1624,59 @@ windowMatches
   -> Matcher.WindowMatcher
   -> m Bool
 windowMatches _ _ (windowType -> Window.DoNotCheckWindow) _ = pure True
-windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType)) mtchr = do
+windowMatches iid rawSource window'@(windowTiming &&& windowType -> (timing', wType)) umtchr = do
+  let
+    (source, mcard) =
+      case rawSource of
+        BothSource s (PlayerCardSource pc) -> (s, Just (PlayerCard pc, UnpaidCost NeedsAction))
+        _ -> (rawSource, Nothing)
+
   let noMatch = pure False
   let isMatch = pure True
   let guardTiming t body = if timing' == t then body wType else noMatch
+  let mtchr = Matcher.replaceYouMatcher iid umtchr
   case mtchr of
+    Matcher.InvestigatorPlacedFromTheirPool timing whoMatcher sourceMatcher targetMatcher tType -> guardTiming timing \case
+      Window.InvestigatorPlacedFromTheirPool who source' target' tType' _ | tType == tType' -> do
+        andM
+          [ matchWho iid who whoMatcher
+          , target' `targetMatches` targetMatcher
+          , source' `sourceMatches` sourceMatcher
+          ]
+      _ -> noMatch
+    Matcher.AttachCard timing mWhoMatcher cardMatcher targetMatcher -> guardTiming timing \case
+      Window.AttachCard mWho card target -> do
+        andM
+          [ maybe
+              (pure True)
+              (\matcher -> maybe (pure False) (\who -> matchWho iid who matcher) mWho)
+              mWhoMatcher
+          , pure $ card `cardMatch` cardMatcher
+          , target `targetMatches` targetMatcher
+          ]
+      _ -> noMatch
     Matcher.WindowWhen criteria mtchr' -> do
       (&&)
-        <$> passesCriteria iid Nothing source [window'] criteria
-        <*> windowMatches iid source window' mtchr'
+        <$> passesCriteria iid mcard source source [window'] criteria
+        <*> windowMatches iid rawSource window' mtchr'
     Matcher.NotAnyWindow -> noMatch
     Matcher.AnyWindow -> isMatch
+    Matcher.FirstTimeParleyingThisRound timing whoMatcher -> guardTiming timing \case
+      Window.FirstTimeParleyingThisRound who -> matchWho iid who whoMatcher
+      _ -> noMatch
     Matcher.ScenarioCountIncremented timing k -> guardTiming timing \case
       Window.ScenarioCountIncremented k' -> pure $ k == k'
       _ -> noMatch
     Matcher.SkillTestStep timing step -> guardTiming timing \case
       Window.SkillTestStep step' -> pure $ step == step'
       _ -> noMatch
-    Matcher.PlacedToken timing token -> guardTiming timing \case
-      Window.PlacedToken _ _ token' _ -> pure $ token == token'
+    Matcher.PlacedToken timing sourceMatcher targetMatcher token -> guardTiming timing \case
+      Window.PlacedToken source' target' token' _ ->
+        andM
+          [ targetMatches target' targetMatcher
+          , sourceMatches source' sourceMatcher
+          , pure $ token == token'
+          ]
       _ -> noMatch
     Matcher.EntersThreatArea timing whoMatcher cardMatcher -> guardTiming timing \case
       Window.EntersThreatArea who card -> do
@@ -1571,10 +1692,18 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
           , pure $ card `cardMatch` cardMatcher
           ]
       _ -> noMatch
-    Matcher.SpentUses timing whoMatcher uType assetMatcher valueMatcher -> guardTiming timing $ \case
-      Window.SpentUses who assetId uType' n | uType == uType' -> do
+    Matcher.AttackOrEffectSpentLastUse timing sourceMatcher targetMatcher uType -> guardTiming timing $ \case
+      Window.AttackOrEffectSpentLastUse source' target' uType' | uType == uType' -> do
+        andM
+          [ sourceMatches source' sourceMatcher
+          , targetMatches target' targetMatcher
+          ]
+      _ -> noMatch
+    Matcher.SpentUses timing whoMatcher sourceMatcher uType assetMatcher valueMatcher -> guardTiming timing $ \case
+      Window.SpentUses who source' assetId uType' n | uType == uType' -> do
         andM
           [ matchWho iid who whoMatcher
+          , sourceMatches source' sourceMatcher
           , assetId <=~> assetMatcher
           , gameValueMatches n valueMatcher
           ]
@@ -1659,13 +1788,19 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
             [ sourceMatches source' sourceMatcher
             , matchWho iid who whoMatcher
             ]
-        _ -> noMatch
-    Matcher.InvestigatorWouldTakeDamage timing whoMatcher sourceMatcher ->
-      guardTiming timing $ \case
-        Window.WouldTakeDamage source' (InvestigatorTarget who) _ ->
+        Window.DealtHorror source' (InvestigatorTarget who) _ ->
           andM
             [ sourceMatches source' sourceMatcher
             , matchWho iid who whoMatcher
+            ]
+        _ -> noMatch
+    Matcher.InvestigatorWouldTakeDamage timing whoMatcher sourceMatcher damageTypeMatcher ->
+      guardTiming timing $ \case
+        Window.WouldTakeDamage source' (InvestigatorTarget who) _ strategy ->
+          andM
+            [ sourceMatches source' sourceMatcher
+            , matchWho iid who whoMatcher
+            , pure $ damageTypeMatches strategy damageTypeMatcher
             ]
         Window.WouldTakeDamageOrHorror source' (InvestigatorTarget who) n _ | n > 0 -> do
           andM
@@ -1802,7 +1937,7 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
         _ -> noMatch
     Matcher.WouldPerformRevelationSkillTest timing whoMatcher ->
       guardTiming timing $ \case
-        Window.WouldPerformRevelationSkillTest who -> matchWho iid who whoMatcher
+        Window.WouldPerformRevelationSkillTest who _ -> matchWho iid who whoMatcher
         _ -> noMatch
     Matcher.WouldDrawEncounterCard timing whoMatcher phaseMatcher ->
       guardTiming timing $ \case
@@ -1812,12 +1947,15 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
     Matcher.AmongSearchedCards whoMatcher -> case wType of
       Window.AmongSearchedCards _ who -> matchWho iid who whoMatcher
       _ -> noMatch
-    Matcher.Discarded timing whoMatcher sourceMatcher cardMatcher ->
+    Matcher.Discarded timing mWhoMatcher sourceMatcher cardMatcher ->
       guardTiming timing $ \case
-        Window.Discarded who source' card ->
+        Window.Discarded mWho source' card ->
           andM
             [ extendedCardMatch card cardMatcher
-            , matchWho iid who whoMatcher
+            , maybe
+                (pure True)
+                (\matcher -> maybe (pure False) (\who -> matchWho iid who matcher) mWho)
+                mWhoMatcher
             , sourceMatches source' sourceMatcher
             ]
         _ -> noMatch
@@ -1906,6 +2044,10 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
       _ -> noMatch
     Matcher.PlacedDoomCounter timing sourceMatcher targetMatcher -> guardTiming timing $ \case
       Window.PlacedDoom source' target _ ->
+        andM [targetMatches target targetMatcher, sourceMatches source' sourceMatcher]
+      _ -> noMatch
+    Matcher.PlacedDoomCounterOnTargetWithNoDoom timing sourceMatcher targetMatcher -> guardTiming timing $ \case
+      Window.PlacedDoomCounterOnTargetWithNoDoom source' target _ ->
         andM [targetMatches target targetMatcher, sourceMatches source' sourceMatcher]
       _ -> noMatch
     Matcher.WouldPlaceBreach timing targetMatcher -> guardTiming timing $ \case
@@ -2022,6 +2164,10 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
       Window.InvestigatorEliminated who ->
         matchWho iid who (Matcher.IncludeEliminated $ Matcher.replaceYouMatcher iid whoMatcher)
       _ -> noMatch
+    Matcher.InvestigatorResigned timing whoMatcher -> guardTiming timing $ \case
+      Window.InvestigatorResigned who ->
+        matchWho iid who (Matcher.IncludeEliminated $ Matcher.replaceYouMatcher iid whoMatcher)
+      _ -> noMatch
     Matcher.PutLocationIntoPlay timing whoMatcher locationMatcher ->
       guardTiming timing $ \case
         Window.PutLocationIntoPlay who locationId ->
@@ -2029,6 +2175,10 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
             [ matchWho iid who whoMatcher
             , locationMatches iid source window' locationId locationMatcher
             ]
+        _ -> noMatch
+    Matcher.LocationEntersPlay timing locationMatcher ->
+      guardTiming timing $ \case
+        Window.LocationEntersPlay locationId -> locationMatches iid source window' locationId locationMatcher
         _ -> noMatch
     Matcher.PlayerHasPlayableCard cardMatcher -> do
       -- TODO: do we need to grab the card source?
@@ -2051,6 +2201,9 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
       _ -> noMatch
     Matcher.TurnEnds timing whoMatcher -> guardTiming timing $ \case
       Window.TurnEnds who -> matchWho iid who whoMatcher
+      _ -> noMatch
+    Matcher.TurnWouldEnd timing whoMatcher -> guardTiming timing $ \case
+      Window.WouldEndTurn who -> matchWho iid who whoMatcher
       _ -> noMatch
     Matcher.RoundBegins timing -> guardTiming timing (pure . (== Window.AtBeginningOfRound))
     Matcher.RoundEnds timing -> guardTiming timing (pure . (== Window.AtEndOfRound))
@@ -2116,7 +2269,7 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
             Window.WouldPassSkillTest who -> matchWho iid who whoMatcher
             _ -> noMatch
       isWindowMatch skillTestResultMatcher
-    Matcher.InitiatedSkillTest timing whoMatcher skillTypeMatcher skillValueMatcher skillTestTypeMatcher ->
+    Matcher.InitiatedSkillTest timing whoMatcher skillTypeMatcher skillValueMatcher skillTestMatcher ->
       guardTiming timing $ \case
         Window.InitiatedSkillTest st -> case skillTestType st of
           SkillSkillTest skillType | skillTypeMatches skillType skillTypeMatcher -> do
@@ -2127,7 +2280,7 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
                   (skillTestAction st)
                   (skillTestType st)
                   skillValueMatcher
-              , skillTestTypeMatches iid st skillTestTypeMatcher
+              , skillTestMatches iid source st skillTestMatcher
               ]
           _ -> noMatch
         _ -> noMatch
@@ -2198,7 +2351,7 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
                         , locationMatches iid source window' lid whereMatcher
                         ]
                     _ -> noMatch
-                  Window.SuccessfulAttackEnemy who enemyId n -> case skillMatcher of
+                  Window.SuccessfulAttackEnemy who _ enemyId n -> case skillMatcher of
                     Matcher.WhileAttackingAnEnemy enemyMatcher ->
                       andM
                         [ matchWho iid who whoMatcher
@@ -2243,7 +2396,10 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
           Just who -> matchWho iid who whoMatcher
       _ -> noMatch
     Matcher.OrWindowMatcher matchers ->
-      anyM (windowMatches iid source window') matchers
+      anyM (windowMatches iid rawSource window') matchers
+    Matcher.TreacheryEntersPlay timing treacheryMatcher -> guardTiming timing $ \case
+      Window.TreacheryEntersPlay treacheryId -> treacheryId <=~> treacheryMatcher
+      _ -> noMatch
     Matcher.EnemySpawns timing whereMatcher enemyMatcher ->
       guardTiming timing $ \case
         Window.EnemySpawns enemyId locationId ->
@@ -2294,9 +2450,18 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
             , sourceMatches attackSource sourceMatcher
             ]
         _ -> noMatch
-    Matcher.EnemyAttackedSuccessfully timing whoMatcher enemyMatcher ->
+    Matcher.EnemyAttackedSuccessfully timing whoMatcher sourceMatcher enemyMatcher ->
       guardTiming timing $ \case
-        Window.SuccessfulAttackEnemy who enemyId _ -> do
+        Window.SuccessfulAttackEnemy who source' enemyId _ -> do
+          andM
+            [ enemyMatches enemyId enemyMatcher
+            , matchWho iid who whoMatcher
+            , sourceMatches source' sourceMatcher
+            ]
+        _ -> noMatch
+    Matcher.AttemptToEvade timing whoMatcher enemyMatcher ->
+      guardTiming timing $ \case
+        Window.AttemptToEvadeEnemy who enemyId ->
           andM
             [ enemyMatches enemyId enemyMatcher
             , matchWho iid who whoMatcher
@@ -2503,6 +2668,13 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
             , gameValueMatches n valueMatcher
             ]
         _ -> noMatch
+    Matcher.SpentClues timing whoMatcher valueMatcher -> guardTiming timing $ \case
+      Window.SpentClues who n ->
+        andM
+          [ matchWho iid who whoMatcher
+          , gameValueMatches n valueMatcher
+          ]
+      _ -> noMatch
     Matcher.DiscoverClues timing whoMatcher whereMatcher valueMatcher ->
       guardTiming timing $ \case
         Window.DiscoverClues who lid _ n ->
@@ -2515,6 +2687,14 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
     Matcher.GainsClues timing whoMatcher valueMatcher -> guardTiming timing $ \case
       Window.GainsClues who _ n ->
         andM [matchWho iid who whoMatcher, gameValueMatches n valueMatcher]
+      _ -> noMatch
+    Matcher.GainsResources timing whoMatcher sourceMatcher valueMatcher -> guardTiming timing $ \case
+      Window.GainsResources who source' n ->
+        andM
+          [ matchWho iid who whoMatcher
+          , gameValueMatches n valueMatcher
+          , sourceMatches source' sourceMatcher
+          ]
       _ -> noMatch
     Matcher.DiscoveringLastClue timing whoMatcher whereMatcher ->
       guardTiming timing $ \case
@@ -2544,6 +2724,14 @@ windowMatches iid source window'@(windowTiming &&& windowType -> (timing', wType
                   pure $ cardMatch card baseMatcher
                 _ -> elem card <$> select cardMatcher
             , deckMatch iid deck deckMatcher
+            ]
+        _ -> noMatch
+    Matcher.WouldDrawCard timing whoMatcher deckMatcher ->
+      guardTiming timing $ \case
+        Window.WouldDrawCard who deck ->
+          andM
+            [ matchWho iid who whoMatcher
+            , deckMatch iid deck $ Matcher.replaceThatInvestigator who deckMatcher
             ]
         _ -> noMatch
     Matcher.DeckWouldRunOutOfCards timing whoMatcher -> guardTiming timing $ \case
@@ -2653,58 +2841,14 @@ skillTestValueMatches iid maction skillTestType = \case
       Nothing -> pure False
       Just n -> case skillTestType of
         SkillSkillTest skillType -> do
-          baseSkill <- baseSkillValueFor skillType maction [] iid
+          baseSkill <- baseSkillValueFor skillType maction iid
           pure $ n > baseSkill
         AndSkillTest types -> do
-          baseSkill <- sum <$> traverse (\skillType -> baseSkillValueFor skillType maction [] iid) types
+          baseSkill <- sum <$> traverse (\skillType -> baseSkillValueFor skillType maction iid) types
           pure $ n > baseSkill
         ResourceSkillTest -> do
           resources <- field InvestigatorResources iid
           pure $ n > resources
-
-targetMatches :: HasGame m => Target -> Matcher.TargetMatcher -> m Bool
-targetMatches s = \case
-  Matcher.TargetMatchesAny ms -> anyM (targetMatches s) ms
-  Matcher.TargetIs s' -> pure $ s == s'
-  Matcher.AnyTarget -> pure True
-  Matcher.TargetMatches ms -> allM (targetMatches s) ms
-  Matcher.LocationTargetMatches locationMatcher -> case s of
-    LocationTarget lid -> lid <=~> locationMatcher
-    ProxyTarget proxyTarget _ -> targetMatches proxyTarget (Matcher.LocationTargetMatches locationMatcher)
-    BothTarget left right ->
-      orM
-        [ targetMatches left (Matcher.LocationTargetMatches locationMatcher)
-        , targetMatches right (Matcher.LocationTargetMatches locationMatcher)
-        ]
-    _ -> pure False
-  Matcher.ActTargetMatches actMatcher -> case s of
-    ActTarget aid -> aid <=~> actMatcher
-    ProxyTarget proxyTarget _ -> targetMatches proxyTarget (Matcher.ActTargetMatches actMatcher)
-    BothTarget left right ->
-      orM
-        [ targetMatches left (Matcher.ActTargetMatches actMatcher)
-        , targetMatches right (Matcher.ActTargetMatches actMatcher)
-        ]
-    _ -> pure False
-  Matcher.AgendaTargetMatches agendaMatcher -> case s of
-    AgendaTarget aid -> aid <=~> agendaMatcher
-    ProxyTarget proxyTarget _ -> targetMatches proxyTarget (Matcher.AgendaTargetMatches agendaMatcher)
-    BothTarget left right ->
-      orM
-        [ targetMatches left (Matcher.AgendaTargetMatches agendaMatcher)
-        , targetMatches right (Matcher.AgendaTargetMatches agendaMatcher)
-        ]
-    _ -> pure False
-  Matcher.ScenarioCardTarget -> case s of
-    EnemyTarget _ -> pure True
-    TreacheryTarget _ -> pure True
-    AgendaTarget _ -> pure True
-    ActTarget _ -> pure True
-    LocationTarget _ -> pure True
-    ProxyTarget proxyTarget _ -> targetMatches proxyTarget Matcher.ScenarioCardTarget
-    BothTarget left right ->
-      orM [targetMatches left Matcher.ScenarioCardTarget, targetMatches right Matcher.ScenarioCardTarget]
-    _ -> pure False
 
 enemyMatches :: HasGame m => EnemyId -> Matcher.EnemyMatcher -> m Bool
 enemyMatches !enemyId !mtchr = elem enemyId <$> select mtchr
@@ -2732,6 +2876,8 @@ locationMatches investigatorId source window locationId matcher' = do
     Matcher.LocationWithTreachery treacheryMatcher -> do selectAny $ Matcher.treacheryAt locationId <> treacheryMatcher
 
     -- normal cases
+    Matcher.LocationFartherFrom {} -> locationId <=~> matcher
+    Matcher.LocationBetween {} -> locationId <=~> matcher
     Matcher.LocationWithDistanceFromAtLeast {} -> locationId <=~> matcher
     Matcher.LocationWithAccessiblePath {} -> locationId <=~> matcher
     Matcher.CanMoveCloserToLocation {} -> locationId <=~> matcher
@@ -2802,7 +2948,10 @@ locationMatches investigatorId source window locationId matcher' = do
     Matcher.LocationWithHorror valueMatcher ->
       (`gameValueMatches` valueMatcher) =<< field LocationHorror locationId
     Matcher.LocationWithShroud valueMatcher ->
-      (`gameValueMatches` valueMatcher) =<< field LocationShroud locationId
+      field LocationShroud locationId >>= \case
+        Nothing -> pure False
+        Just shroud -> gameValueMatches shroud valueMatcher
+    Matcher.LocationWithShroudLessThanOrEqualToLessThanEnemyMaybeField {} -> locationId <=~> matcher
     Matcher.LocationWithMostClues locationMatcher ->
       elem locationId
         <$> select (Matcher.LocationWithMostClues locationMatcher)
@@ -2853,6 +3002,15 @@ skillTestMatches
   -> Matcher.SkillTestMatcher
   -> m Bool
 skillTestMatches iid source st = \case
+  Matcher.PerilousSkillTest -> getIsPerilous st
+  Matcher.IfSkillTestMatcher p thenMatcher elseMatcher -> do
+    p' <- skillTestMatches iid source st p
+    skillTestMatches iid source st $ if p' then thenMatcher else elseMatcher
+  Matcher.SkillTestWithDifficulty gv ->
+    getSkillTestDifficulty >>= \case
+      Nothing -> pure False
+      Just n -> gameValueMatches n gv
+  Matcher.SkillTestOnEncounterCard -> skillTestSource st `sourceMatches` Matcher.EncounterCardSource
   Matcher.NotSkillTest matcher ->
     not <$> skillTestMatches iid source st matcher
   Matcher.AnySkillTest -> pure True
@@ -2867,6 +3025,7 @@ skillTestMatches iid source st = \case
   Matcher.UsingThis -> pure $ case skillTestSource st of
     AbilitySource (ProxySource _ s) _ -> s == source
     AbilitySource s _ -> s == source
+    ProxySource (CardIdSource _) s -> s == source
     ProxySource _ s -> s == source
     s -> s == source
   Matcher.SkillTestSourceMatches sourceMatcher ->
@@ -2877,13 +3036,14 @@ skillTestMatches iid source st = \case
     (>= n)
       <$> countM (`chaosTokenMatches` Matcher.IncludeSealed matcher) (skillTestRevealedChaosTokens st)
   Matcher.SkillTestOnCardWithTrait t -> elem t <$> sourceTraits (skillTestSource st)
+  Matcher.SkillTestOnCard match -> (`cardMatch` match) <$> sourceToCard (skillTestSource st)
   Matcher.SkillTestWithResolvedChaosTokenBy whoMatcher matcher -> do
     iids <- select whoMatcher
     anyM (`chaosTokenMatches` Matcher.IncludeSealed matcher)
       . filter (maybe False (`elem` iids) . chaosTokenRevealedBy)
       $ skillTestRevealedChaosTokens st
   Matcher.SkillTestFromRevelation -> pure $ skillTestIsRevelation st
-  Matcher.SkillTestForAction actionMatcher -> case skillTestAction st of
+  Matcher.SkillTestWithAction actionMatcher -> case skillTestAction st of
     Just action -> actionMatches iid action actionMatcher
     Nothing -> pure False
   Matcher.WhileInvestigating locationMatcher -> case skillTestAction st of
@@ -2893,8 +3053,11 @@ skillTestMatches iid source st = \case
         elem lid <$> select locationMatcher
       _ -> pure False
     _ -> pure False
-  Matcher.SkillTestOnTreachery treacheryMatcher -> case skillTestSource st of
-    TreacherySource tid -> elem tid <$> select treacheryMatcher
+  Matcher.SkillTestOnTreachery treacheryMatcher -> case st.source.treachery of
+    Just tid -> elem tid <$> select treacheryMatcher
+    _ -> pure False
+  Matcher.SkillTestOnAsset assetMatcher -> case st.source.asset of
+    Just aid -> elem aid <$> select assetMatcher
     _ -> pure False
   Matcher.WhileAttackingAnEnemy enemyMatcher -> case skillTestAction st of
     Just Action.Fight -> case skillTestTarget st of
@@ -2905,6 +3068,14 @@ skillTestMatches iid source st = \case
     Just Action.Evade -> case skillTestTarget st of
       EnemyTarget eid -> elem eid <$> select enemyMatcher
       _ -> pure False
+    _ -> pure False
+  Matcher.WhileParleyingWithAnEnemy enemyMatcher -> case skillTestAction st of
+    Just Action.Parley -> case skillTestTarget st of
+      EnemyTarget eid -> elem eid <$> select enemyMatcher
+      _ -> pure False
+    _ -> pure False
+  Matcher.WhileParleying -> case skillTestAction st of
+    Just Action.Parley -> pure True
     _ -> pure False
   Matcher.SkillTestWithSkill sk -> selectAny sk
   Matcher.SkillTestWithSkillType sType -> pure $ case skillTestType st of
@@ -2982,10 +3153,12 @@ deckMatch iid deckSignifier = \case
   Matcher.DeckOneOf matchers' -> anyM (deckMatch iid deckSignifier) matchers'
 
 agendaMatches :: HasGame m => AgendaId -> Matcher.AgendaMatcher -> m Bool
-agendaMatches !agendaId !mtchr = elem agendaId <$> select mtchr
+agendaMatches _ Matcher.AnyAgenda = pure True
+agendaMatches !agendaId mtchr = elem agendaId <$> select mtchr
 
 actMatches :: HasGame m => ActId -> Matcher.ActMatcher -> m Bool
-actMatches !actId !mtchr = elem actId <$> select mtchr
+actMatches _ Matcher.AnyAct = pure True
+actMatches !actId mtchr = elem actId <$> select mtchr
 
 actionMatches :: HasGame m => InvestigatorId -> Action -> Matcher.ActionMatcher -> m Bool
 actionMatches _ _ Matcher.AnyAction = pure True
@@ -3028,9 +3201,15 @@ skillTypeMatches st = \case
 enemyAttackMatches
   :: HasGame m => InvestigatorId -> EnemyAttackDetails -> Matcher.EnemyAttackMatcher -> m Bool
 enemyAttackMatches youId details@EnemyAttackDetails {..} = \case
+  Matcher.EnemyAttackMatches as -> allM (enemyAttackMatches youId details) as
   Matcher.AnyEnemyAttack -> pure True
   Matcher.NotEnemyAttack inner -> not <$> enemyAttackMatches youId details inner
   Matcher.AttackOfOpportunityAttack -> pure $ attackType == AttackOfOpportunity
+  Matcher.AttackDealtDamageOrHorror -> pure $ any ((> 0) . uncurry max) (toList attackDamaged)
+  Matcher.AttackDamagedAsset inner -> do
+    flip anyM (mapToList attackDamaged) \(target, (x, y)) -> case target of
+      AssetTarget aid | x > 0 || y > 0 -> aid <=~> inner
+      _ -> pure False
   Matcher.AttackOfOpportunityAttackYouProvoked ->
     pure $ attackType == AttackOfOpportunity && isTarget youId attackOriginalTarget
   Matcher.AttackViaAlert -> pure $ attackType == AlertAttack
@@ -3090,6 +3269,15 @@ sourceCanDamageEnemy eid source = do
     CannotBeDamaged -> pure True
     _ -> pure False
 
+sourceCanDamageAsset :: HasGame m => AssetId -> Source -> m Bool
+sourceCanDamageAsset eid source = do
+  mods <- getModifiers eid
+  not <$> anyM prevents mods
+ where
+  prevents = \case
+    CannotBeDamagedBySourcesExcept matcher -> not <$> sourceMatches source matcher
+    _ -> pure False
+
 getPotentialSlots
   :: (HasGame m, IsCard a) => a -> InvestigatorId -> m [SlotType]
 getPotentialSlots card iid = do
@@ -3101,6 +3289,7 @@ getPotentialSlots card iid = do
     passesRestriction = \case
       RestrictedSlot _ matcher _ -> cardMatch card matcher
       Slot {} -> True
+      AdjustableSlot {} -> True
   map fst
     <$> filterM
       ( \(_, slot) ->
@@ -3143,13 +3332,15 @@ isForcedAbilityType iid source = \case
   Objective aType -> isForcedAbilityType iid source aType
   FastAbility' {} -> pure False
   ReactionAbility {} -> pure False
+  CustomizationReaction {} -> pure True -- TODO: Keep an eye on this
   ActionAbility {} -> pure False
   ActionAbilityWithSkill {} -> pure False
   ActionAbilityWithBefore {} -> pure False
   AbilityEffect {} -> pure False
+  ServitorAbility {} -> pure False
   Haunted {} -> pure True -- Maybe? we wanted this to basically never be valid but still take forced precedence
   Cosmos {} -> pure True -- Maybe? we wanted this to basically never be valid but still take forced precedence
-  ForcedWhen c _ -> passesCriteria iid Nothing source [] c
+  ForcedWhen c _ -> passesCriteria iid Nothing source source [] c
 
 sourceMatches
   :: (HasCallStack, HasGame m) => Source -> Matcher.SourceMatcher -> m Bool
@@ -3166,16 +3357,31 @@ sourceMatches s = \case
   Matcher.SourceIsEnemyAttack em -> case s of
     EnemyAttackSource eid -> elem eid <$> select em
     _ -> pure False
+  Matcher.SourceIsTreacheryEffect tm -> case s of
+    TreacherySource tid -> elem tid <$> select tm
+    _ -> pure False
   Matcher.SourceIsAsset am ->
     let
       isAssetSource s' = case s' of
         AssetSource aid -> elem aid <$> select am
         AbilitySource (AssetSource aid) _ -> elem aid <$> select am
+        ProxySource (CardIdSource _) pSource -> isAssetSource pSource
         ProxySource pSource _ -> isAssetSource pSource
         BothSource lSource rSource -> orM [isAssetSource lSource, isAssetSource rSource]
         _ -> pure False
      in
       isAssetSource s
+  Matcher.SourceIsEvent am ->
+    let
+      isEventSource s' = case s' of
+        EventSource aid -> elem aid <$> select am
+        AbilitySource (EventSource aid) _ -> elem aid <$> select am
+        ProxySource (CardIdSource _) pSource -> isEventSource pSource
+        ProxySource pSource _ -> isEventSource pSource
+        BothSource lSource rSource -> orM [isEventSource lSource, isEventSource rSource]
+        _ -> pure False
+     in
+      isEventSource s
   Matcher.AnySource -> pure True
   Matcher.SourceMatches ms -> allM (sourceMatches s) ms
   Matcher.SourceOwnedBy whoMatcher ->
@@ -3209,51 +3415,114 @@ sourceMatches s = \case
         _ -> pure False
      in
       checkSource s
+  Matcher.SourceIsCardEffect -> do
+    let
+      go = \case
+        ChaosTokenSource {} -> True
+        ChaosTokenEffectSource {} -> True
+        ActiveCostSource {} -> False
+        AbilitySource {} -> True
+        ActSource {} -> True
+        ActDeckSource {} -> False
+        AgendaDeckSource {} -> False
+        AgendaSource {} -> True
+        AgendaMatcherSource {} -> True
+        AssetMatcherSource {} -> True
+        ActMatcherSource {} -> True
+        AssetSource {} -> True
+        CardCodeSource {} -> False
+        CardSource {} -> False
+        CardIdSource {} -> False
+        DeckSource {} -> False
+        EffectSource {} -> True
+        EmptyDeckSource {} -> False
+        EncounterCardSource {} -> False
+        EnemyAttackSource {} -> True
+        EnemySource {} -> True
+        EventSource {} -> True
+        GameSource -> False
+        InvestigatorSource {} -> True
+        LocationMatcherSource {} -> True
+        EnemyMatcherSource {} -> True
+        LocationSource {} -> True
+        PlayerCardSource {} -> False
+        ProxySource (CardIdSource _) s' -> go s'
+        ProxySource s' _ -> go s'
+        ResourceSource {} -> False
+        ScenarioSource {} -> False
+        SkillSource {} -> True
+        SkillTestSource {} -> False
+        StorySource {} -> True
+        TestSource {} -> True
+        TreacherySource {} -> True
+        YouSource {} -> False
+        CampaignSource {} -> False
+        ThisCard {} -> True
+        CardCostSource {} -> False
+        BothSource a b -> go a || go b
+        TarotSource {} -> True
+        BatchSource {} -> False
+    pure $ go s
   Matcher.SourceIsType t -> pure $ case t of
     AssetType -> case s of
       AssetSource _ -> True
+      CardSource c -> c.kind == AssetType
       _ -> False
     EventType -> case s of
       EventSource _ -> True
+      CardSource c -> c.kind == EventType
       _ -> False
     SkillType -> case s of
       SkillSource _ -> True
+      CardSource c -> c.kind == SkillType
       _ -> False
     PlayerTreacheryType -> case s of
       TreacherySource _ -> True
+      CardSource c -> c.kind == PlayerTreacheryType
       _ -> False
     PlayerEnemyType -> case s of
       EnemySource _ -> True
+      CardSource c -> c.kind == PlayerEnemyType
       _ -> False
     TreacheryType -> case s of
       TreacherySource _ -> True
+      CardSource c -> c.kind == TreacheryType
       _ -> False
     EnemyType -> case s of
       EnemySource _ -> True
+      CardSource c -> c.kind == EnemyType
       _ -> False
     LocationType -> case s of
       LocationSource _ -> True
+      CardSource c -> c.kind == LocationType
       _ -> False
     EncounterAssetType -> case s of
       AssetSource _ -> True
+      CardSource c -> c.kind == EncounterAssetType
       _ -> False
     EncounterEventType -> case s of
       EventSource _ -> True
+      CardSource c -> c.kind == EncounterEventType
       _ -> False
     ActType -> case s of
       ActSource _ -> True
+      CardSource c -> c.kind == ActType
       _ -> False
     AgendaType -> case s of
       AgendaSource _ -> True
+      CardSource c -> c.kind == AgendaType
       _ -> False
     StoryType -> case s of
       StorySource _ -> True
+      CardSource c -> c.kind == StoryType
       _ -> False
     InvestigatorType -> case s of
       InvestigatorSource _ -> True
+      CardSource c -> c.kind == InvestigatorType
       _ -> False
     ScenarioType -> case s of
       ScenarioSource -> True
+      CardSource c -> c.kind == ScenarioType
       _ -> False
   Matcher.EncounterCardSource ->
     let
@@ -3267,6 +3536,21 @@ sourceMatches s = \case
         _ -> False
      in
       pure $ check s
+  Matcher.SourceIsPlayerCard ->
+    let
+      check = \case
+        AbilitySource source' _ -> check source'
+        AssetSource _ -> True
+        EventSource _ -> True
+        SkillSource _ -> True
+        InvestigatorSource _ -> True
+        _ -> False
+     in
+      pure $ check s
+  Matcher.SourceIsPlayerCardAbility ->
+    case s of
+      AbilitySource s' _ -> sourceMatches s' Matcher.SourceIsPlayerCard
+      _ -> pure False
   Matcher.SourceWithCard cardMatcher -> do
     let
       getCardSource = \case
@@ -3308,21 +3592,11 @@ canDo iid action = do
         fieldP InvestigatorActionsPerformed (\taken -> all (\a -> all (notElem a) taken) as) iid
       FirstOneOfPerformed {} -> pure False
       IsAction action' -> pure $ action == action'
+      AnyActionTarget as -> anyM preventsAction as
       EnemyAction {} -> pure False
       IsAnyAction {} -> pure True
 
   not <$> anyM prevents mods
-
-skillTestTypeMatches
-  :: HasGame m => InvestigatorId -> SkillTest -> Matcher.SkillTestTypeMatcher -> m Bool
-skillTestTypeMatches iid st = \case
-  Matcher.SkillTestTypeOneOf as -> anyM (skillTestTypeMatches iid st) as
-  Matcher.AnySkillTestType -> pure True
-  Matcher.SkillTestOnEncounterCard -> skillTestSource st `sourceMatches` Matcher.EncounterCardSource
-  Matcher.SkillTestWithAction actionMatcher -> maybe (pure False) (\a -> actionMatches iid a actionMatcher) (skillTestAction st)
-  Matcher.InvestigationSkillTest locationMatcher -> case toActionTarget (skillTestTarget st) of
-    LocationTarget lid -> andM [lid <=~> locationMatcher, pure $ skillTestAction st == Just #investigate]
-    _ -> pure False
 
 getCanMoveTo :: (Sourceable source, HasGame m) => InvestigatorId -> source -> LocationId -> m Bool
 getCanMoveTo iid source lid = elem lid <$> getCanMoveToLocations iid source
@@ -3393,3 +3667,50 @@ getOtherPlayersPlayableCards iid costStatus windows' = do
       playable <- getIsPlayable iid (toSource iid) costStatus windows' c
       pure $ guard playable $> c
     _ -> pure Nothing
+
+damageTypeMatches :: DamageStrategy -> Matcher.DamageTypeMatcher -> Bool
+damageTypeMatches strategy = \case
+  Matcher.IsDirectDamage -> isDirectStrategy
+  Matcher.IsNonDirectDamage -> not isDirectStrategy
+  Matcher.AnyDamageType -> True
+ where
+  isDirectStrategy = case strategy of
+    DamageDirect -> True
+    DamageAny -> False
+    DamageAssetsFirst -> False
+    DamageFirst _ -> False
+    SingleTarget -> False
+    DamageEvenly -> False
+    DamageFromHastur -> False
+
+passesLimits :: HasGame m => InvestigatorId -> Card -> m Bool
+passesLimits iid c = allM go (cdLimits $ toCardDef c)
+ where
+  go = \case
+    LimitPerInvestigator m -> case toCardType c of
+      AssetType -> do
+        n <- selectCount $ Matcher.assetControlledBy iid <> Matcher.AssetWithTitle (nameTitle $ toName c)
+        pure $ m > n
+      _ -> error $ "Not handling card type: " <> show (toCardType c)
+    LimitPerTrait t m -> case toCardType c of
+      AssetType -> do
+        n <- selectCount (Matcher.AssetWithTrait t)
+        pure $ m > n
+      _ -> error $ "Not handling card type: " <> show (toCardType c)
+    MaxPerAttack m -> case toCardType c of
+      EventType -> do
+        n <- selectCount $ Matcher.eventIs c
+        pure $ m > n
+      _ -> error $ "Not handling card type: " <> show (toCardType c)
+    MaxPerGame m -> do
+      n <- getCardUses (toCardCode c)
+      pure $ m > n
+    MaxPerTurn m -> do
+      n <- getCardUses (toCardCode c)
+      pure $ m > n
+    MaxPerRound m -> do
+      n <- getCardUses (toCardCode c)
+      pure $ m > n
+    MaxPerTraitPerRound t m -> do
+      n <- count (elem t) . map toTraits <$> getAllCardUses
+      pure $ m > n

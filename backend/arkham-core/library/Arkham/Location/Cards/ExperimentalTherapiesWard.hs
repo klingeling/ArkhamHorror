@@ -25,19 +25,14 @@ instance HasAbilities ExperimentalTherapiesWard where
       attrs
       [ mkAbility attrs 1
           $ ReactionAbility
-            ( InitiatedSkillTest
-                #when
-                You
-                AnySkillType
-                AnySkillTestValue
-                (InvestigationSkillTest $ LocationWithId $ toId attrs)
-            )
+            (InitiatedSkillTest #when You #any #any (WhileInvestigating $ be attrs))
             (HorrorCost (toSource attrs) YouTarget 1)
       ]
 
 instance RunMessage ExperimentalTherapiesWard where
   runMessage msg l@(ExperimentalTherapiesWard attrs) = case msg of
     UseThisAbility _ (isSource attrs -> True) 1 -> do
-      push $ skillTestModifier (toAbilitySource attrs 1) attrs (ShroudModifier (-2))
+      sid <- getRandom
+      push $ skillTestModifier sid (toAbilitySource attrs 1) attrs (ShroudModifier (-2))
       pure l
     _ -> ExperimentalTherapiesWard <$> runMessage msg attrs

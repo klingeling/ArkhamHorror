@@ -19,16 +19,17 @@ medicalTexts :: AssetCard MedicalTexts
 medicalTexts = asset MedicalTexts Cards.medicalTexts
 
 instance HasAbilities MedicalTexts where
-  getAbilities (MedicalTexts a) = [restrictedAbility a 1 ControlsThis #action]
+  getAbilities (MedicalTexts a) = [skillTestAbility $ restrictedAbility a 1 ControlsThis #action]
 
 instance RunMessage MedicalTexts where
   runMessage msg a@(MedicalTexts attrs) = runQueueT $ case msg of
     UseThisAbility iid (isSource attrs -> True) 1 -> do
       let controllerId = getController attrs
       investigators <- select $ affectsOthers $ colocatedWith controllerId
+      sid <- getRandom
       chooseOne iid
         $ targetLabels investigators
-        $ \iid' -> only $ Msg.beginSkillTest iid (attrs.ability 1) iid' #intellect (Fixed 2)
+        $ \iid' -> only $ Msg.beginSkillTest sid iid (attrs.ability 1) iid' #intellect (Fixed 2)
       pure a
     PassedThisSkillTest who (isAbilitySource attrs 1 -> True) -> do
       getSkillTestTarget >>= \case
@@ -43,4 +44,4 @@ instance RunMessage MedicalTexts where
         Just (InvestigatorTarget iid) -> push $ Msg.assignDamage iid (toAbilitySource attrs 1) 1
         _ -> error "invalid target"
       pure a
-    _ -> MedicalTexts <$> lift (runMessage msg attrs)
+    _ -> MedicalTexts <$> liftRunMessage msg attrs

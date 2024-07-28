@@ -2,13 +2,14 @@ module Arkham.Investigator.Cards.CalvinWright (calvinWright, CalvinWright (..)) 
 
 import Arkham.Game.Helpers
 import Arkham.Helpers.Investigator
-import Arkham.Helpers.Message (directDamage, directHorror)
+import Arkham.Helpers.Message qualified as Msg
 import Arkham.Investigator.Cards qualified as Cards
 import Arkham.Investigator.Import.Lifted
 
 newtype CalvinWright = CalvinWright InvestigatorAttrs
   deriving anyclass (IsInvestigator, HasAbilities)
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock (Data)
 
 calvinWright :: InvestigatorCard CalvinWright
 calvinWright =
@@ -38,9 +39,9 @@ instance RunMessage CalvinWright where
       chooseOne iid
         $ [Label "Heal 1 Damage" [HealDamage (toTarget attrs) (toSource attrs) 1] | canHealDamage]
         <> [Label "Heal 1 Horror" [HealHorror (toTarget attrs) (toSource attrs) 1] | canHealHorror]
-        <> [ Label "Take 1 Direct Damage" [directDamage iid attrs 1]
-           , Label "Take 1 Direct Horror" [directHorror iid attrs 1]
+        <> [ Label "Take 1 Direct Damage" [Msg.directDamage iid attrs 1]
+           , Label "Take 1 Direct Horror" [Msg.directHorror iid attrs 1]
            , Label "Do not use elder sign ability" []
            ]
       pure i
-    _ -> CalvinWright <$> lift (runMessage msg attrs)
+    _ -> CalvinWright <$> liftRunMessage msg attrs

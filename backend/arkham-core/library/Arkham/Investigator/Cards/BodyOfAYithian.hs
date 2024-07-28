@@ -10,12 +10,13 @@ import Arkham.Investigator.Runner
 import Arkham.Matcher
 
 newtype YithianMetadata = YithianMetadata {originalBody :: Value}
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Eq, Generic, Data)
   deriving anyclass (ToJSON, FromJSON)
 
 newtype BodyOfAYithian = BodyOfAYithian (InvestigatorAttrs `With` YithianMetadata)
-  deriving anyclass (IsInvestigator)
+  deriving anyclass IsInvestigator
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock Data
 
 instance HasModifiersFor BodyOfAYithian where
   getModifiersFor (AssetTarget aid) (BodyOfAYithian (a `With` _)) = do
@@ -34,6 +35,6 @@ instance HasChaosTokenValue BodyOfAYithian where
 instance RunMessage BodyOfAYithian where
   runMessage msg i@(BodyOfAYithian (attrs `With` meta)) = case msg of
     ResolveChaosToken _ ElderSign iid | iid == toId attrs -> do
-      pushM $ drawCards iid ElderSign 1
+      push $ drawCards iid ElderSign 1
       pure i
     _ -> BodyOfAYithian . (`with` meta) <$> runMessage msg attrs

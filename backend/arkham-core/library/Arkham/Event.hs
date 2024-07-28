@@ -11,7 +11,13 @@ import Arkham.Event.Runner
 import Arkham.Id
 
 createEvent :: IsCard a => a -> InvestigatorId -> EventId -> Event
-createEvent a iid eid = lookupEvent (toCardCode a) iid eid (toCardId a)
+createEvent a iid eid =
+  let this = lookupEvent (toCardCode a) iid eid (toCardId a)
+   in overAttrs (\attrs -> attrs {eventCustomizations = customizations}) this
+ where
+  customizations = case toCard a of
+    PlayerCard pc -> pcCustomizations pc
+    _ -> mempty
 
 instance RunMessage Event where
   runMessage msg (Event a) = Event <$> runMessage msg a
@@ -477,16 +483,103 @@ allEvents =
     , --- mystic [eote]
       SomeEventCard meditativeTrance
     , SomeEventCard windsOfPower1
+    , SomeEventCard foresight1
     , SomeEventCard parallelFates2
+    , --- survivor [eote]
+      SomeEventCard juryRig
+    , SomeEventCard burnAfterReading1
+    , SomeEventCard bloodWillHaveBlood2
+    , SomeEventCard fendOff3
+    , --- guardian/seeker [eote]
+      SomeEventCard onTheTrail1
+    , SomeEventCard onTheTrail3
+    , --- guardian/rogue [eote]
+      SomeEventCard snipe1
+    , --- seeker/mystic [eote]
+      SomeEventCard protectingTheAnirniq2
     , --- rogue/mystic [eote]
       SomeEventCard etherealSlip
     , SomeEventCard etherealSlip2
+    , --- rogue/survivor [eote]
+      SomeEventCard hitMe
+    , --- neutral [eote]
+      SomeEventCard callForBackup2
     , -- The Scarlet Keys
-      --- rogue [tsk]
-      SomeEventCard breakingAndEntering2
+      --- signature [tsk]
+      SomeEventCard wordOfWoe
+    , SomeEventCard wordOfWeal
+    , --- guardian [tsk]
+      SomeEventCard customModifications
+    , SomeEventCard bolas
+    , SomeEventCard breachTheDoor
+    , SomeEventCard grievousWound
+    , SomeEventCard motivationalSpeech
+    , SomeEventCard oneInTheChamber
+    , SomeEventCard preparedForTheWorst2
+    , SomeEventCard everVigilant4
+    , --- seeker [tsk]
+      SomeEventCard theRavenQuill
+    , SomeEventCard bizarreDiagnosis
+    , SomeEventCard captivatingDiscovery
+    , SomeEventCard mapTheArea
+    , SomeEventCard existentialRiddle1
+    , SomeEventCard guidance1
+    , --- rogue [tsk]
+      SomeEventCard friendsInLowPlaces
+    , SomeEventCard honedInstinct
+    , SomeEventCard hiddenPocket
+    , SomeEventCard hitAndRun
+    , SomeEventCard illTakeThat
+    , SomeEventCard kickingTheHornetsNest
+    , SomeEventCard quickGetaway
+    , SomeEventCard breakingAndEntering2
+    , SomeEventCard cleanSneak4
+    , --- mystic [tsk]
+      SomeEventCard powerWord
+    , SomeEventCard eldritchInitiation
+    , SomeEventCard explosiveWard
+    , SomeEventCard stringOfCurses
+    , SomeEventCard moonlightRitual2
+    , SomeEventCard uncageTheSoul3
+    , --- survivor [tsk]
+      SomeEventCard makeshiftTrap
+    , SomeEventCard endOfTheRoad
+    , SomeEventCard exploitWeakness
+    , SomeEventCard makingPreparations
+    , SomeEventCard predatorOrPrey
+    , SomeEventCard shedALight
+    , SomeEventCard atACrossroads1
+    , SomeEventCard lifeline1
+    , SomeEventCard natureOfTheBeast1
+    , SomeEventCard heedTheDream2
+    , SomeEventCard salvage2
+    , SomeEventCard fickleFortune3
+    , --- neutral [tsk]
+      SomeEventCard refine
+    , --- basic weakness [tsk]
+      SomeEventCard quantumParadox
+    , SomeEventCard payYourDue
+    , SomeEventCard underprepared
     , -- The Feast of Hemloch Vale
-      --- survivor [fhv]
-      SomeEventCard keepFaith2
+      --- signature [fhv]
+      SomeEventCard adHoc
+    , SomeEventCard aethericCurrentYuggoth
+    , SomeEventCard aethericCurrentYoth
+    , SomeEventCard beguile
+    , --- guardian [fhv]
+      SomeEventCard tinker
+    , --- seeker [fhv]
+      SomeEventCard fineTuning1
+    , --- rogue [fhv]
+      SomeEventCard bankJob
+    , SomeEventCard falseSurrender
+    , SomeEventCard grift
+    , SomeEventCard vamp
+    , SomeEventCard snitch2
+    , SomeEventCard vamp3
+    , --- survivor [fhv]
+      SomeEventCard pushedToTheLimit
+    , SomeEventCard keepFaith2
     , -- Return to Night of the Zealot
       --- guardian [rtnotz]
       SomeEventCard dynamiteBlast2
@@ -549,7 +642,7 @@ allEvents =
     , SomeEventCard iveGotAPlan2
     , SomeEventCard mindOverMatter2
     , SomeEventCard seekingAnswers2
-    , -- Winifred Habbacmock
+    , -- Winifred Habbamock
       SomeEventCard pilfer
     , SomeEventCard sneakBy
     , SomeEventCard daringManeuver2

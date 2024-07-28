@@ -17,7 +17,7 @@ import Arkham.Name
 import Arkham.Projection
 import Arkham.Source
 import Arkham.Target
-import Data.Typeable
+import Data.Data
 import GHC.Records
 
 class
@@ -51,7 +51,6 @@ data ActAttrs = ActAttrs
   , actSequence :: AS.ActSequence
   , actAdvanceCost :: Maybe Cost
   , actClues :: Int
-  , actTreacheries :: Set TreacheryId
   , actDeckId :: Int
   , actBreaches :: Maybe Int
   , actUsedWheelOfFortuneX :: Bool
@@ -77,9 +76,6 @@ metaL = lens actMeta $ \m x -> m {actMeta = x}
 breachesL :: Lens' ActAttrs (Maybe Int)
 breachesL = lens actBreaches $ \m x -> m {actBreaches = x}
 
-treacheriesL :: Lens' ActAttrs (Set TreacheryId)
-treacheriesL = lens actTreacheries $ \m x -> m {actTreacheries = x}
-
 actWith
   :: (Int, AS.ActSide)
   -> (ActAttrs -> a)
@@ -99,7 +95,6 @@ actWith (n, side) f cardDef mCost g =
             , actSequence = AS.Sequence n side
             , actClues = 0
             , actAdvanceCost = mCost
-            , actTreacheries = mempty
             , actDeckId = deckId
             , actBreaches = Nothing
             , actUsedWheelOfFortuneX = False
@@ -162,16 +157,18 @@ isSide side attrs aid = aid == attrs.id && onSide side attrs
 
 instance HasAbilities ActAttrs where
   getAbilities attrs@ActAttrs {..} = case actAdvanceCost of
-    Just cost ->
-      [ restrictedAbility
-          attrs
-          999
-          (DuringTurn Anyone)
-          (Objective $ FastAbility cost)
-      ]
+    Just cost -> [restrictedAbility attrs 999 (DuringTurn Anyone) (Objective $ FastAbility cost)]
     Nothing -> []
 
 data Act = forall a. IsAct a => Act a
+
+instance Data Act where
+  gunfold _ _ _ = error "gunfold(Act)"
+  toConstr _ = error "toConstr(Act)"
+  dataTypeOf _ = error "dataTypeOf(Act)"
+
+instance HasField "id" Act ActId where
+  getField = toId
 
 instance Eq Act where
   (Act (a :: a)) == (Act (b :: b)) = case eqT @a @b of

@@ -22,10 +22,10 @@ spec = describe "\"Ashcan\" Pete" $ do
     it "allows to discard to ready an asset" $ gameTestWith Investigators.ashcanPete $ \ashcanPete -> do
       asset <- testAsset id ashcanPete
       card <- testPlayerCard id
-      drawing <- drawCards (toId ashcanPete) ashcanPete 1
+
       pushAndRunAll
         [ loadDeck ashcanPete [card]
-        , drawing
+        , drawCards ashcanPete.id ashcanPete 1
         , playAsset ashcanPete asset
         , Exhaust (toTarget asset)
         , CheckWindow [toId ashcanPete] [fastPlayerWindow]
@@ -47,10 +47,11 @@ spec = describe "\"Ashcan\" Pete" $ do
       putCardIntoPlay ashcanPete Assets.duke
       duke <- selectJust $ assetIs Assets.duke
 
+      sid <- getRandom
       pushAndRunAll
         [ SetChaosTokens [ElderSign]
         , Exhaust (toTarget duke)
-        , beginSkillTest ashcanPete SkillIntellect 2
+        , beginSkillTest sid ashcanPete SkillIntellect 2
         ]
       chooseOnlyOption "start skill test"
       chooseOnlyOption "apply results"

@@ -23,6 +23,7 @@ import Arkham.Window (defaultWindows)
 newtype DexterDrake = DexterDrake InvestigatorAttrs
   deriving anyclass (IsInvestigator, HasModifiersFor)
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock (Data)
 
 dexterDrake :: InvestigatorCard DexterDrake
 dexterDrake =
@@ -38,7 +39,7 @@ instance HasAbilities DexterDrake where
             <> DuringTurn You
             <> oneOf
               [ PlayableCardExistsWithCostReduction
-                  1
+                  (Reduce 1)
                   (HandCardWithDifferentTitleFromAtLeastOneAsset You AnyAsset AnyCard)
               , ExtendedCardExists (InHandOf You <> basic (cardIs Assets.occultScraps))
               ]
@@ -89,11 +90,12 @@ instance RunMessage DexterDrake where
           $ Label "Do no return an asset" []
           : [targetLabel asset $ ReturnToHand iid (toTarget asset) : maybeToList drawing | asset <- assets]
       pure i
-    _ -> DexterDrake <$> lift (runMessage msg attrs)
+    _ -> DexterDrake <$> liftRunMessage msg attrs
 
 newtype DexterDrakeEffect = DexterDrakeEffect EffectAttrs
   deriving anyclass (HasAbilities, IsEffect)
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock (Data)
 
 dexterDrakeEffect :: EffectArgs -> DexterDrakeEffect
 dexterDrakeEffect = cardEffect DexterDrakeEffect Cards.dexterDrake

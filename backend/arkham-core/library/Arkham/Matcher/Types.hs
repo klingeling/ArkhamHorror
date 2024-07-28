@@ -43,8 +43,8 @@ import Arkham.SlotType
 import {-# SOURCE #-} Arkham.Source
 import {-# SOURCE #-} Arkham.Target
 import Arkham.Timing
-import Arkham.Token
 import Arkham.Trait
+import Arkham.Trait qualified as Trait
 import Arkham.Zone
 import Control.Lens.Plated (Plated)
 import Data.Aeson.TH
@@ -147,6 +147,7 @@ data InvestigatorMatcher
   | DistanceFromRoundStart ValueMatcher
   | InvestigatorWithMetaKey Text
   | InvestigatorWithFilledSlot SlotType
+  | InvestigatorWithAnyFailedSkillTestsThisTurn
   deriving stock (Show, Eq, Ord, Data)
 
 instance Plated InvestigatorMatcher
@@ -188,7 +189,9 @@ data AssetMatcher
   | AssetAttachedToAsset AssetMatcher
   | AssetWithAttachedEvent EventMatcher
   | AssetControlledBy InvestigatorMatcher
+  | AssetInPlayAreaOf InvestigatorMatcher
   | AssetOwnedBy InvestigatorMatcher
+  | UnownedAsset
   | AssetMatches [AssetMatcher]
   | AssetOneOf [AssetMatcher]
   | AssetAtLocation LocationId
@@ -207,11 +210,13 @@ data AssetMatcher
   | AssetWithDoom ValueMatcher
   | AssetWithClues ValueMatcher
   | AssetWithTokens ValueMatcher Token
+  | AssetWithSpendableUses ValueMatcher UseType
   | AssetWithHighestPrintedCost AssetMatcher
   | AssetWithSealedChaosTokens Int ChaosTokenMatcher
   | AssetWithoutSealedTokens
   | AssetInSlot SlotType
   | AssetInTwoHandSlots
+  | AssetInSingleHand
   | AssetIs CardCode
   | AssetWithCardId CardId
   | AssetCardMatch CardMatcher
@@ -226,6 +231,7 @@ data AssetMatcher
   | AssetWithSanity
   | AssetWithFewestClues AssetMatcher
   | AssetCanBeAssignedDamageBy InvestigatorId
+  | AssetCanBeDamagedBySource Source
   | AssetCanBeAssignedHorrorBy InvestigatorId
   | AssetWithCardsUnderneath CardListMatcher
   | ClosestAsset LocationId AssetMatcher
@@ -248,17 +254,38 @@ instance IsString AssetMatcher where
 instance IsLabel "ally" AssetMatcher where
   fromLabel = AssetWithTrait Ally
 
+instance IsLabel "firearm" AssetMatcher where
+  fromLabel = AssetWithTrait Firearm
+
+instance IsLabel "weapon" AssetMatcher where
+  fromLabel = AssetWithTrait Weapon
+
+instance IsLabel "ranged" AssetMatcher where
+  fromLabel = AssetWithTrait Ranged
+
 instance IsLabel "tome" AssetMatcher where
   fromLabel = AssetWithTrait Tome
 
+instance IsLabel "tool" AssetMatcher where
+  fromLabel = AssetWithTrait Tool
+
 instance IsLabel "spell" AssetMatcher where
   fromLabel = AssetWithTrait Spell
+
+instance IsLabel "science" AssetMatcher where
+  fromLabel = AssetWithTrait Science
+
+instance IsLabel "ritual" AssetMatcher where
+  fromLabel = AssetWithTrait Ritual
 
 instance IsLabel "item" AssetMatcher where
   fromLabel = AssetWithTrait Item
 
 instance IsLabel "mystic" AssetMatcher where
   fromLabel = AssetWithClass Mystic
+
+instance IsLabel "exhausted" AssetMatcher where
+  fromLabel = AssetExhausted
 
 instance Semigroup AssetMatcher where
   AssetWithHighestPrintedCost x <> AssetWithHighestPrintedCost y = AssetWithHighestPrintedCost (x <> y)
@@ -295,12 +322,14 @@ data EnemyMatcher
   | EnemyWithClues ValueMatcher
   | EnemyWithEqualFields (Field Enemy Int) (Field Enemy Int)
   | EnemyWithNonZeroField (Field Enemy Int)
+  | EnemyWithMaybeFieldLessThanOrEqualToThis EnemyId (Field Enemy (Maybe Int))
   | EnemyWithRemainingHealth ValueMatcher
   | EnemyWithDamage ValueMatcher
   | EnemyWithDoom ValueMatcher
   | EnemyWithMostDoom EnemyMatcher
   | EnemyIsEngagedWith InvestigatorMatcher
   | EnemyWithAsset AssetMatcher
+  | EnemyWithAttachedEvent EventMatcher
   | NearestEnemy EnemyMatcher
   | FarthestEnemyFrom InvestigatorId EnemyMatcher
   | FarthestEnemyFromAll EnemyMatcher
@@ -310,10 +339,12 @@ data EnemyMatcher
   | EnemyWithCardId CardId
   | AnyEnemy
   | EnemyCanAttack InvestigatorMatcher
+  | AttackingEnemy
   | AttackedYouSinceTheEndOfYourLastTurn
   | CanFightEnemy Source
   | CanEvadeEnemy Source -- This checks for an ability
   | EnemyCanBeEvadedBy Source -- This is not checking for an ability
+  | EnemyCanBeDefeatedBy Source
   | CanFightEnemyWithOverride CriteriaOverride
   | CanEvadeEnemyWithOverride CriteriaOverride -- This checks for an ability but overrides the criteria
   | CanEngageEnemy Source
@@ -323,8 +354,9 @@ data EnemyMatcher
   | ExhaustedEnemy
   | NonWeaknessEnemy
   | EnemyInHandOf InvestigatorMatcher
-  | CanParleyEnemy InvestigatorId
+  | CanParleyEnemy InvestigatorMatcher
   | EnemyMatchAll [EnemyMatcher]
+  | EnemyOwnedBy InvestigatorMatcher
   | EnemyOneOf [EnemyMatcher]
   | EnemyWithMostRemainingHealth EnemyMatcher
   | EnemyWithoutModifier ModifierType
@@ -351,6 +383,10 @@ data EnemyMatcher
   | EnemyWithHealth
   | DefeatedEnemy EnemyMatcher
   | CanBeAttackedBy InvestigatorMatcher
+  | EnemyWhenEvent EventMatcher
+  | EnemyWhenLocation LocationMatcher
+  | EnemyWhenInvestigator InvestigatorMatcher
+  | EnemyWhenOtherEnemy EnemyMatcher
   deriving stock (Show, Eq, Ord, Data)
 
 instance Semigroup EnemyMatcher where
@@ -383,10 +419,13 @@ data EventMatcher
   | EventWithTrait Trait
   | EventWithClass ClassSymbol
   | EventWithCardId CardId
+  | EventWithToken Token
   | EventControlledBy InvestigatorMatcher
+  | EventOwnedBy InvestigatorMatcher
   | EventAt LocationMatcher
   | EventWithDoom ValueMatcher
   | EventAttachedToAsset AssetMatcher
+  | EventWithModifier ModifierType
   | EventWithoutModifier ModifierType
   | EventIs CardCode
   | EventReady
@@ -397,7 +436,12 @@ data EventMatcher
   | AnyEvent
   | NotEvent EventMatcher
   | EventWithPlacement Placement
+  | ActiveEvent
+  | EventWithMetaKey Key
   deriving stock (Show, Eq, Ord, Data)
+
+instance Not EventMatcher where
+  not_ = NotEvent
 
 instance Semigroup EventMatcher where
   EventMatches xs <> EventMatches ys = EventMatches (xs <> ys)
@@ -437,10 +481,12 @@ data LocationMatcher
   | -- | distance, valid step, start, destination
     LocationWithAccessiblePath Source Int InvestigatorMatcher LocationMatcher
   | CanMoveCloserToLocation Source InvestigatorMatcher LocationMatcher
+  | LocationBetween LocationMatcher LocationMatcher LocationMatcher
   | LocationWithResources ValueMatcher
   | LocationWithClues ValueMatcher
   | LocationWithHorror ValueMatcher
   | LocationWithShroud ValueMatcher
+  | LocationWithShroudLessThanOrEqualToLessThanEnemyMaybeField EnemyId (Field Enemy (Maybe Int))
   | LocationWithMostClues LocationMatcher
   | LocationWithEnemy EnemyMatcher
   | LocationCanBeEnteredBy EnemyId
@@ -452,6 +498,7 @@ data LocationMatcher
   | UnrevealedLocation
   | InvestigatableLocation
   | LocationNotInPlay
+  | LocationFartherFrom LocationId LocationMatcher
   | FarthestLocationFromLocation LocationId LocationMatcher
   | NearestLocationToLocation LocationId LocationMatcher
   | --                           ^ start
@@ -523,7 +570,9 @@ class IsMatcher a
 instance IsMatcher LocationMatcher
 instance IsMatcher EnemyMatcher
 instance IsMatcher AssetMatcher
+instance IsMatcher EventMatcher
 instance IsMatcher InvestigatorMatcher
+instance IsMatcher TreacheryMatcher
 class IsMatcher b => Be a b where
   be :: a -> b
 
@@ -538,6 +587,9 @@ instance Be LocationId LocationMatcher where
 
 instance Be EnemyId EnemyMatcher where
   be = EnemyWithId
+
+instance Be TreacheryId TreacheryMatcher where
+  be = TreacheryWithId
 
 instance IsString LocationMatcher where
   fromString = LocationWithTitle . fromString
@@ -587,13 +639,16 @@ data SkillMatcher
   | SkillWithClass ClassSymbol
   | SkillWithCardId CardId
   | SkillControlledBy InvestigatorMatcher
+  | SkillOwnedBy InvestigatorMatcher
   | SkillWithPlacement Placement
   | SkillMatches [SkillMatcher]
   | SkillIs CardCode
   | EligibleSkill
   | YourSkill
   | AnySkill
+  | EnemySkill EnemyId
   | NotSkill SkillMatcher
+  | SkillWithToken Token
   deriving stock (Show, Eq, Ord, Data)
 
 instance Semigroup SkillMatcher where
@@ -611,6 +666,7 @@ data TreacheryMatcher
   = TreacheryWithTitle Text
   | TreacheryWithFullTitle Text Text
   | TreacheryWithId TreacheryId
+  | TreacheryWithToken Token
   | TreacheryWithDoom ValueMatcher
   | TreacheryWithHorror ValueMatcher
   | TreacheryWithTrait Trait
@@ -627,6 +683,7 @@ data TreacheryMatcher
   | TreacheryWithModifier ModifierType
   | AnyTreachery
   | InPlayTreachery
+  | HiddenTreachery
   | TreacheryOwnedBy InvestigatorMatcher
   | TreacheryMatches [TreacheryMatcher]
   | TreacheryOneOf [TreacheryMatcher]
@@ -650,10 +707,15 @@ instance Monoid TreacheryMatcher where
 -- | Relies on game state, can not be used purely
 data ExtendedCardMatcher
   = BasicCardMatch CardMatcher
+  | WillGoIntoSlot SlotType
   | CardIsBeneathInvestigator Who
+  | CardIsBeneathAsset AssetMatcher
+  | CardIsAsset AssetMatcher
   | CardWithCopyInHand Who
   | NotThisCard
+  | IsThisCard
   | ControlledBy Who
+  | OwnedBy Who
   | InHandOf Who
   | InDeckOf Who
   | InPlayAreaOf Who
@@ -670,12 +732,15 @@ data ExtendedCardMatcher
   | PlayableCardWithNoCost ActionStatus ExtendedCardMatcher
   | PlayableCard CostStatus ExtendedCardMatcher
   | PlayableCardWithCriteria ActionStatus CriteriaOverride ExtendedCardMatcher
-  | CommittableCard InvestigatorId ExtendedCardMatcher
+  | CommittableCard InvestigatorMatcher ExtendedCardMatcher
   | CardWithPerformableAbility AbilityMatcher [ModifierType]
   | CanCancelRevelationEffect ExtendedCardMatcher
   | CanCancelAllEffects ExtendedCardMatcher
   | CardWithoutModifier ModifierType
   | CardIsCommittedBy InvestigatorMatcher
+  | ChosenViaCustomization ExtendedCardMatcher
+  | PassesCommitRestrictions ExtendedCardMatcher
+  | CardWithSharedTraitToAttackingEnemy
   deriving stock (Show, Eq, Ord, Data)
 
 instance Plated ExtendedCardMatcher
@@ -690,14 +755,41 @@ instance Semigroup ExtendedCardMatcher where
 instance IsLabel "any" ExtendedCardMatcher where
   fromLabel = BasicCardMatch #any
 
+instance IsLabel "guardian" ExtendedCardMatcher where
+  fromLabel = BasicCardMatch #guardian
+
+instance IsLabel "seeker" ExtendedCardMatcher where
+  fromLabel = BasicCardMatch #seeker
+
+instance IsLabel "rogue" ExtendedCardMatcher where
+  fromLabel = BasicCardMatch #rogue
+
+instance IsLabel "mystic" ExtendedCardMatcher where
+  fromLabel = BasicCardMatch #mystic
+
+instance IsLabel "survivor" ExtendedCardMatcher where
+  fromLabel = BasicCardMatch #survivor
+
 instance IsLabel "ally" ExtendedCardMatcher where
   fromLabel = BasicCardMatch #ally
+
+instance IsLabel "skill" ExtendedCardMatcher where
+  fromLabel = BasicCardMatch #skill
 
 instance IsLabel "spell" ExtendedCardMatcher where
   fromLabel = BasicCardMatch #spell
 
 instance IsLabel "item" ExtendedCardMatcher where
   fromLabel = BasicCardMatch #item
+
+instance IsLabel "tome" ExtendedCardMatcher where
+  fromLabel = BasicCardMatch #tome
+
+instance IsLabel "tool" ExtendedCardMatcher where
+  fromLabel = BasicCardMatch #tool
+
+instance IsLabel "weapon" ExtendedCardMatcher where
+  fromLabel = BasicCardMatch #weapon
 
 instance IsLabel "asset" ExtendedCardMatcher where
   fromLabel = BasicCardMatch #asset
@@ -710,6 +802,15 @@ instance IsLabel "enemy" ExtendedCardMatcher where
 
 instance IsLabel "treachery" ExtendedCardMatcher where
   fromLabel = BasicCardMatch #treachery
+
+instance IsLabel "weakness" ExtendedCardMatcher where
+  fromLabel = BasicCardMatch #weakness
+
+instance IsLabel "parley" ExtendedCardMatcher where
+  fromLabel = BasicCardMatch #parley
+
+instance IsLabel "eligible" ExtendedCardMatcher where
+  fromLabel = EligibleForCurrentSkillTest
 
 -- | Only relies on card state, can be used purely with `cardMatch`
 data CardMatcher
@@ -750,10 +851,14 @@ data CardMatcher
   | CardWithOddCost
   | CardWithEvenCost
   | CardWithCost Int
+  | CardWithNonZeroCost
   | CardWithOddSkillIcons
   | CardWithEvenSkillIcons
+  | CardWithAnySkills
+  | CardWithNoSkills
   | CardWithOddNumberOfWordsInTitle
   | CardWithEvenNumberOfWordsInTitle
+  | CardWithAvailableCustomization
   deriving stock (Show, Eq, Ord, Data)
 
 instance Not CardMatcher where
@@ -765,14 +870,38 @@ instance IsString CardMatcher where
 instance IsLabel "any" CardMatcher where
   fromLabel = AnyCard
 
+instance IsLabel "illicit" CardMatcher where
+  fromLabel = CardWithTrait Illicit
+
+instance IsLabel "tarot" CardMatcher where
+  fromLabel = CardWithTrait Tarot
+
 instance IsLabel "tome" CardMatcher where
   fromLabel = CardWithTrait Tome
 
 instance IsLabel "spell" CardMatcher where
   fromLabel = CardWithTrait Spell
 
+instance IsLabel "ritual" CardMatcher where
+  fromLabel = CardWithTrait Ritual
+
 instance IsLabel "item" CardMatcher where
   fromLabel = CardWithTrait Item
+
+instance IsLabel "supply" CardMatcher where
+  fromLabel = CardWithTrait Trait.Supply
+
+instance IsLabel "tool" CardMatcher where
+  fromLabel = CardWithTrait Tool
+
+instance IsLabel "weapon" CardMatcher where
+  fromLabel = CardWithTrait Weapon
+
+instance IsLabel "guardian" CardMatcher where
+  fromLabel = CardWithClass Guardian
+
+instance IsLabel "mystic" CardMatcher where
+  fromLabel = CardWithClass Mystic
 
 instance IsLabel "survivor" CardMatcher where
   fromLabel = CardWithClass Survivor
@@ -803,6 +932,12 @@ instance IsLabel "asset" CardMatcher where
 
 instance IsLabel "ally" CardMatcher where
   fromLabel = CardWithTrait Ally
+
+instance IsLabel "parley" CardMatcher where
+  fromLabel = CardWithAction #parley
+
+instance IsLabel "weakness" CardMatcher where
+  fromLabel = WeaknessCard
 
 isEnemyCard :: CardMatcher -> CardMatcher
 isEnemyCard = (#enemy <>)
@@ -846,7 +981,9 @@ type ToWhere = Where
 
 data WindowMatcher
   = EnemyDefeated Timing Who DefeatedByMatcher EnemyMatcher
-  | SpentUses Timing Who UseType AssetMatcher ValueMatcher
+  | FirstTimeParleyingThisRound Timing Who
+  | SpentUses Timing Who SourceMatcher UseType AssetMatcher ValueMatcher
+  | AttackOrEffectSpentLastUse Timing SourceMatcher TargetMatcher UseType
   | WouldPayCardCost Timing Who CardMatcher
   | WouldBeShuffledIntoDeck DeckMatcher CardMatcher
   | AddedToVictory Timing CardMatcher
@@ -855,7 +992,7 @@ data WindowMatcher
   | DrawingStartingHand Timing Who
   | InvestigatorDefeated Timing DefeatedByMatcher Who
   | InvestigatorWouldBeDefeated Timing DefeatedByMatcher Who
-  | InvestigatorWouldTakeDamage Timing Who SourceMatcher
+  | InvestigatorWouldTakeDamage Timing Who SourceMatcher DamageTypeMatcher
   | InvestigatorWouldTakeHorror Timing Who SourceMatcher
   | WouldSearchDeck Timing Who DeckMatcher
   | WouldLookAtDeck Timing Who DeckMatcher
@@ -872,7 +1009,10 @@ data WindowMatcher
   | PlaceUnderneath Timing TargetMatcher CardMatcher
   | WouldPlaceDoomCounter Timing SourceMatcher TargetMatcher
   | PlacedDoomCounter Timing SourceMatcher TargetMatcher
-  | PlacedToken Timing Token
+  | PlacedDoomCounterOnTargetWithNoDoom Timing SourceMatcher TargetMatcher
+  | SpentClues Timing InvestigatorMatcher ValueMatcher
+  | PlacedToken Timing SourceMatcher TargetMatcher Token
+  | InvestigatorPlacedFromTheirPool Timing Who SourceMatcher TargetMatcher Token
   | WouldPlaceBreach Timing TargetMatcher
   | PlacedBreach Timing TargetMatcher
   | PlacedBreaches Timing TargetMatcher
@@ -888,9 +1028,13 @@ data WindowMatcher
   | ActAdvances Timing ActMatcher
   | AgendaWouldAdvance Timing AgendaAdvancementReason AgendaMatcher
   | AssetDefeated Timing DefeatedByMatcher AssetMatcher
+  | AttemptToEvade Timing Who EnemyMatcher
+  | AttachCard Timing (Maybe Who) CardMatcher TargetMatcher
   | EnemyEvaded Timing Who EnemyMatcher
   | EnemyEngaged Timing Who EnemyMatcher
   | MythosStep WindowMythosStepMatcher
+  | LocationEntersPlay Timing LocationMatcher
+  | TreacheryEntersPlay Timing TreacheryMatcher
   | AgendaEntersPlay Timing AgendaMatcher
   | AssetEntersPlay Timing AssetMatcher
   | AssetLeavesPlay Timing AssetMatcher
@@ -908,18 +1052,19 @@ data WindowMatcher
   | DiscoveringLastClue Timing Who Where
   | DiscoverClues Timing Who Where ValueMatcher
   | GainsClues Timing Who ValueMatcher
+  | GainsResources Timing Who SourceMatcher ValueMatcher
   | EnemyWouldAttack Timing Who EnemyAttackMatcher EnemyMatcher
   | EnemyAttacks Timing Who EnemyAttackMatcher EnemyMatcher
   | EnemyAttacksEvenIfCancelled Timing Who EnemyAttackMatcher EnemyMatcher
   | EnemyAttacked Timing Who SourceMatcher EnemyMatcher
-  | EnemyAttackedSuccessfully Timing Who EnemyMatcher
+  | EnemyAttackedSuccessfully Timing Who SourceMatcher EnemyMatcher
   | RevealChaosToken Timing Who ChaosTokenMatcher
   | TokensWouldBeRemovedFromChaosBag Timing ChaosTokenMatcher
   | ResolvesChaosToken Timing Who ChaosTokenMatcher
   | CancelChaosToken Timing Who ChaosTokenMatcher
   | IgnoreChaosToken Timing Who ChaosTokenMatcher
   | WouldRevealChaosToken Timing Who
-  | Discarded Timing Who SourceMatcher ExtendedCardMatcher
+  | Discarded Timing (Maybe Who) SourceMatcher ExtendedCardMatcher
   | AssetHealed Timing DamageType AssetMatcher SourceMatcher
   | InvestigatorHealed Timing DamageType InvestigatorMatcher SourceMatcher
   | AssetWouldBeDiscarded Timing AssetMatcher
@@ -928,7 +1073,7 @@ data WindowMatcher
   | EnemyDiscarded Timing SourceMatcher EnemyMatcher
   | TreacheryDiscarded Timing SourceMatcher TreacheryMatcher
   | WouldPerformRevelationSkillTest Timing Who
-  | InitiatedSkillTest Timing Who SkillTypeMatcher SkillTestValueMatcher SkillTestTypeMatcher
+  | InitiatedSkillTest Timing Who SkillTypeMatcher SkillTestValueMatcher SkillTestMatcher
   | SkillTestResult Timing Who SkillTestMatcher SkillTestResultMatcher
   | SkillTestEnded Timing Who SkillTestMatcher
   | PlacedCounter Timing Who SourceMatcher CounterMatcher ValueMatcher
@@ -944,6 +1089,7 @@ data WindowMatcher
   | EnemyMovedTo Timing Where MovesVia EnemyMatcher
   | FastPlayerWindow
   | TurnBegins Timing Who
+  | TurnWouldEnd Timing Who
   | TurnEnds Timing Who
   | RoundBegins Timing
   | RoundEnds Timing
@@ -958,6 +1104,7 @@ data WindowMatcher
   | AssignedHorror Timing Who TargetListMatcher
   | DealtDamageOrHorror Timing SourceMatcher Who
   | WouldDrawEncounterCard Timing Who PhaseMatcher
+  | WouldDrawCard Timing Who DeckMatcher
   | DrawCard Timing Who ExtendedCardMatcher DeckMatcher
   | DrawsCards Timing Who ValueMatcher
   | PlayCard Timing Who ExtendedCardMatcher
@@ -971,6 +1118,7 @@ data WindowMatcher
   | GameBegins Timing
   | GameEnds Timing
   | InvestigatorEliminated Timing Who
+  | InvestigatorResigned Timing Who
   | AnyWindow
   | NotAnyWindow
   | CommittedCards Timing Who CardListMatcher
@@ -990,7 +1138,7 @@ data WindowMatcher
   | EntersThreatArea Timing Who CardMatcher
   | ScenarioCountIncremented Timing ScenarioCountKey
   | WindowWhen Criterion WindowMatcher
-  deriving stock (Show, Eq, Ord, Data)
+  deriving stock (Show, Eq, Ord, Data, Generic)
 
 data PhaseStepMatcher = EnemiesAttackStep | HuntersMoveStep
   deriving stock (Show, Eq, Ord, Data)
@@ -1023,7 +1171,9 @@ data SkillTestMatcher
   = WhileInvestigating LocationMatcher
   | WhileAttackingAnEnemy EnemyMatcher
   | WhileEvadingAnEnemy EnemyMatcher
-  | SkillTestForAction ActionMatcher
+  | WhileParleyingWithAnEnemy EnemyMatcher
+  | WhileParleying
+  | SkillTestWithAction ActionMatcher
   | SkillTestWithSkill SkillMatcher
   | SkillTestWithSkillType SkillType
   | AnySkillTest
@@ -1032,7 +1182,9 @@ data SkillTestMatcher
   | SkillTestAtYourLocation
   | SkillTestOfInvestigator InvestigatorMatcher
   | SkillTestOnTreachery TreacheryMatcher
+  | SkillTestOnAsset AssetMatcher
   | UsingThis
+  | SkillTestOnEncounterCard
   | SkillTestSourceMatches SourceMatcher
   | SkillTestMatches [SkillTestMatcher]
   | SkillTestOneOf [SkillTestMatcher]
@@ -1042,7 +1194,26 @@ data SkillTestMatcher
   | SkillTestWithRevealedChaosTokenCount Int ChaosTokenMatcher
   | SkillTestWithResolvedChaosTokenBy InvestigatorMatcher ChaosTokenMatcher
   | SkillTestOnCardWithTrait Trait
-  deriving stock (Show, Eq, Ord, Data)
+  | SkillTestOnCard CardMatcher
+  | SkillTestWithDifficulty ValueMatcher
+  | PerilousSkillTest
+  | IfSkillTestMatcher SkillTestMatcher SkillTestMatcher SkillTestMatcher
+  deriving stock (Show, Eq, Ord, Data, Generic)
+
+instance IsLabel "investigating" SkillTestMatcher where
+  fromLabel = WhileInvestigating Anywhere
+
+instance IsLabel "investigation" SkillTestMatcher where
+  fromLabel = WhileInvestigating Anywhere
+
+instance IsLabel "parley" SkillTestMatcher where
+  fromLabel = WhileParleying
+
+instance IsLabel "fighting" SkillTestMatcher where
+  fromLabel = WhileAttackingAnEnemy AnyEnemy
+
+instance IsLabel "evading" SkillTestMatcher where
+  fromLabel = WhileEvadingAnEnemy AnyEnemy
 
 instance IsLabel "any" SkillTestMatcher where
   fromLabel = AnySkillTest
@@ -1053,21 +1224,34 @@ instance IsLabel "failed" SkillTestMatcher where
 data SourceMatcher
   = SourceWithTrait Trait
   | SourceIsEnemyAttack EnemyMatcher
+  | SourceIsTreacheryEffect TreacheryMatcher
   | SourceIsAsset AssetMatcher
+  | SourceIsEvent EventMatcher
   | EncounterCardSource
   | SourceMatchesAny [SourceMatcher]
   | SourceOwnedBy InvestigatorMatcher
   | SourceIsType CardType
+  | SourceIsPlayerCard
+  | SourceIsPlayerCardAbility
   | AnySource
   | SourceIsCancelable SourceMatcher
   | SourceMatches [SourceMatcher]
   | NotSource SourceMatcher
   | SourceIs Source
   | SourceWithCard CardMatcher
+  | SourceIsCardEffect
   deriving stock (Show, Eq, Ord, Data)
+
+pattern AnyCancellableSource :: SourceMatcher
+pattern AnyCancellableSource <- SourceIsCancelable AnySource
+  where
+    AnyCancellableSource = SourceIsCancelable AnySource
 
 instance IsLabel "investigator" SourceMatcher where
   fromLabel = SourceIsType InvestigatorType
+
+instance IsLabel "any" SourceMatcher where
+  fromLabel = AnySource
 
 instance Semigroup SourceMatcher where
   AnySource <> x = x
@@ -1085,8 +1269,16 @@ data TargetMatcher
   | LocationTargetMatches LocationMatcher
   | ActTargetMatches ActMatcher
   | AgendaTargetMatches AgendaMatcher
+  | AssetTargetMatches AssetMatcher
   | ScenarioCardTarget
+  | TargetWithDoom
+  | TargetAtLocation LocationMatcher
+  | NotTarget TargetMatcher
+  | TargetWithTrait Trait
   deriving stock (Show, Eq, Ord, Data)
+
+instance Not TargetMatcher where
+  not_ = NotTarget
 
 instance Semigroup TargetMatcher where
   AnyTarget <> x = x
@@ -1134,20 +1326,6 @@ data ValueMatcher
   | EqualTo GameValue
   | AnyValue
   deriving stock (Show, Eq, Ord, Data)
-
-data SkillTestTypeMatcher
-  = InvestigationSkillTest LocationMatcher
-  | AnySkillTestType
-  | SkillTestWithAction ActionMatcher
-  | SkillTestOnEncounterCard
-  | SkillTestTypeOneOf [SkillTestTypeMatcher]
-  deriving stock (Show, Eq, Ord, Data)
-
-instance IsLabel "investigation" SkillTestTypeMatcher where
-  fromLabel = InvestigationSkillTest Anywhere
-
-instance IsLabel "any" SkillTestTypeMatcher where
-  fromLabel = AnySkillTestType
 
 data SkillTestValueMatcher
   = SkillTestGameValue ValueMatcher
@@ -1302,6 +1480,7 @@ instance IsLabel "draw" ActionMatcher where
 
 data AbilityMatcher
   = AbilityOnLocation LocationMatcher
+  | AbilityOnAsset AssetMatcher
   | AbilityOnStory StoryMatcher
   | AbilityWindow WindowMatcher
   | AbilityIsAction Action
@@ -1314,6 +1493,8 @@ data AbilityMatcher
   | AbilityIs Source Int
   | AnyAbility
   | BasicAbility
+  | ActiveAbility
+  | AbilityIsSkillTest
   | AbilityOnEncounterCard
   | AbilityOnCard CardMatcher
   | AbilityOnCardControlledBy InvestigatorId
@@ -1324,14 +1505,35 @@ data AbilityMatcher
   | NotAbility AbilityMatcher
   deriving stock (Show, Eq, Ord, Data)
 
+instance IsLabel "parley" AbilityMatcher where
+  fromLabel = AbilityIsAction #parley
+
+instance IsLabel "draw" AbilityMatcher where
+  fromLabel = AbilityIsAction #draw
+
+instance IsLabel "play" AbilityMatcher where
+  fromLabel = AbilityIsAction #play
+
+instance IsLabel "engage" AbilityMatcher where
+  fromLabel = AbilityIsAction #engage
+
+instance IsLabel "resource" AbilityMatcher where
+  fromLabel = AbilityIsAction #resource
+
 instance IsLabel "move" AbilityMatcher where
   fromLabel = AbilityIsAction #move
+
+instance IsLabel "resign" AbilityMatcher where
+  fromLabel = AbilityIsAction #resign
 
 instance IsLabel "investigate" AbilityMatcher where
   fromLabel = AbilityIsAction #investigate
 
 instance IsLabel "evade" AbilityMatcher where
   fromLabel = AbilityIsAction #evade
+
+instance IsLabel "action" AbilityMatcher where
+  fromLabel = AbilityIsActionAbility
 
 instance Not AbilityMatcher where
   not_ = NotAbility
@@ -1412,7 +1614,21 @@ data EnemyAttackMatcher
   | AttackViaAlert
   | CancelableEnemyAttack EnemyAttackMatcher
   | NotEnemyAttack EnemyAttackMatcher
+  | AttackDamagedAsset AssetMatcher
+  | AttackDealtDamageOrHorror
+  | EnemyAttackMatches [EnemyAttackMatcher]
   deriving stock (Show, Eq, Ord, Data)
+
+instance Semigroup EnemyAttackMatcher where
+  AnyEnemyAttack <> x = x
+  x <> AnyEnemyAttack = x
+  EnemyAttackMatches xs <> EnemyAttackMatches ys = EnemyAttackMatches $ xs <> ys
+  EnemyAttackMatches xs <> x = EnemyAttackMatches $ xs <> [x]
+  x <> EnemyAttackMatches xs = EnemyAttackMatches $ x : xs
+  x <> y = EnemyAttackMatches [x, y]
+
+instance Monoid EnemyAttackMatcher where
+  mempty = AnyEnemyAttack
 
 instance Not EnemyAttackMatcher where
   not_ = NotEnemyAttack
@@ -1423,8 +1639,24 @@ data ScenarioMatcher = TheScenario
 data CampaignMatcher = TheCampaign
   deriving stock (Show, Eq, Ord, Data)
 
-data EffectMatcher = AnyEffect | EffectWithCardCode CardCode
+data EffectMatcher
+  = AnyEffect
+  | EffectWithCardCode CardCode
+  | EffectWithMetaInt Int
+  | EffectWithTarget Target
+  | EffectMatches [EffectMatcher]
   deriving stock (Show, Eq, Ord, Data)
+
+instance Semigroup EffectMatcher where
+  AnyEffect <> x = x
+  x <> AnyEffect = x
+  EffectMatches xs <> EffectMatches ys = EffectMatches $ xs <> ys
+  EffectMatches xs <> x = EffectMatches $ xs <> [x]
+  x <> EffectMatches xs = EffectMatches $ x : xs
+  x <> y = EffectMatches [x, y]
+
+instance Monoid EffectMatcher where
+  mempty = AnyEffect
 
 data SkillTypeMatcher
   = AnySkillType
@@ -1471,6 +1703,9 @@ data AspectMatcher = AspectIs Aspect
 data HistoryMatcher = DefeatedEnemiesWithTotalHealth ValueMatcher
   deriving stock (Show, Eq, Ord, Data)
 
+data DamageTypeMatcher = IsDirectDamage | IsNonDirectDamage | AnyDamageType
+  deriving stock (Show, Eq, Ord, Data)
+
 $( do
     ability <- deriveJSON defaultOptions ''AbilityMatcher
     act <- deriveJSON defaultOptions ''ActMatcher
@@ -1483,6 +1718,7 @@ $( do
     chaosToken <- deriveJSON defaultOptions ''ChaosTokenMatcher
     counter <- deriveJSON defaultOptions ''CounterMatcher
     damageEffect <- deriveJSON defaultOptions ''DamageEffectMatcher
+    damageType <- deriveJSON defaultOptions ''DamageTypeMatcher
     deck <- deriveJSON defaultOptions ''DeckMatcher
     defeatedBy <- deriveJSON defaultOptions ''DefeatedByMatcher
     enemy <- deriveJSON defaultOptions ''EnemyMatcher
@@ -1498,9 +1734,8 @@ $( do
     prey <- deriveJSON defaultOptions ''PreyMatcher
     removeDoom <- deriveJSON defaultOptions ''RemoveDoomMatchers
     skill <- deriveJSON defaultOptions ''SkillMatcher
-    skillTest <- deriveJSON defaultOptions ''SkillTestMatcher
+    skillTest <- deriveToJSON defaultOptions ''SkillTestMatcher
     skillTestResult <- deriveJSON defaultOptions ''SkillTestResultMatcher
-    skillTestType <- deriveJSON defaultOptions ''SkillTestTypeMatcher
     skillTestValue <- deriveJSON defaultOptions ''SkillTestValueMatcher
     skillType <- deriveJSON defaultOptions ''SkillTypeMatcher
     source <- deriveJSON defaultOptions ''SourceMatcher
@@ -1509,7 +1744,7 @@ $( do
     targetList <- deriveJSON defaultOptions ''TargetListMatcher
     treachery <- deriveJSON defaultOptions ''TreacheryMatcher
     value <- deriveJSON defaultOptions ''ValueMatcher
-    window <- deriveJSON defaultOptions ''WindowMatcher
+    window <- deriveToJSON defaultOptions ''WindowMatcher
     windowMythosStep <- deriveJSON defaultOptions ''WindowMythosStepMatcher
     pure
       $ concat
@@ -1524,6 +1759,7 @@ $( do
         , chaosToken
         , counter
         , damageEffect
+        , damageType
         , deck
         , defeatedBy
         , enemy
@@ -1541,7 +1777,6 @@ $( do
         , skill
         , skillTest
         , skillTestResult
-        , skillTestType
         , skillTestValue
         , skillType
         , source
@@ -1554,3 +1789,21 @@ $( do
         , windowMythosStep
         ]
  )
+
+instance FromJSON SkillTestMatcher where
+  parseJSON = withObject "SkillTestMatcher" $ \o -> do
+    t :: Text <- o .: "tag"
+    case t of
+      "AnySkillTestType" -> pure AnySkillTest
+      _ -> genericParseJSON defaultOptions (Object o)
+
+instance FromJSON WindowMatcher where
+  parseJSON = withObject "WindowMatcher" $ \o -> do
+    t :: Text <- o .: "tag"
+    case t of
+      "EnemyAttackedSuccessfully" -> do
+        econtents <- (Left <$> o .: "contents") <|> (Right <$> o .: "contents")
+        case econtents of
+          Left (a, b, c) -> pure $ EnemyAttackedSuccessfully a b AnySource c
+          Right (a, b, c, d) -> pure $ EnemyAttackedSuccessfully a b c d
+      _ -> genericParseJSON defaultOptions (Object o)

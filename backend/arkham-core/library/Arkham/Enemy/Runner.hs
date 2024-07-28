@@ -26,7 +26,6 @@ import Arkham.Spawn as X
 import Arkham.Target as X
 
 import Arkham.Action qualified as Action
-import Arkham.Asset.Uses qualified as Uses
 import Arkham.Attack
 import Arkham.Campaigns.TheForgottenAge.Helpers
 import Arkham.Card
@@ -54,6 +53,7 @@ import Arkham.Matcher (
   PreyMatcher (..),
   investigatorAt,
   investigatorEngagedWith,
+  locationWithEnemy,
   locationWithInvestigator,
   oneOf,
   preyWith,
@@ -64,7 +64,6 @@ import Arkham.Matcher (
 import Arkham.Message
 import Arkham.Message qualified as Msg
 import Arkham.Movement
-import Arkham.Placement
 import Arkham.Prelude
 import Arkham.Projection
 import Arkham.SkillType ()
@@ -73,6 +72,7 @@ import Arkham.Token qualified as Token
 import Arkham.Trait
 import Arkham.Window (mkAfter, mkWhen)
 import Arkham.Window qualified as Window
+import Control.Lens (non, _Just)
 import Data.List qualified as List
 import Data.List.Extra (firstJust)
 import Data.Monoid (First (..))
@@ -229,8 +229,6 @@ instance RunMessage EnemyAttrs where
             investigatorIds <- select $ investigatorAt lid
             pushAll $ EnemyEntered eid lid : [EnemyEngageInvestigator eid iid | iid <- investigatorIds]
       pure a
-    EnemySpawnedAt lid eid | eid == enemyId -> do
-      a <$ push (EnemyEntered eid lid)
     EnemyEntered eid lid | eid == enemyId -> do
       case enemyPlacement of
         AsSwarm eid' _ -> do
@@ -604,12 +602,17 @@ instance RunMessage EnemyAttrs where
               , attackExhaustsEnemy = True
               }
       pure a
-    AttackEnemy iid eid source mTarget skillType | eid == enemyId -> do
+    AttackEnemy sid iid eid source mTarget skillType | eid == enemyId -> do
       whenWindow <- checkWindows [mkWhen (Window.EnemyAttacked iid source enemyId)]
       afterWindow <- checkWindows [mkAfter (Window.EnemyAttacked iid source enemyId)]
+      keywords <- getModifiedKeywords a
+
+      pushWhen (Keyword.Elusive `elem` keywords) $ HandleElusive eid
+
       pushAll
         [ whenWindow
         , fight
+            sid
             iid
             source
             (maybe (toTarget eid) (ProxyTarget (toTarget eid)) mTarget)
@@ -618,9 +621,27 @@ instance RunMessage EnemyAttrs where
         , afterWindow
         ]
       pure a
+    HandleElusive eid | eid == enemyId -> do
+      -- just a reminder that the messages are handled in reverse, so exhaust happens last
+      whenM (eid <=~> ReadyEnemy) do
+        push $ Exhaust (toTarget a)
+
+        emptyConnectedLocations <-
+          select $ ConnectedFrom (locationWithEnemy eid) <> not_ (LocationWithInvestigator Anyone)
+        lead <- getLeadPlayer
+        if notNull emptyConnectedLocations
+          then do
+            push $ chooseOrRunOne lead [targetLabel lid [EnemyMove eid lid] | lid <- emptyConnectedLocations]
+          else do
+            otherConnectedLocations <-
+              select $ ConnectedFrom (locationWithEnemy eid) <> LocationWithInvestigator Anyone
+            push $ chooseOrRunOne lead [targetLabel lid [EnemyMove eid lid] | lid <- otherConnectedLocations]
+
+        push $ DisengageEnemyFromAll eid
+      pure a
     PassedSkillTest iid (Just Action.Fight) source (Initiator target) _ n | isActionTarget a target -> do
-      whenWindow <- checkWindows [mkWhen (Window.SuccessfulAttackEnemy iid enemyId n)]
-      afterSuccessfulWindow <- checkWindows [mkAfter (Window.SuccessfulAttackEnemy iid enemyId n)]
+      whenWindow <- checkWindows [mkWhen (Window.SuccessfulAttackEnemy iid source enemyId n)]
+      afterSuccessfulWindow <- checkWindows [mkAfter (Window.SuccessfulAttackEnemy iid source enemyId n)]
       pushAll
         [ whenWindow
         , Successful (Action.Fight, toProxyTarget target) iid source (toActionTarget target) n
@@ -628,8 +649,12 @@ instance RunMessage EnemyAttrs where
         ]
 
       pure a
-    Successful (Action.Fight, _) iid source target _ | isTarget a target -> do
-      push $ InvestigatorDamageEnemy iid enemyId source
+    Successful (Action.Fight, _) iid source target n | isTarget a target -> do
+      mods <- getModifiers a
+      let alternateSuccess = [t | AlternateSuccess t <- mods]
+      pushWhen (null alternateSuccess) $ InvestigatorDamageEnemy iid enemyId source
+      for_ alternateSuccess $ \target' ->
+        push $ Successful (Action.Fight, toTarget a) iid source target' n
       pure a
     FailedSkillTest iid (Just Action.Fight) source (Initiator target) _ n | isTarget a target -> do
       pushAll
@@ -672,13 +697,13 @@ instance RunMessage EnemyAttrs where
           push $ EnemyEvaded iid eid'
           pure a
         _ -> do
-          mods <- getModifiers (InvestigatorTarget iid)
-          lid <- fieldJust EnemyLocation eid
+          mods <- getModifiers iid
+          mlid <- field EnemyLocation eid
           let
             updatePlacement =
               if DoNotDisengageEvaded `elem` mods
                 then id
-                else placementL .~ AtLocation lid
+                else maybe id (\lid -> placementL .~ AtLocation lid) mlid
             updateExhausted =
               if DoNotExhaustEvaded `elem` mods
                 then id
@@ -695,12 +720,13 @@ instance RunMessage EnemyAttrs where
           others <- select $ SwarmOf (toId a) <> ReadyEnemy
           pushAll [Exhaust (toTarget other) | other <- others]
       pure $ a & exhaustedL .~ True
-    TryEvadeEnemy iid eid source mTarget skillType | eid == enemyId -> do
+    TryEvadeEnemy sid iid eid source mTarget skillType | eid == enemyId -> do
       mEnemyEvade' <- field EnemyEvade eid
       case mEnemyEvade' of
         Just _ ->
           push
             $ evade
+              sid
               iid
               source
               (maybe (toTarget eid) (ProxyTarget (toTarget eid)) mTarget)
@@ -717,8 +743,12 @@ instance RunMessage EnemyAttrs where
         , afterWindow
         ]
       pure a
-    Successful (Action.Evade, _) iid _ target _ | isTarget a target -> do
-      push $ EnemyEvaded iid enemyId
+    Successful (Action.Evade, _) iid source target n | isTarget a target -> do
+      mods <- getModifiers a
+      let alternateSuccess = [t | AlternateSuccess t <- mods]
+      pushWhen (null alternateSuccess) $ EnemyEvaded iid enemyId
+      for_ alternateSuccess $ \target' ->
+        push $ Successful (Action.Evade, toTarget a) iid source target' n
       pure a
     FailedSkillTest iid (Just Action.Evade) source (Initiator target) _ n | isTarget a target -> do
       whenWindow <- checkWindows [mkWhen $ Window.FailEvadeEnemy iid enemyId n]
@@ -730,18 +760,18 @@ instance RunMessage EnemyAttrs where
         ]
       pure a
     Failed (Action.Evade, _) iid _ target _ | isTarget a target -> do
+      mods <- getModifiers iid
       keywords <- getModifiedKeywords a
       pushAll
         [ EnemyAttack $ viaAlert $ (enemyAttack enemyId a iid) {attackDamageStrategy = enemyDamageStrategy}
         | Keyword.Alert `elem` keywords
+        , IgnoreRetaliate `notElem` mods
         ]
       pure a
-    InitiateEnemyAttack details | attackEnemy details == enemyId -> do
+    InitiateEnemyAttack details | details.enemy == enemyId -> do
       mods <- getModifiers a
       let canBeCancelled = AttacksCannotBeCancelled `notElem` mods
-      let strategy =
-            fromMaybe (attackDamageStrategy details)
-              $ listToMaybe [s | SetAttackDamageStrategy s <- mods]
+      let strategy = fromMaybe details.strategy $ listToMaybe [s | SetAttackDamageStrategy s <- mods]
       push $ EnemyAttack $ details {attackCanBeCanceled = canBeCancelled, attackDamageStrategy = strategy}
       pure a
     ChangeEnemyAttackTarget eid target | eid == enemyId -> do
@@ -758,8 +788,12 @@ instance RunMessage EnemyAttrs where
           _ -> False
         \w -> w {Window.windowType = Window.EnemyAttacksEvenIfCancelled details'}
       pure $ a & attackingL ?~ details'
+    ChangeEnemyAttackDetails eid details' | eid == enemyId -> do
+      pure $ a & attackingL ?~ details'
     AfterEnemyAttack eid msgs | eid == enemyId -> do
       let details = fromJustNote "missing attack details" enemyAttacking
+      keywords <- getModifiedKeywords a
+      pushWhen (Keyword.Elusive `elem` keywords) $ HandleElusive eid
       pure $ a & attackingL ?~ details {attackAfter = msgs}
     EnemyAttack details | attackEnemy details == enemyId -> do
       case attackTarget details of
@@ -861,15 +895,15 @@ instance RunMessage EnemyAttrs where
             <> [After (EnemyAttack details)]
         _ -> error "Unhandled"
       pure a
-    After (EnemyAttack details) | attackEnemy details == toId a -> do
-      afterAttacksWindow <- checkWindows [mkAfter $ Window.EnemyAttacks details]
+    After (EnemyAttack details) | details.enemy == a.id -> do
       let updatedDetails = fromJustNote "missing attack details" enemyAttacking
+      afterAttacksWindow <- checkAfter $ Window.EnemyAttacks updatedDetails
       pushAll $ afterAttacksWindow : attackAfter updatedDetails
       pure a
     HealDamage (EnemyTarget eid) source n | eid == enemyId -> do
-      afterWindow <- checkWindows [mkAfter $ Window.Healed DamageType (toTarget a) source n]
+      afterWindow <- checkAfter $ Window.Healed DamageType (toTarget a) source n
       push afterWindow
-      pure $ a & tokensL %~ subtractTokens Token.Damage n
+      runMessage (RemoveTokens source (toTarget a) #damage n) a
     HealAllDamage (EnemyTarget eid) source | eid == enemyId -> do
       afterWindow <-
         checkWindows [mkAfter $ Window.Healed DamageType (toTarget a) source (enemyDamage a)]
@@ -921,6 +955,7 @@ instance RunMessage EnemyAttrs where
           unless (damageAssignmentDelayed damageAssignment')
             $ push
             $ checkDefeated source eid
+          push $ AssignedDamage (toTarget a)
           pure
             $ a
             & assignedDamageL
@@ -1022,7 +1057,8 @@ instance RunMessage EnemyAttrs where
                            )
 
               pushAll $ [whenExcessMsg, afterExcessMsg, whenMsg, afterMsg] <> defeatMsgs
-          pure $ a & tokensL %~ addTokens Token.Damage amount' & assignedDamageL .~ mempty
+          a' <- if amount' > 0 then runMessage (PlaceTokens source (toTarget a) #damage amount') a else pure a
+          pure $ a' & assignedDamageL .~ mempty
     DefeatEnemy eid _ source | eid == enemyId -> do
       canBeDefeated <- withoutModifier a CannotBeDefeated
       modifiedHealth <- fieldJust EnemyHealth (toId a)
@@ -1139,6 +1175,14 @@ instance RunMessage EnemyAttrs where
             else push $ DisengageEnemy iid enemyId
         _ -> pure ()
       pure a
+    InvestigatorDamage iid (EnemyAttackSource eid) x y | eid == enemyId -> do
+      pure $ a & attackingL . _Just . damagedL . at (toTarget iid) . non (0, 0) %~ bimap (+ x) (+ y)
+    AssetDamageWithCheck aid (EnemyAttackSource eid) x y _ | eid == enemyId -> do
+      pure $ a & attackingL . _Just . damagedL . at (toTarget aid) . non (0, 0) %~ bimap (+ x) (+ y)
+    CancelAssetDamage aid (EnemyAttackSource eid) x | eid == enemyId -> do
+      pure
+        $ a
+        & (attackingL . _Just . damagedL . at (toTarget aid) . non (0, 0) %~ first (max 0 . subtract x))
     CheckAttackOfOpportunity iid isFast | not isFast && not enemyExhausted -> do
       willAttack <- elem iid <$> select (investigatorEngagedWith enemyId)
       when willAttack $ do
@@ -1156,6 +1200,7 @@ instance RunMessage EnemyAttrs where
             , attackSource = toSource a
             , attackCanBeCanceled = True
             , attackAfter = []
+            , attackDamaged = mempty
             }
       pure a
     InvestigatorDrawEnemy iid eid | eid == enemyId -> do
@@ -1241,31 +1286,28 @@ instance RunMessage EnemyAttrs where
     RemoveAllDoom _ target | isTarget a target -> pure $ a & tokensL %~ removeAllTokens Doom
     RemoveTokens _ target token amount | isTarget a target -> do
       pure $ a & tokensL %~ subtractTokens token amount
-    MoveTokens source _ tType n | isSource a source -> pure $ a & tokensL %~ subtractTokens tType n
-    MoveTokens _ target tType n | isTarget a target -> pure $ a & tokensL %~ addTokens tType n
-    MoveUses _ target Uses.Leyline n | isTarget a target -> pure $ a & tokensL %~ addTokens Leyline n
-    PlaceTokens source target Doom amount | isTarget a target -> do
-      cannotPlaceDoom <- hasModifier a CannotPlaceDoomOnThis
-      if cannotPlaceDoom
-        then pure a
-        else do
-          pushAllM $ windows [Window.PlacedDoom source (toTarget a) amount]
-          pure $ a & tokensL %~ addTokens Doom amount
+    MoveTokens s source _ tType n | isSource a source -> runMessage (RemoveTokens s (toTarget a) tType n) a
+    MoveTokens s _ target tType n | isTarget a target -> runMessage (PlaceTokens s (toTarget a) tType n) a
     PlaceTokens source target token n | isTarget a target -> do
-      case token of
-        Clue -> pushAllM $ windows [Window.PlacedClues source (toTarget a) n]
-        _ -> pure ()
-      pure $ a & tokensL %~ addTokens token n
+      if token == #doom
+        then do
+          cannotPlaceDoom <- hasModifier a CannotPlaceDoomOnThis
+          if cannotPlaceDoom
+            then pure a
+            else do
+              when (token == Doom && a.doom == 0) do
+                pushM $ checkAfter $ Window.PlacedDoomCounterOnTargetWithNoDoom source target n
+              pushAllM $ windows [Window.PlacedDoom source (toTarget a) n]
+              pure $ a & tokensL %~ addTokens Doom n
+        else do
+          case token of
+            Clue -> pushAllM $ windows [Window.PlacedClues source (toTarget a) n]
+            _ -> pure ()
+          pure $ a & tokensL %~ addTokens token n
     PlaceKey (isTarget a -> True) k -> do
       pure $ a & keysL %~ insertSet k
     PlaceKey (isTarget a -> False) k -> do
       pure $ a & keysL %~ deleteSet k
-    RemoveClues _ target n | isTarget a target -> do
-      pure $ a & tokensL %~ subtractTokens Clue n
-    MovedClues _ (isTarget a -> True) n -> do
-      pure $ a & tokensL %~ addTokens #clue n
-    MovedClues (isSource a -> True) _ n -> do
-      pure $ a & tokensL %~ subtractTokens #clue n
     FlipClues target n | isTarget a target -> do
       pure $ a & tokensL %~ flipClues n
     PlaceEnemyInVoid eid | eid == enemyId -> do
@@ -1276,15 +1318,19 @@ instance RunMessage EnemyAttrs where
         & (exhaustedL .~ False)
         & (tokensL %~ removeAllTokens Doom . removeAllTokens Clue . removeAllTokens Token.Damage)
     PlaceEnemy eid placement | eid == enemyId -> do
-      push $ EnemyCheckEngagement eid
+      case placement of
+        AtLocation _ -> push $ EnemyCheckEngagement eid
+        _ -> pure ()
       checkEntersThreatArea a placement
       pure $ a & placementL .~ placement
     Blanked msg' -> runMessage msg' a
     UseCardAbility iid (isSource a -> True) AbilityAttack _ _ -> do
-      push $ FightEnemy iid (toId a) (toSource iid) Nothing #combat False
+      sid <- getRandom
+      push $ FightEnemy sid iid (toId a) (toSource iid) Nothing #combat False
       pure a
     UseCardAbility iid (isSource a -> True) AbilityEvade _ _ -> do
-      push $ EvadeEnemy iid (toId a) (toSource iid) Nothing #agility False
+      sid <- getRandom
+      push $ EvadeEnemy sid iid (toId a) (toSource iid) Nothing #agility False
       pure a
     UseCardAbility iid (isSource a -> True) AbilityEngage _ _ -> do
       push $ EngageEnemy iid (toId a) Nothing False
@@ -1292,8 +1338,6 @@ instance RunMessage EnemyAttrs where
     AssignDamage target | isTarget a target -> do
       pushAll $ map (`checkDefeated` a) (keys enemyAssignedDamage)
       pure a
-    Msg.Damage (isTarget a -> True) _ _ -> do
-      error $ "Use EnemyDamage instead"
     RemoveAllCopiesOfCardFromGame _ cCode | cCode == toCardCode a -> do
       push $ RemoveEnemy (toId a)
       pure a

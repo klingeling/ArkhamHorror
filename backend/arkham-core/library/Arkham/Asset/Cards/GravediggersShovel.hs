@@ -6,6 +6,7 @@ import Arkham.Asset.Runner
 import Arkham.Discover
 import Arkham.Fight
 import Arkham.Matcher
+import Arkham.Message qualified as Msg
 import Arkham.Prelude
 
 newtype GravediggersShovel = GravediggersShovel AssetAttrs
@@ -26,10 +27,11 @@ instance RunMessage GravediggersShovel where
   runMessage msg a@(GravediggersShovel attrs) = case msg of
     UseThisAbility iid (isSource attrs -> True) 1 -> do
       let source = attrs.ability 1
-      chooseFight <- toMessage <$> mkChooseFight iid source
-      pushAll [skillTestModifier source iid (SkillModifier #combat 2), chooseFight]
+      sid <- getRandom
+      chooseFight <- toMessage <$> mkChooseFight sid iid source
+      pushAll [skillTestModifier sid source iid (SkillModifier #combat 2), chooseFight]
       pure a
     UseThisAbility iid (isSource attrs -> True) 2 -> do
-      push $ discoverAtYourLocation iid (attrs.ability 2) 1
+      push $ Msg.DiscoverClues iid $ discoverAtYourLocation (attrs.ability 2) 1
       pure a
     _ -> GravediggersShovel <$> runMessage msg attrs

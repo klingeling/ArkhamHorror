@@ -15,7 +15,6 @@ import Arkham.Event.Cards qualified as Cards
 import Arkham.Event.Runner
 import Arkham.Helpers.Modifiers hiding (EnemyFight)
 import Arkham.Matcher
-import Arkham.SkillType
 
 newtype ExposeWeakness3 = ExposeWeakness3 EventAttrs
   deriving anyclass (IsEvent, HasModifiersFor, HasAbilities)
@@ -28,20 +27,15 @@ instance RunMessage ExposeWeakness3 where
   runMessage msg e@(ExposeWeakness3 attrs) = case msg of
     InvestigatorPlayEvent iid eid _ _ _ | eid == toId attrs -> do
       enemies <- select (enemyAtLocationWith iid <> EnemyWithFight)
-      drawing <- drawCards iid attrs 1
+      let drawing = drawCards iid attrs 1
       player <- getPlayer iid
+      sid <- getRandom
       pushAll
         [ chooseOne
             player
             [ targetLabel
               enemy
-              [ beginSkillTest
-                  iid
-                  (toSource attrs)
-                  (EnemyTarget enemy)
-                  SkillIntellect
-                  (EnemyMaybeFieldCalculation enemy EnemyFight)
-              ]
+              [beginSkillTest sid iid attrs enemy #intellect (EnemyMaybeFieldCalculation enemy EnemyFight)]
             | enemy <- enemies
             ]
         , drawing

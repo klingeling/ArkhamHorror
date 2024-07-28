@@ -23,23 +23,23 @@ import {-# SOURCE #-} Arkham.SkillTest.Base
 import Arkham.SkillTest.Step
 import Arkham.SkillTest.Type
 import Arkham.Source (Source)
+import Arkham.Strategy (DamageStrategy)
 import Arkham.Target (Target)
 import Arkham.Timing (Timing)
 import Arkham.Timing qualified as Timing
-import Arkham.Token
 import Arkham.Token qualified as Token
 import Data.Aeson.TH
 import GHC.Records
 
 data Result b a = Success a | Failure b
-  deriving stock (Show, Eq, Ord)
+  deriving stock (Show, Eq, Ord, Data)
 
 data Window = Window
   { windowTiming :: Timing
   , windowType :: WindowType
   , windowBatchId :: Maybe BatchId
   }
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Data)
 
 replaceWindowType :: WindowType -> Window -> Window
 replaceWindowType wType window = window {windowType = wType}
@@ -116,8 +116,14 @@ pattern PlacedDamage source target n <- PlacedToken source target Damage n
   where
     PlacedDamage source target n = PlacedToken source target Damage n
 
+data IsDirect = IsDirect | IsNonDirect
+  deriving stock (Show, Eq, Data)
+
 data WindowType
-  = ActAdvance ActId
+  = AttemptToEvadeEnemy InvestigatorId EnemyId
+  | FirstTimeParleyingThisRound InvestigatorId
+  | AttachCard (Maybe InvestigatorId) Card Target
+  | ActAdvance ActId
   | ActivateAbility InvestigatorId [Window] Ability
   | AddedToVictory Card
   | AgendaAdvance AgendaId
@@ -141,17 +147,21 @@ data WindowType
   | DealtHorror Source Target Int
   | DeckHasNoCards InvestigatorId
   | EncounterDeckRunsOutOfCards
-  | Discarded InvestigatorId Source Card
+  | Discarded (Maybe InvestigatorId) Source Card
   | DiscoverClues InvestigatorId LocationId Source Int
+  | SpentClues InvestigatorId Int
   | DiscoveringLastClue InvestigatorId LocationId
   | SuccessfullyInvestigateWithNoClues InvestigatorId LocationId
+  | WouldDrawCard InvestigatorId DeckSignifier
   | DrawCard InvestigatorId Card DeckSignifier
   | DrawCards InvestigatorId [Card]
   | DrawChaosToken InvestigatorId ChaosToken
   | DrawingStartingHand InvestigatorId
   | DuringTurn InvestigatorId
   | EndOfGame
+  | WouldEndTurn InvestigatorId
   | EndTurn InvestigatorId
+  | TreacheryEntersPlay TreacheryId
   | EnemyAttacked InvestigatorId Source EnemyId
   | EnemyAttacks EnemyAttackDetails
   | EnemyAttacksEvenIfCancelled EnemyAttackDetails
@@ -175,6 +185,7 @@ data WindowType
   | FailSkillTestAtOrLess InvestigatorId Int
   | FastPlayerWindow
   | GainsClues InvestigatorId Source Int
+  | GainsResources InvestigatorId Source Int
   | Healed DamageType Target Source Int
   | InDiscardWindow InvestigatorId Window
   | InHandWindow InvestigatorId Window
@@ -182,6 +193,7 @@ data WindowType
   | InvestigatorDefeated DefeatedBy InvestigatorId
   | InvestigatorWouldBeDefeated DefeatedBy InvestigatorId
   | InvestigatorEliminated InvestigatorId
+  | InvestigatorResigned InvestigatorId
   | LastClueRemovedFromAsset AssetId
   | LeavePlay Target
   | Leaving InvestigatorId LocationId
@@ -201,6 +213,10 @@ data WindowType
   | PhaseEnds Phase
   | PlaceUnderneath Target Card
   | PlacedToken Source Target Token Int
+  | PlacedDoomCounterOnTargetWithNoDoom Source Target Int
+  | InvestigatorPlacedFromTheirPool InvestigatorId Source Target Token Int
+  | SpentToken Source Target Token Int
+  | AttackOrEffectSpentLastUse Source Target Token
   | LostResources InvestigatorId Source Int
   | LostActions InvestigatorId Source Int
   | WouldPlaceDoom Source Target Int
@@ -222,6 +238,7 @@ data WindowType
   | PlayCard InvestigatorId Card
   | PlayEventDiscarding InvestigatorId EventId
   | PutLocationIntoPlay InvestigatorId LocationId
+  | LocationEntersPlay LocationId
   | RevealLocation InvestigatorId LocationId
   | FlipLocation InvestigatorId LocationId
   | RevealChaosToken InvestigatorId ChaosToken
@@ -233,11 +250,11 @@ data WindowType
   | RevealChaosTokenEventEffect InvestigatorId [ChaosToken] EventId
   | RevealChaosTokenAssetAbilityEffect InvestigatorId [ChaosToken] AssetId
   | RevealChaosTokenWithNegativeModifier InvestigatorId ChaosToken
-  | WouldPerformRevelationSkillTest InvestigatorId
-  | SpentUses InvestigatorId AssetId UseType Int
+  | WouldPerformRevelationSkillTest InvestigatorId SkillTestId
+  | SpentUses InvestigatorId Source AssetId UseType Int
   | SkillTest SkillTestType
   | SkillTestEnded SkillTest
-  | SuccessfulAttackEnemy InvestigatorId EnemyId Int
+  | SuccessfulAttackEnemy InvestigatorId Source EnemyId Int
   | SuccessfulEvadeEnemy InvestigatorId EnemyId Int
   | SuccessfulInvestigation InvestigatorId LocationId
   | TakeDamage Source DamageEffect Target Int
@@ -254,7 +271,7 @@ data WindowType
   | WouldReady Target
   | Readies Target
   | WouldRevealChaosToken Source InvestigatorId
-  | WouldTakeDamage Source Target Int
+  | WouldTakeDamage Source Target Int DamageStrategy
   | WouldTakeDamageOrHorror Source Target Int Int
   | WouldTakeHorror Source Target Int
   | Explored InvestigatorId (Result Card LocationId)
@@ -266,11 +283,12 @@ data WindowType
   | ScenarioCountIncremented ScenarioCountKey
   | -- used to avoid checking a window
     DoNotCheckWindow
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Data)
 
 $( do
+    isDirect <- deriveJSON defaultOptions ''IsDirect
     result <- deriveJSON defaultOptions ''Result
     windowType <- deriveJSON defaultOptions ''WindowType
     window <- deriveJSON defaultOptions ''Window
-    pure $ concat [result, windowType, window]
+    pure $ concat [isDirect, result, windowType, window]
  )

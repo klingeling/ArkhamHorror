@@ -28,6 +28,7 @@ instance HasAbilities TheTrueCulpritV5 where
   getAbilities (TheTrueCulpritV5 attrs) =
     guard (onSide A attrs)
       *> [ doesNotProvokeAttacksOfOpportunity
+            $ skillTestAbility
             $ controlledAbility
               (proxied (assetIs Cards.sinisterSolution) attrs)
               1
@@ -51,14 +52,15 @@ instance RunMessage TheTrueCulpritV5 where
   runMessage msg a@(TheTrueCulpritV5 attrs) =
     case msg of
       UseThisAbility iid p@(ProxySource _ (isSource attrs -> True)) 1 -> do
-        push $ beginSkillTest iid (toAbilitySource p 1) iid #intellect (Fixed 1)
+        sid <- getRandom
+        push $ beginSkillTest sid iid (toAbilitySource p 1) iid #intellect (Fixed 1)
         pure a
       PassedThisSkillTestBy _ (isProxyAbilitySource attrs 1 -> True) n | n > 0 -> do
         sinisterSolution <- selectJust $ assetIs Cards.sinisterSolution
         vengefulSpecter <- selectJust $ enemyIs Cards.vengefulSpecter
         moveableClues <- fieldMap AssetClues (min n) sinisterSolution
         pushWhen (moveableClues > 0)
-          $ MovedClues (toSource sinisterSolution) (toTarget vengefulSpecter) moveableClues
+          $ MovedClues (attrs.ability 1) (toSource sinisterSolution) (toTarget vengefulSpecter) moveableClues
         pure a
       UseThisAbility _ (isSource attrs -> True) 2 -> do
         push $ AdvanceAgendaBy (toId attrs) AgendaAdvancedWithOther

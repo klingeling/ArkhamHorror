@@ -22,7 +22,7 @@ patricesViolin = asset PatricesViolin Cards.patricesViolin
 instance HasAbilities PatricesViolin where
   getAbilities (PatricesViolin x) =
     [ controlledAbility x 1 (atYourLocation $ affectsOthers $ oneOf [can.gain.resources, can.draw.cards])
-        $ FastAbility (exhaust x <> HandDiscardCost 1 AnyCard)
+        $ FastAbility (exhaust x <> HandDiscardCost 1 #any)
     ]
 
 instance RunMessage PatricesViolin where
@@ -39,7 +39,7 @@ instance RunMessage PatricesViolin where
       let source = toAbilitySource attrs 1
       canGainResources <- can.gain.resources iid'
       canDrawCards <- can.draw.cards iid'
-      drawing <- drawCards iid' source 1
+      let drawing = drawCards iid' source 1
       player <- getPlayer iid
 
       push

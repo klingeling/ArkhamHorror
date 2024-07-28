@@ -1,7 +1,5 @@
 module Arkham.Investigator.Cards.NormanWithers where
 
-import Arkham.Prelude
-
 import Arkham.Ability
 import Arkham.Card
 import Arkham.Deck qualified as Deck
@@ -10,15 +8,17 @@ import Arkham.Helpers
 import Arkham.Investigator.Cards qualified as Cards
 import Arkham.Investigator.Runner
 import Arkham.Matcher hiding (PlayCard, RevealChaosToken)
+import Arkham.Prelude
 import Arkham.Projection
 
 newtype Metadata = Metadata {playedFromTopOfDeck :: Bool}
-  deriving stock (Show, Generic, Eq)
+  deriving stock (Show, Generic, Eq, Data)
   deriving anyclass (ToJSON, FromJSON)
 
 newtype NormanWithers = NormanWithers (InvestigatorAttrs `With` Metadata)
-  deriving anyclass (IsInvestigator)
+  deriving anyclass IsInvestigator
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock Data
 
 normanWithers :: InvestigatorCard NormanWithers
 normanWithers =
@@ -47,8 +47,8 @@ instance HasAbilities NormanWithers where
     [ restrictedAbility
         a
         1
-        (Self <> InvestigatorExists (TopCardOfDeckIs WeaknessCard) <> CanManipulateDeck)
-        (ForcedAbility AnyWindow)
+        (Self <> exists (TopCardOfDeckIs WeaknessCard) <> CanManipulateDeck)
+        (forced AnyWindow)
     ]
 
 instance HasChaosTokenValue NormanWithers where
@@ -62,13 +62,12 @@ instance HasChaosTokenValue NormanWithers where
 
 instance RunMessage NormanWithers where
   runMessage msg nw@(NormanWithers (a `With` metadata)) = case msg of
-    UseCardAbility iid (isSource a -> True) 1 _ _ -> do
-      pushM $ drawCards iid (toAbilitySource a 1) 1
+    UseThisAbility iid (isSource a -> True) 1 -> do
+      push $ drawCards iid (a.ability 1) 1
       pure nw
     When (RevealChaosToken _ iid token) | iid == toId a -> do
       faces <- getModifiedChaosTokenFace token
       when (ElderSign `elem` faces) $ do
-        drawing <- drawCards iid (ChaosTokenEffectSource ElderSign) 1
         hand <- field InvestigatorHand iid
         player <- getPlayer iid
         push
@@ -76,7 +75,9 @@ instance RunMessage NormanWithers where
           $ Label "Do not swap" []
           : [ targetLabel
               (toCardId c)
-              [drawing, PutCardOnTopOfDeck iid (Deck.InvestigatorDeck iid) (toCard c)]
+              [ drawCards iid (ChaosTokenEffectSource ElderSign) 1
+              , PutCardOnTopOfDeck iid (Deck.InvestigatorDeck iid) (toCard c)
+              ]
             | c <- onlyPlayerCards hand
             ]
       pure nw

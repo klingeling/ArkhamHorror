@@ -44,8 +44,10 @@ instance RunMessage ForsakenTowerOfIllusionAndMyth where
         ]
       pure l
     HandleTargetChoice iid (isAbilitySource attrs 1 -> True) (EnemyTarget nyarlathotep) -> do
+      sid <- getRandom
       push
         $ investigate
+          sid
           iid
           (attrs.ability 1)
           (toTarget attrs)
@@ -71,4 +73,4 @@ instance RunMessage ForsakenTowerOfIllusionAndMyth where
             , ShuffleBackIntoEncounterDeck (toTarget nyarlathotep)
             ]
       pure l
-    _ -> ForsakenTowerOfIllusionAndMyth <$> lift (runMessage msg attrs)
+    _ -> ForsakenTowerOfIllusionAndMyth <$> liftRunMessage msg attrs

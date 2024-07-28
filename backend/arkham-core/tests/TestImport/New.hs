@@ -30,6 +30,7 @@ import Arkham.Classes.HasChaosTokenValue
 import Arkham.Classes.HasGame
 import Arkham.CommitRestriction
 import Arkham.Deck qualified as Deck
+import Arkham.Discover
 import Arkham.Enemy.Types
 import Arkham.Enemy.Types qualified as Field
 import Arkham.Entities qualified as Entities
@@ -49,7 +50,6 @@ import Arkham.Phase
 import Arkham.Projection
 import Arkham.SkillTest.Runner
 import Arkham.SkillTestResult
-import Arkham.Token (Token)
 import Arkham.Token qualified as Token
 import Arkham.Treachery.Types
 import Arkham.Window (defaultWindows)
@@ -72,9 +72,7 @@ loadDeckCards :: Investigator -> [PlayerCard] -> TestAppT ()
 loadDeckCards i = run . LoadDeck (toId i) . Deck
 
 drawCards :: Investigator -> Int -> TestAppT ()
-drawCards i n = do
-  drawing <- Helpers.drawCards (toId i) i n
-  run drawing
+drawCards i n = run $ Helpers.drawCards (toId i) i n
 
 playCard :: Investigator -> Card -> TestAppT ()
 playCard i c = run $ InitiatePlayCard (toId i) c Nothing NoPayment (defaultWindows $ toId i) True
@@ -148,17 +146,23 @@ instance CanMoveTo Location where
 instance CanMoveTo LocationId where
   moveTo i l = run $ Move $ move (toSource i) (toId i) l
 
-fightEnemy :: Investigator -> Enemy -> TestAppT ()
-fightEnemy i e = run $ FightEnemy (toId i) (toId e) (toSource i) Nothing SkillCombat False
+fightEnemy :: Investigator -> Enemy -> TestAppT SkillTestId
+fightEnemy i e = do
+  sid <- getRandom
+  run $ FightEnemy sid (toId i) (toId e) (toSource i) Nothing SkillCombat False
+  pure sid
 
 evadeEnemy :: Investigator -> Enemy -> TestAppT ()
-evadeEnemy i e = run $ EvadeEnemy (toId i) (toId e) (toSource i) Nothing SkillAgility False
+evadeEnemy i e = do
+  sid <- getRandom
+  run $ EvadeEnemy sid (toId i) (toId e) (toSource i) Nothing SkillAgility False
 
 evadedEnemy :: Investigator -> Enemy -> TestAppT ()
 evadedEnemy i e = run $ EnemyEvaded (toId i) (toId e)
 
 investigate :: Investigator -> Location -> TestAppT ()
-investigate i l =
+investigate i l = do
+  sid <- getRandom
   run
     $ Investigate
     $ MkInvestigate
@@ -168,6 +172,7 @@ investigate i l =
       , investigateSource = TestSource mempty
       , investigateTarget = Nothing
       , investigateIsAction = False
+      , investigateSkillTest = sid
       }
 
 instance HasField "engagedEnemies" Investigator (TestAppT [EnemyId]) where
@@ -367,15 +372,15 @@ assertFailedSkillTest = do
     SucceededBy {} -> expectationFailure "Expected skill test to fail, but passed"
     Unrun {} -> expectationFailure "Expected skill test to pass, but is unrun"
 
-runSkillTest :: HasCallStack => Investigator -> SkillType -> Int -> TestAppT ()
-runSkillTest i st n = do
-  run $ Helpers.Message.beginSkillTest i st n
+runSkillTest :: HasCallStack => SkillTestId -> Investigator -> SkillType -> Int -> TestAppT ()
+runSkillTest sid i st n = do
+  run $ Helpers.Message.beginSkillTest sid i st n
   click "start skill test"
 
 discoverClues :: Investigator -> Int -> TestAppT ()
 discoverClues i n = do
   lid <- fieldJust InvestigatorLocation i.id
-  run $ InvestigatorDiscoverClues i.id lid GameSource n Nothing
+  run $ DiscoverClues i.id $ discover lid GameSource n
 
 getActionsFrom :: Sourceable source => Investigator -> source -> TestAppT [Ability]
 getActionsFrom i s = do
@@ -421,7 +426,7 @@ assertHasNoReaction = do
 drawsCard :: Investigator -> CardDef -> TestAppT ()
 drawsCard i cd = do
   c <- genCard cd
-  drawing <- Helpers.drawCards (toId i) GameSource 1
+  let drawing = Helpers.drawCards (toId i) GameSource 1
   runAll [PutCardOnTopOfDeck (toId i) (Deck.InvestigatorDeck $ toId i) c, drawing]
 
 startSkillTest :: HasCallStack => TestAppT ()
@@ -438,6 +443,11 @@ inWindow :: Investigator -> TestAppT () -> TestAppT ()
 inWindow self body = do
   run $ CheckWindow [toId self] (defaultWindows $ toId self)
   body
+
+assertNone :: (Query a, Show a) => a -> TestAppT ()
+assertNone a = do
+  res <- select a
+  when (notNull res) $ expectationFailure $ "expected " <> show a <> " to produce no results"
 
 chooseTarget :: (HasCallStack, Targetable target) => target -> TestAppT ()
 chooseTarget (toTarget -> target) =
@@ -614,7 +624,7 @@ discardedWhenNoUses def = it "is discarded when no uses" . gameTest $ \self -> d
     Nothing -> expectationFailure "asset has no uses"
     Just useType' -> do
       let useCount' = useCount uses
-      run $ SpendUses (toTarget this) useType' useCount'
+      run $ SpendUses GameSource (toTarget this) useType' useCount'
   assert $ selectNone $ Matcher.assetIs def
   asDefs self.discard `shouldReturn` [def]
 
@@ -705,8 +715,9 @@ unlessSetting f body = do
 
 failSkillTest :: Investigator -> TestAppT ()
 failSkillTest self = do
+  sid <- getRandom
   setChaosTokens [AutoFail]
-  runSkillTest self #combat 1
+  runSkillTest sid self #combat 1
   applyResults
 
 maxCommittedPerSkillTest :: Int -> CardDef -> SpecWith ()
@@ -814,7 +825,7 @@ resolveAmounts self choices = do
 chooseFight :: TestAppT ()
 chooseFight = do
   chooseOptionMatching "choose fight" \case
-    AbilityLabel _ ability _ _ -> Action.Fight `elem` abilityActions ability
+    AbilityLabel _ ability _ _ _ -> Action.Fight `elem` abilityActions ability
     _ -> False
 
 assertMaxAmountChoice :: HasCallStack => Int -> TestAppT ()

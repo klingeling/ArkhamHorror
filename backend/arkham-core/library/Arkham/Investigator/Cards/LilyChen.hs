@@ -1,7 +1,6 @@
 module Arkham.Investigator.Cards.LilyChen (lilyChen, LilyChen (..)) where
 
 import Arkham.Asset.Cards qualified as Assets
-import Arkham.Helpers.Investigator (startsWith)
 import Arkham.Investigator.Cards qualified as Cards
 import Arkham.Investigator.Import.Lifted
 import Arkham.Investigator.Types (Field (InvestigatorHand))
@@ -11,12 +10,13 @@ import Arkham.Trait (Trait (Broken))
 import Data.Aeson.KeyMap qualified as KM
 
 newtype Metadata = Metadata {flipDiscipline :: Bool}
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Eq, Generic, Data)
   deriving anyclass (ToJSON, FromJSON)
 
 newtype LilyChen = LilyChen (InvestigatorAttrs `With` Metadata)
   deriving anyclass (IsInvestigator, HasAbilities, HasModifiersFor)
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock Data
 
 lilyChen :: InvestigatorCard LilyChen
 lilyChen =
@@ -37,7 +37,7 @@ instance HasChaosTokenValue LilyChen where
 instance RunMessage LilyChen where
   runMessage msg (LilyChen (With attrs meta)) = runQueueT $ case msg of
     Do BeginRound -> do
-      attrs' <- lift (runMessage msg attrs)
+      attrs' <- liftRunMessage msg attrs
       quiescent <- fieldMap InvestigatorHand ((<= 2) . length) (toId attrs)
       balanced <- selectNone $ enemyAtLocationWith attrs.id
       pure
@@ -48,14 +48,14 @@ instance RunMessage LilyChen where
           (object ["aligned" .= True, "balanced" .= balanced, "prescient" .= True, "quiescent" .= quiescent])
     ElderSignEffect iid | iid == toId attrs -> do
       pure $ LilyChen $ attrs `with` Metadata True
-    SkillTestEnds iid _ | attrs.id == iid && flipDiscipline meta -> do
+    SkillTestEnds _ iid _ | attrs.id == iid && flipDiscipline meta -> do
       brokenDisciplines <- select $ AssetWithTrait Broken <> AssetWithTitle "Discipline"
       unless (null brokenDisciplines) do
         chooseOne attrs.id
           $ targetLabels brokenDisciplines (only . Flip attrs.id #elderSign . toTarget)
       pure $ LilyChen $ attrs `with` Metadata False
     StartSkillTest iid | iid == attrs.id -> do
-      attrs' <- lift (runMessage msg attrs)
+      attrs' <- liftRunMessage msg attrs
       let
         meta' = case attrs.meta of
           Object o -> Object $ KM.insert "prescient" (Bool False) o
@@ -72,7 +72,7 @@ instance RunMessage LilyChen where
                 _ -> object ["balanced" .= True, "quiescent" .= True, "prescient" .= True, "aligned" .= False]
           attrs' <- lift $ runMessage msg attrs
           pure . LilyChen . (`with` meta) $ attrs' & setMeta meta'
-        else LilyChen . (`with` meta) <$> lift (runMessage msg attrs)
+        else LilyChen . (`with` meta) <$> liftRunMessage msg attrs
     _ ->
       do
         quiescent <- fieldMap InvestigatorHand ((< 2) . length) attrs.id
@@ -86,4 +86,4 @@ instance RunMessage LilyChen where
             _ ->
               object ["balanced" .= balanced, "quiescent" .= quiescent, "prescient" .= True, "aligned" .= True]
 
-        LilyChen . (`with` meta) . setMeta meta' <$> lift (runMessage msg attrs)
+        LilyChen . (`with` meta) . setMeta meta' <$> liftRunMessage msg attrs

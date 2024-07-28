@@ -50,6 +50,7 @@ data Trait
   | Condition
   | Connection
   | Conspirator
+  | Coterie
   | Courage
   | Covenant
   | Creature
@@ -66,6 +67,7 @@ data Trait
   | Developed
   | Dhole
   | Dilemma
+  | Double
   | Dreamer
   | Dreamlands
   | Drifter
@@ -112,6 +114,7 @@ data Trait
   | Injury
   | Innate
   | Innocent
+  | Insect
   | Insight
   | Instrument
   | Item

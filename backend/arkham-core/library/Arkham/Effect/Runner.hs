@@ -24,6 +24,8 @@ intFromMetadata = \case
 
 instance RunMessage EffectAttrs where
   runMessage msg a@EffectAttrs {..} = case msg of
+    DrawEnded _ | isEndOfWindow a EffectCardDrawWindow -> do
+      a <$ push (DisableEffect effectId)
     SearchEnded _ | isEndOfWindow a EffectSearchWindow -> do
       a <$ push (DisableEffect effectId)
     CancelSearch {} | isEndOfWindow a EffectSearchWindow -> do
@@ -34,12 +36,15 @@ instance RunMessage EffectAttrs where
       a <$ push (DisableEffect effectId)
     EndPhase -> do
       phase <- getPhase
-      when (isEndOfWindow a (EffectPhaseWindowFor phase))
-        $ push (DisableEffect effectId)
+      pushWhen
+        ( isEndOfWindow a (EffectPhaseWindowFor phase)
+            || isEndOfWindow a (EffectUntilEndOfPhaseWindowFor phase)
+        )
+        $ (DisableEffect effectId)
       pure a
-    BeginTurn _ | isEndOfWindow a EffectNextTurnWindow -> do
+    BeginTurn iid | isEndOfWindow a (EffectNextTurnWindow iid) -> do
       a <$ push (DisableEffect effectId)
-    EndTurn _ | isEndOfWindow a EffectTurnWindow -> do
+    EndTurn iid | isEndOfWindow a (EffectTurnWindow iid) -> do
       a <$ push (DisableEffect effectId)
     EndRound | isEndOfWindow a EffectRoundWindow -> do
       a <$ push (DisableEffect effectId)
@@ -47,7 +52,7 @@ instance RunMessage EffectAttrs where
       a <$ push (DisableEffect effectId)
     BeginAction | isEndOfWindow a EffectNextActionWindow -> do
       a <$ push (DisableEffect effectId)
-    SkillTestEnded | isEndOfWindow a EffectSkillTestWindow -> do
+    SkillTestEnded sid | isEndOfWindow a (EffectSkillTestWindow sid) || isEndOfWindow a EffectNextSkillTestWindow -> do
       a <$ push (DisableEffect effectId)
     CancelSkillEffects -> case effectSource of
       (SkillSource _) -> a <$ push (DisableEffect effectId)
@@ -58,9 +63,13 @@ instance RunMessage EffectAttrs where
       a <$ push (DisableEffect effectId)
     After (PerformEnemyAttack {}) | isEndOfWindow a EffectAttackWindow -> do
       a <$ push (DisableEffect effectId)
+    AfterRevelation _ tid | isEndOfWindow a (EffectRevelationWindow tid) -> do
+      a <$ push (DisableEffect effectId)
     ResolvedCard _ card | isEndOfWindow a (EffectCardResolutionWindow $ toCardId card) -> do
       a <$ push (DisableEffect effectId)
-    ResolvedAbility {} | isEndOfWindow a EffectAbilityWindow -> do
+    ResolvedAbility ab | isEndOfWindow a (EffectAbilityWindow ab.ref) -> do
+      a <$ push (DisableEffect effectId)
+    Do (TakeResources iid _ _ _) | isEndOfWindow a (EffectGainResourcesWindow iid) -> do
       a <$ push (DisableEffect effectId)
     ClearUI | isEndOfWindow a EffectUI -> do
       a <$ push (DisableEffect effectId)
@@ -68,4 +77,5 @@ instance RunMessage EffectAttrs where
       a <$ push (DisableEffect effectId)
     Move _ | isEndOfWindow a EffectMoveWindow -> do
       a <$ push (DisableEffect effectId)
+    NextSkillTest sid -> pure $ replaceNextSkillTest sid a
     _ -> pure a

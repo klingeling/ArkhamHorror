@@ -35,9 +35,9 @@ instance RunMessage TristanBotleyFixerForHire2 where
       chooseN
         iid
         2
-        [SkillLabel s [Msg.nextTurnModifier (attrs.ability 1) iid (SkillModifier s 1)] | s <- allSkills]
+        [SkillLabel s [Msg.nextTurnModifier iid (attrs.ability 1) iid (SkillModifier s 1)] | s <- allSkills]
       pure a
     InHand _ (UseThisAbility iid (isSource attrs -> True) 2) -> do
       putCardIntoPlay iid attrs
       pure a
-    _ -> TristanBotleyFixerForHire2 <$> lift (runMessage msg attrs)
+    _ -> TristanBotleyFixerForHire2 <$> liftRunMessage msg attrs

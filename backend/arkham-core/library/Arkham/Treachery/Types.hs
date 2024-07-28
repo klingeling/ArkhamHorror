@@ -2,8 +2,6 @@
 
 module Arkham.Treachery.Types where
 
-import Arkham.Prelude
-
 import Arkham.Ability
 import Arkham.Card
 import Arkham.ChaosToken (ChaosToken)
@@ -17,13 +15,15 @@ import Arkham.Json
 import Arkham.Keyword
 import Arkham.Name
 import Arkham.Placement
+import Arkham.Prelude
 import Arkham.Projection
 import Arkham.Source
 import Arkham.Target
 import Arkham.Token
 import Arkham.Trait
 import Arkham.Treachery.Cards
-import Data.Typeable
+import Data.Aeson.TH
+import Data.Data
 import GHC.Records
 
 class
@@ -52,6 +52,7 @@ data instance Field Treachery :: Type -> Type where
   TreacheryResources :: Field Treachery Int
   TreacheryDoom :: Field Treachery Int
   TreacheryAttachedTarget :: Field Treachery (Maybe Target)
+  TreacheryLocation :: Field Treachery (Maybe LocationId)
   TreacheryTraits :: Field Treachery (Set Trait)
   TreacheryKeywords :: Field Treachery (Set Keyword)
   TreacheryAbilities :: Field Treachery [Ability]
@@ -59,7 +60,7 @@ data instance Field Treachery :: Type -> Type where
   TreacheryCard :: Field Treachery Card
   TreacheryCardId :: Field Treachery CardId
   TreacheryCanBeCommitted :: Field Treachery Bool
-  TreacheryPlacement :: Field Treachery TreacheryPlacement
+  TreacheryPlacement :: Field Treachery Placement
   TreacheryDrawnBy :: Field Treachery InvestigatorId
   TreacheryDrawnFrom :: Field Treachery (Maybe DeckSignifier)
   TreacheryOwner :: Field Treachery (Maybe InvestigatorId)
@@ -70,7 +71,7 @@ data TreacheryAttrs = TreacheryAttrs
   , treacheryCardCode :: CardCode
   , treacheryOwner :: Maybe InvestigatorId
   , treacheryTokens :: Tokens
-  , treacheryPlacement :: TreacheryPlacement
+  , treacheryPlacement :: Placement
   , treacheryCanBeCommitted :: Bool
   , treacheryDrawnBy :: InvestigatorId
   , treacheryDrawnFrom :: Maybe DeckSignifier
@@ -79,7 +80,11 @@ data TreacheryAttrs = TreacheryAttrs
   , treacheryMeta :: Value
   , treacherySealedChaosTokens :: [ChaosToken]
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Eq)
+
+instance AsId Treachery where
+  type IdOf Treachery = TreacheryId
+  asId = toId
 
 instance AsId TreacheryAttrs where
   type IdOf TreacheryAttrs = TreacheryId
@@ -103,8 +108,11 @@ instance HasField "attached" TreacheryAttrs (Maybe Target) where
 instance HasField "ability" TreacheryAttrs (Int -> Source) where
   getField self = toAbilitySource self
 
-instance HasField "placement" TreacheryAttrs TreacheryPlacement where
+instance HasField "placement" TreacheryAttrs Placement where
   getField = treacheryPlacement
+
+instance HasField "doom" TreacheryAttrs Int where
+  getField = countTokens Doom . treacheryTokens
 
 treacheryDoom :: TreacheryAttrs -> Int
 treacheryDoom = countTokens Doom . treacheryTokens
@@ -119,24 +127,26 @@ treacheryResources :: TreacheryAttrs -> Int
 treacheryResources = countTokens Resource . treacheryTokens
 
 treacheryAttachedTarget :: TreacheryAttrs -> Maybe Target
-treacheryAttachedTarget attrs = case treacheryPlacement attrs of
-  TreacheryAttachedTo target -> Just target
-  _ -> Nothing
+treacheryAttachedTarget attrs = placementToAttached attrs.placement
 
 treacheryInHandOf :: TreacheryAttrs -> Maybe InvestigatorId
-treacheryInHandOf attrs = case treacheryPlacement attrs of
-  TreacheryInHandOf iid -> Just iid
+treacheryInHandOf attrs = case attrs.placement of
+  HiddenInHand iid -> Just iid
   _ -> Nothing
 
 treacheryOnTopOfDeck :: TreacheryAttrs -> Maybe InvestigatorId
-treacheryOnTopOfDeck attrs = case treacheryPlacement attrs of
-  TreacheryTopOfDeck iid -> Just iid
+treacheryOnTopOfDeck attrs = case attrs.placement of
+  OnTopOfDeck iid -> Just iid
   _ -> Nothing
 
 treacheryInThreatAreaOf :: TreacheryAttrs -> Maybe InvestigatorId
-treacheryInThreatAreaOf attrs = case treacheryPlacement attrs of
-  TreacheryAttachedTo (InvestigatorTarget iid) -> Just iid
+treacheryInThreatAreaOf attrs = case attrs.placement of
+  InThreatArea iid -> Just iid
+  AttachedToInvestigator iid -> Just iid
   _ -> Nothing
+
+instance HasField "inThreatAreaOf" TreacheryAttrs (Maybe InvestigatorId) where
+  getField = treacheryInThreatAreaOf
 
 instance HasCardCode TreacheryAttrs where
   toCardCode = treacheryCardCode
@@ -146,28 +156,6 @@ instance HasCardDef TreacheryAttrs where
     Just def -> def
     Nothing ->
       error $ "missing card def for treachery " <> show (treacheryCardCode a)
-
-instance ToJSON TreacheryAttrs where
-  toJSON = genericToJSON $ aesonOptions $ Just "treachery"
-  toEncoding = genericToEncoding $ aesonOptions $ Just "treachery"
-
-instance FromJSON TreacheryAttrs where
-  parseJSON = withObject "TreacheryAttrs" $ \o -> do
-    treacheryId <- o .: "id"
-    treacheryCardId <- o .: "cardId"
-    treacheryCardCode <- o .: "cardCode"
-    treacheryOwner <- o .: "owner"
-    treacheryTokens <- o .: "tokens"
-    treacheryPlacement <- o .: "placement"
-    treacheryCanBeCommitted <- o .: "canBeCommitted"
-    treacheryDrawnBy <- o .: "drawnBy"
-    treacheryDrawnFrom <- o .: "drawnFrom"
-    treacheryResolved <- o .: "resolved"
-    treacheryDiscardedBy <- o .: "discardedBy"
-    treacheryMeta <- o .:? "meta" .!= Null
-    treacherySealedChaosTokens <- o .:? "sealedChaosTokens" .!= []
-
-    pure $ TreacheryAttrs {..}
 
 instance Entity TreacheryAttrs where
   type EntityId TreacheryAttrs = TreacheryId
@@ -200,8 +188,10 @@ instance IsCard TreacheryAttrs where
 treacheryOn :: Targetable target => TreacheryAttrs -> target -> Bool
 treacheryOn attrs t = toTarget t `elem` treacheryAttachedTarget attrs
 
-treacheryOnInvestigator :: InvestigatorId -> TreacheryAttrs -> Bool
-treacheryOnInvestigator = flip treacheryOn
+treacheryInThreatArea :: InvestigatorId -> TreacheryAttrs -> Bool
+treacheryInThreatArea iid attrs = case attrs.placement of
+  InThreatArea iid' -> iid == iid'
+  _ -> False
 
 treacheryOnEnemy :: EnemyId -> TreacheryAttrs -> Bool
 treacheryOnEnemy = flip treacheryOn
@@ -215,27 +205,27 @@ treacheryOnAgenda = flip treacheryOn
 treacheryOnAct :: ActId -> TreacheryAttrs -> Bool
 treacheryOnAct = flip treacheryOn
 
-withTreacheryEnemy :: TreacheryAttrs -> (EnemyId -> m a) -> m a
+withTreacheryEnemy :: HasCallStack => TreacheryAttrs -> (EnemyId -> m a) -> m a
 withTreacheryEnemy attrs f = case treacheryAttachedTarget attrs of
   Just (EnemyTarget eid) -> f eid
   _ ->
     error $ show (cdName $ toCardDef attrs) <> " must be attached to an enemy"
 
-withTreacheryLocation :: TreacheryAttrs -> (LocationId -> m a) -> m a
+withTreacheryLocation :: HasCallStack => TreacheryAttrs -> (LocationId -> m a) -> m a
 withTreacheryLocation attrs f = case treacheryAttachedTarget attrs of
   Just (LocationTarget lid) -> f lid
   _ ->
     error $ show (cdName $ toCardDef attrs) <> " must be attached to a location"
 
-withTreacheryInvestigator :: TreacheryAttrs -> (InvestigatorId -> m a) -> m a
-withTreacheryInvestigator attrs f = case treacheryAttachedTarget attrs of
-  Just (InvestigatorTarget iid) -> f iid
+withTreacheryInvestigator :: HasCallStack => TreacheryAttrs -> (InvestigatorId -> m a) -> m a
+withTreacheryInvestigator attrs f = case attrs.inThreatAreaOf of
+  Just iid -> f iid
   _ ->
     error
       $ show (cdName $ toCardDef attrs)
-      <> " must be attached to an investigator"
+      <> " must be in the threat area of an investigator"
 
-withTreacheryOwner :: TreacheryAttrs -> (InvestigatorId -> m a) -> m a
+withTreacheryOwner :: HasCallStack => TreacheryAttrs -> (InvestigatorId -> m a) -> m a
 withTreacheryOwner attrs f = case treacheryOwner attrs of
   Just iid -> f iid
   _ ->
@@ -264,7 +254,7 @@ treacheryWith f cardDef g =
             { treacheryId = tid
             , treacheryCardId = cardId
             , treacheryCardCode = toCardCode cardDef
-            , treacheryPlacement = TreacheryLimbo
+            , treacheryPlacement = Limbo
             , treacheryOwner =
                 if isJust (cdCardSubType cardDef)
                   then Just iid
@@ -288,8 +278,16 @@ is _ _ = False
 
 data Treachery = forall a. IsTreachery a => Treachery a
 
+instance Data Treachery where
+  gunfold _ _ _ = error "gunfold(Treachery)"
+  toConstr _ = error "toConstr(Treachery)"
+  dataTypeOf _ = error "dataTypeOf(Treachery)"
+
 instance HasField "owner" Treachery (Maybe InvestigatorId) where
   getField (Treachery a) = attr treacheryOwner a
+
+instance HasField "placement" Treachery Placement where
+  getField (Treachery a) = attr treacheryPlacement a
 
 instance Named Treachery where
   toName (Treachery t) = toName (toAttrs t)
@@ -354,3 +352,5 @@ makeLensesWith suffixedFields ''TreacheryAttrs
 
 setMeta :: ToJSON a => a -> TreacheryAttrs -> TreacheryAttrs
 setMeta a = metaL .~ toJSON a
+
+$(deriveJSON (aesonOptions $ Just "treachery") ''TreacheryAttrs)

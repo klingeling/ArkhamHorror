@@ -7,6 +7,7 @@ import Arkham.Prelude
 
 import Arkham.Action (Action)
 import Arkham.Asset.Uses
+import Arkham.Calculation
 import Arkham.Card.CardCode
 import Arkham.Card.CardType
 import Arkham.Card.Cost
@@ -16,7 +17,6 @@ import {-# SOURCE #-} Arkham.Cost
 import Arkham.Criteria
 import Arkham.Customization
 import Arkham.EncounterSet
-import Arkham.GameValue
 import Arkham.Id
 import Arkham.Json
 import Arkham.Keyword (HasKeywords (..), Keyword)
@@ -36,6 +36,7 @@ data DeckRestriction
   | TraitPerDeckLimit Trait Int
   | MultiplayerOnly
   | PurchaseAtDeckCreation
+  | OnlyClass ClassSymbol
   deriving stock (Show, Eq, Ord, Data)
 
 data AttackOfOpportunityModifier
@@ -55,6 +56,10 @@ data CardLimit
   = LimitPerInvestigator Int
   | LimitPerTrait Trait Int
   | MaxPerGame Int
+  | MaxPerRound Int
+  | MaxPerTurn Int
+  | MaxPerAttack Int
+  | MaxPerTraitPerRound Trait Int
   deriving stock (Show, Eq, Ord, Data)
 
 $(deriveJSON defaultOptions ''DeckRestriction)
@@ -91,6 +96,13 @@ data PurchaseTrauma
   deriving stock (Show, Eq, Ord, Generic, Data)
   deriving anyclass (ToJSON, FromJSON)
 
+data DiscardType
+  = ToDiscard
+  | ToBonded
+  | ToSetAside
+  deriving stock (Show, Eq, Ord, Generic, Data)
+  deriving anyclass (ToJSON, FromJSON)
+
 data CardDef = CardDef
   { cdCardCode :: CardCode
   , cdName :: Name
@@ -121,7 +133,7 @@ data CardDef = CardDef
   , cdDoubleSided :: Bool
   , cdLimits :: [CardLimit]
   , cdExceptional :: Bool
-  , cdUses :: Uses GameValue
+  , cdUses :: Uses GameCalculation
   , cdPlayableFromDiscard :: Bool
   , cdStage :: Maybe Int
   , cdSlots :: [SlotType]
@@ -143,6 +155,7 @@ data CardDef = CardDef
   , cdBeforeEffect :: Bool
   , cdCustomizations :: Map Customization Int
   , cdOtherSide :: Maybe CardCode
+  , cdWhenDiscarded :: DiscardType
   }
   deriving stock (Show, Eq, Ord, Data)
 
@@ -160,6 +173,9 @@ instance HasField "fastWindow" CardDef (Maybe WindowMatcher) where
 
 instance HasField "keywords" CardDef (Set Keyword) where
   getField = cdKeywords
+
+instance HasField "printedCost" CardDef Int where
+  getField = maybe 0 toPrintedCost . cdCost
 
 instance Exists CardDef where
   exists def = case cdCardType def of
@@ -233,6 +249,7 @@ emptyCardDef cCode name cType =
     , cdBeforeEffect = False
     , cdCustomizations = mempty
     , cdOtherSide = Nothing
+    , cdWhenDiscarded = ToDiscard
     }
 
 instance IsCardMatcher CardDef where
@@ -241,8 +258,8 @@ instance IsCardMatcher CardDef where
 instance IsLocationMatcher CardDef where
   toLocationMatcher = locationIs
 
-isSignature :: CardDef -> Bool
-isSignature = any isSignatureDeckRestriction . cdDeckRestrictions
+isSignature :: HasCardDef a => a -> Bool
+isSignature = any isSignatureDeckRestriction . cdDeckRestrictions . toCardDef
  where
   isSignatureDeckRestriction = \case
     Signature _ -> True
@@ -292,61 +309,6 @@ instance HasCardCode CardDef where
 
 newtype Unrevealed a = Unrevealed a
 
-instance FromJSON CardDef where
-  parseJSON = withObject "CardDef" $ \o -> do
-    cdCardCode <- o .: "cardCode"
-    cdName <- o .: "name"
-    cdRevealedName <- o .: "revealedName"
-    cdCost <- o .: "cost"
-    cdAdditionalCost <- o .: "additionalCost"
-    cdLevel <- o .: "level"
-    cdCardType <- o .: "cardType"
-    cdCardSubType <- o .: "cardSubType"
-    cdClassSymbols <- o .: "classSymbols"
-    cdSkills <- o .: "skills"
-    cdCardTraits <- o .: "cardTraits"
-    cdRevealedCardTraits <- o .: "revealedCardTraits"
-    cdKeywords <- o .: "keywords"
-    cdFastWindow <- o .: "fastWindow"
-    cdActions <- o .: "actions"
-    cdRevelation <- o .: "revelation"
-    cdVictoryPoints <- o .: "victoryPoints"
-    cdVengeancePoints <- o .: "vengeancePoints"
-    cdCriteria <- o .: "criteria"
-    cdOverrideActionPlayableIfCriteriaMet <- o .: "overrideActionPlayableIfCriteriaMet"
-    cdCommitRestrictions <- o .: "commitRestrictions"
-    cdAttackOfOpportunityModifiers <- o .: "attackOfOpportunityModifiers"
-    cdPermanent <- o .: "permanent"
-    cdEncounterSet <- o .: "encounterSet"
-    cdEncounterSetQuantity <- o .: "encounterSetQuantity"
-    cdUnique <- o .: "unique"
-    cdDoubleSided <- o .: "doubleSided"
-    cdLimits <- o .: "limits"
-    cdExceptional <- o .: "exceptional"
-    cdUses <- o .: "uses"
-    cdPlayableFromDiscard <- o .: "playableFromDiscard"
-    cdStage <- o .: "stage"
-    cdSlots <- o .: "slots"
-    cdCardInHandEffects <- o .: "cardInHandEffects"
-    cdCardInDiscardEffects <- o .: "cardInDiscardEffects"
-    cdCardInSearchEffects <- o .: "cardInSearchEffects"
-    cdAlternateCardCodes <- o .: "alternateCardCodes"
-    cdArt <- o .: "art"
-    cdLocationSymbol <- o .: "locationSymbol"
-    cdLocationRevealedSymbol <- o .: "locationRevealedSymbol"
-    cdLocationConnections <- o .: "locationConnections"
-    cdLocationRevealedConnections <- o .: "locationRevealedConnections"
-    cdPurchaseTrauma <- o .: "purchaseTrauma"
-    cdGrantedXp <- o .: "grantedXp"
-    cdCanReplace <- o .: "canReplace"
-    cdDeckRestrictions <- o .: "deckRestrictions"
-    cdBondedWith <- o .: "bondedWith"
-    cdSkipPlayWindows <- o .: "skipPlayWindows"
-    cdBeforeEffect <- o .: "beforeEffect"
-    cdCustomizations <- o .:? "customizations" .!= mempty
-    cdOtherSide <- o .:? "otherSide"
-    pure CardDef {..}
-
 instance Has InvestigatorMatcher CardDef where
   has cardDef = case cdCardType cardDef of
     AssetType -> HasMatchingAsset (assetIs cardDef)
@@ -365,4 +327,4 @@ instance Has InvestigatorMatcher CardDef where
     InvestigatorType -> error "invalid matcher"
     ScenarioType -> error "invalid matcher"
 
-$(deriveToJSON (aesonOptions $ Just "cd") ''CardDef)
+$(deriveJSON (aesonOptions $ Just "cd") ''CardDef)

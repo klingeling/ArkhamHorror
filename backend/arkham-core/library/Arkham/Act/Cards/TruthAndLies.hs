@@ -84,10 +84,10 @@ instance RunMessage TruthAndLies where
         (attrs.ability 1)
         EncounterDeckTarget
         [(FromTopOfDeck 3, DiscardRest)]
-        (CardWithKeyword Keyword.Hidden)
+        (basic $ CardWithKeyword Keyword.Hidden)
         (DrawAllFound iid)
       pure a
     UseThisAbility _iid (isSource attrs -> True) 2 -> do
       advanceVia #other attrs attrs
       pure a
-    _ -> TruthAndLies <$> lift (runMessage msg attrs)
+    _ -> TruthAndLies <$> liftRunMessage msg attrs

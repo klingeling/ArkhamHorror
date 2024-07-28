@@ -32,14 +32,15 @@ instance RunMessage RiteOfSeeking where
     UseThisAbility iid (isSource attrs -> True) 1 -> do
       let source = toAbilitySource attrs 1
       lid <- getJustLocation iid
+      sid <- getRandom
       investigation <-
-        aspect iid source (#willpower `InsteadOf` #intellect) (mkInvestigate iid source)
+        aspect iid source (#willpower `InsteadOf` #intellect) (mkInvestigate sid iid source)
 
-      createCardEffect Cards.riteOfSeeking Nothing source (InvestigationTarget iid lid)
-      skillTestModifier (attrs.ability 1) iid (DiscoveredClues 1)
+      createCardEffect Cards.riteOfSeeking (effectMetaTarget sid) source (InvestigationTarget iid lid)
+      skillTestModifier sid (attrs.ability 1) iid (DiscoveredClues 1)
       pushAll $ leftOr investigation
       pure a
-    _ -> RiteOfSeeking <$> lift (runMessage msg attrs)
+    _ -> RiteOfSeeking <$> liftRunMessage msg attrs
 
 newtype RiteOfSeekingEffect = RiteOfSeekingEffect EffectAttrs
   deriving anyclass (HasAbilities, IsEffect, HasModifiersFor)
@@ -50,7 +51,7 @@ riteOfSeekingEffect = cardEffect RiteOfSeekingEffect Cards.riteOfSeeking
 
 instance RunMessage RiteOfSeekingEffect where
   runMessage msg e@(RiteOfSeekingEffect attrs) = runQueueT $ case msg of
-    Msg.RevealChaosToken _ iid token -> do
+    Msg.RevealChaosToken (SkillTestSource sid) iid token | maybe False (isTarget sid) attrs.metaTarget -> do
       case attrs.target of
         InvestigationTarget iid' _ | iid == iid' -> do
           when (chaosTokenFace token `elem` [Skull, Cultist, Tablet, ElderThing, AutoFail]) do
@@ -61,10 +62,10 @@ instance RunMessage RiteOfSeekingEffect where
             disable attrs
         _ -> pure ()
       pure e
-    SkillTestEnds _ _ -> do
+    SkillTestEnds sid _ _ | maybe False (isTarget sid) attrs.metaTarget -> do
       disable attrs
       case attrs.target of
         InvestigatorTarget iid -> push $ EndTurn iid
         _ -> pure ()
       pure e
-    _ -> RiteOfSeekingEffect <$> lift (runMessage msg attrs)
+    _ -> RiteOfSeekingEffect <$> liftRunMessage msg attrs

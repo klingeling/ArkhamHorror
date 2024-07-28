@@ -17,9 +17,9 @@ spec = describe "Ward of Protection" $ do
       withProp @"resources" 1 self
       withProp @"hand" [wardOfProtection] self
       run $ SetEncounterDeck (Deck [frozenInFear, ancientEvils])
-      run $ InvestigatorDrawEncounterCard $ toId self
+      run $ drawEncounterCard self.id GameSource
       chooseTarget wardOfProtection
       applyAllHorror
       self.horror `shouldReturn` 1
-      assert $ selectNone AnyTreachery
+      assertNone AnyTreachery
       scenarioField ScenarioDiscard `shouldReturn` [frozenInFear]

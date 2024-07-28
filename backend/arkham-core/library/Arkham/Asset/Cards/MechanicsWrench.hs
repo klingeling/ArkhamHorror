@@ -21,21 +21,23 @@ instance HasAbilities MechanicsWrench where
     , controlledAbility
         attrs
         2
-        (exists $ CanFightEnemy (toAbilitySource attrs 1) <> AttackedYouSinceTheEndOfYourLastTurn)
+        (exists $ CanFightEnemy (attrs.ability 1) <> AttackedYouSinceTheEndOfYourLastTurn)
         fightAction_
     ]
 
 instance RunMessage MechanicsWrench where
   runMessage msg a@(MechanicsWrench attrs) = runQueueT $ case msg of
     UseThisAbility iid (isSource attrs -> True) 1 -> do
-      enemies <- select $ EnemyAt YourLocation <> EnemyCanAttack You
+      enemies <-
+        select $ EnemyAt (locationWithInvestigator iid) <> EnemyCanAttack (InvestigatorWithId iid)
       chooseOne
         iid
         [targetLabel enemy [EnemyAttack $ enemyAttack enemy (attrs.ability 1) iid] | enemy <- enemies]
 
       pure a
     UseThisAbility iid (isSource attrs -> True) 2 -> do
-      skillTestModifiers (attrs.ability 2) iid [SkillModifier #combat 2, DamageDealt 1]
-      chooseFightEnemyMatch iid (attrs.ability 2) AttackedYouSinceTheEndOfYourLastTurn
+      sid <- getRandom
+      skillTestModifiers sid (attrs.ability 2) iid [SkillModifier #combat 2, DamageDealt 1]
+      chooseFightEnemyMatch sid iid (attrs.ability 2) AttackedYouSinceTheEndOfYourLastTurn
       pure a
-    _ -> MechanicsWrench <$> lift (runMessage msg attrs)
+    _ -> MechanicsWrench <$> liftRunMessage msg attrs

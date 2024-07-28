@@ -9,6 +9,7 @@ import Arkham.Ability
 import Arkham.Action qualified as Action
 import Arkham.Asset.Cards qualified as Cards
 import Arkham.Asset.Runner
+import Arkham.Discover
 import Arkham.Investigate
 import Arkham.Location.Types (Field (..))
 import Arkham.Projection
@@ -28,13 +29,14 @@ archaicGlyphsGuidingStones3 =
 instance RunMessage ArchaicGlyphsGuidingStones3 where
   runMessage msg a@(ArchaicGlyphsGuidingStones3 attrs) = case msg of
     UseThisAbility iid (isSource attrs -> True) 1 -> do
-      pushM $ mkInvestigate iid (toAbilitySource attrs 1) <&> setTarget attrs
+      sid <- getRandom
+      pushM $ mkInvestigate sid iid (toAbilitySource attrs 1) <&> setTarget attrs
       pure a
     Successful (Action.Investigate, LocationTarget lid) iid _ (isTarget attrs -> True) n -> do
       clueCount <- field LocationClues lid
       let
         additional = n `div` 2
         amount = min clueCount (1 + additional)
-      push $ InvestigatorDiscoverClues iid lid (toAbilitySource attrs 1) amount $ Just Action.Investigate
+      push $ DiscoverClues iid $ viaInvestigate $ discover lid (toAbilitySource attrs 1) amount
       pure a
     _ -> ArchaicGlyphsGuidingStones3 <$> runMessage msg attrs

@@ -21,13 +21,23 @@ import Arkham.Card
 import Arkham.ChaosToken
 import Arkham.Classes.Entity
 import Arkham.Classes.RunMessage
-import Arkham.Helpers.Window (checkWindows)
+import Arkham.Helpers.Customization
+import Arkham.Helpers.Window (checkAfter, checkWindows)
 import Arkham.Placement
 import Arkham.Window (mkWindow)
 import Arkham.Window qualified as Window
+import Data.IntMap.Strict qualified as IntMap
 
 instance RunMessage SkillAttrs where
   runMessage msg a = case msg of
+    IncreaseCustomization iid cardCode customization choices | toCardCode a == cardCode && a.owner == iid -> do
+      case customizationIndex a customization of
+        Nothing -> pure a
+        Just i ->
+          pure
+            $ a
+              { skillCustomizations = IntMap.adjust (second (const choices) . first (+ 1)) i (skillCustomizations a)
+              }
     SealedChaosToken token card | toCardId card == toCardId a -> do
       pure $ a & sealedChaosTokensL %~ (token :)
     UnsealChaosToken token -> pure $ a & sealedChaosTokensL %~ filter (/= token)
@@ -38,6 +48,8 @@ instance RunMessage SkillAttrs where
     InvestigatorCommittedSkill _ skillId | skillId == toId a -> do
       pure $ a {skillPlacement = Limbo}
     PlaceSkill sid placement | sid == toId a -> do
+      for_ placement.attachedTo \target ->
+        pushM $ checkAfter $ Window.AttachCard (Just a.controller) (toCard a) target
       pure $ a {skillPlacement = placement}
     RemoveAllAttachments source target -> do
       case placementToAttached a.placement of

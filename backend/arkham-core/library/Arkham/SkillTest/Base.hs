@@ -22,14 +22,15 @@ data SkillTestBaseValue
   = SkillBaseValue SkillType
   | AndSkillBaseValue [SkillType]
   | HalfResourcesOf InvestigatorId
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Data)
 
 newtype SkillTestDifficulty = SkillTestDifficulty GameCalculation
   deriving newtype (Show, Ord, Eq, Generic, FromJSON, ToJSON)
-  deriving stock (Data)
+  deriving stock Data
 
 data SkillTest = SkillTest
-  { skillTestInvestigator :: InvestigatorId
+  { skillTestId :: SkillTestId
+  , skillTestInvestigator :: InvestigatorId
   , skillTestResolveFailureInvestigator :: InvestigatorId
   , skillTestType :: SkillTestType
   , skillTestBaseValue :: SkillTestBaseValue
@@ -48,7 +49,16 @@ data SkillTest = SkillTest
   , skillTestIconValues :: Map SkillIcon Int
   , skillTestCard :: Maybe CardId
   }
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Data)
+
+instance HasField "id" SkillTest SkillTestId where
+  getField = skillTestId
+
+instance HasField "source" SkillTest Source where
+  getField = skillTestSource
+
+instance HasField "kind" SkillTest SkillTestType where
+  getField = skillTestType
 
 instance HasField "action" SkillTest (Maybe Action) where
   getField = skillTestAction
@@ -69,13 +79,13 @@ allSkillTestChaosTokens :: SkillTest -> [ChaosToken]
 allSkillTestChaosTokens SkillTest {..} = skillTestSetAsideChaosTokens
 
 instance Targetable SkillTest where
-  toTarget _ = SkillTestTarget
-  isTarget _ SkillTestTarget = True
+  toTarget s = SkillTestTarget s.id
+  isTarget s (SkillTestTarget sid) = s.id == sid
   isTarget _ _ = False
 
 instance Sourceable SkillTest where
-  toSource _ = SkillTestSource
-  isSource _ SkillTestSource = True
+  toSource s = SkillTestSource s.id
+  isSource s (SkillTestSource sid) = sid == s.id
   isSource _ _ = False
 
 data SkillTestResultsData = SkillTestResultsData
@@ -86,18 +96,20 @@ data SkillTestResultsData = SkillTestResultsData
   , skillTestResultsResultModifiers :: Maybe Int
   , skillTestResultsSuccess :: Bool
   }
-  deriving stock (Eq, Show)
+  deriving stock (Eq, Show, Data)
 
 initSkillTest
   :: (Sourceable source, Targetable target)
-  => InvestigatorId
+  => SkillTestId
+  -> InvestigatorId
   -> source
   -> target
   -> SkillType
   -> SkillTestDifficulty
   -> SkillTest
-initSkillTest iid source target skillType =
+initSkillTest sid iid source target skillType =
   buildSkillTest
+    sid
     iid
     source
     target
@@ -106,16 +118,18 @@ initSkillTest iid source target skillType =
 
 buildSkillTest
   :: (Sourceable source, Targetable target)
-  => InvestigatorId
+  => SkillTestId
+  -> InvestigatorId
   -> source
   -> target
   -> SkillTestType
   -> SkillTestBaseValue
   -> SkillTestDifficulty
   -> SkillTest
-buildSkillTest iid (toSource -> source) (toTarget -> target) stType bValue difficulty =
+buildSkillTest sid iid (toSource -> source) (toTarget -> target) stType bValue difficulty = do
   SkillTest
-    { skillTestInvestigator = iid
+    { skillTestId = sid
+    , skillTestInvestigator = iid
     , skillTestResolveFailureInvestigator = iid
     , skillTestType = stType
     , skillTestBaseValue = bValue
@@ -143,8 +157,8 @@ iconValuesForSkillTestType = \case
  where
   base = mapFromList [(#wild, 1), (#wildMinus, -1)]
 
-resetSkillTest :: SkillTest -> SkillTest
-resetSkillTest skillTest =
+resetSkillTest :: SkillTestId -> SkillTest -> SkillTest
+resetSkillTest sid skillTest =
   skillTest
     { skillTestSetAsideChaosTokens = mempty
     , skillTestRevealedChaosTokens = mempty
@@ -153,31 +167,9 @@ resetSkillTest skillTest =
     , skillTestResult = Unrun
     , skillTestCommittedCards = mempty
     , skillTestSubscribers = [toTarget $ skillTestInvestigator skillTest]
+    , skillTestId = sid
     }
 
 $(deriveJSON defaultOptions ''SkillTestBaseValue)
 $(deriveJSON defaultOptions ''SkillTestResultsData)
-
-instance FromJSON SkillTest where
-  parseJSON = withObject "skillTest" $ \o -> do
-    skillTestInvestigator <- o .: "investigator"
-    skillTestResolveFailureInvestigator <- o .: "resolveFailureInvestigator"
-    skillTestType <- o .: "type"
-    skillTestBaseValue <- o .: "baseValue"
-    skillTestDifficulty <- o .: "difficulty"
-    skillTestSetAsideChaosTokens <- o .: "setAsideChaosTokens"
-    skillTestRevealedChaosTokens <- o .: "revealedChaosTokens"
-    skillTestResolvedChaosTokens <- o .: "resolvedChaosTokens"
-    skillTestToResolveChaosTokens <- o .:? "toResolveChaosTokens" .!= []
-    skillTestResult <- o .: "result"
-    skillTestCommittedCards <- o .: "committedCards"
-    skillTestSource <- o .: "source"
-    skillTestTarget <- o .: "target"
-    skillTestAction <- o .: "action"
-    skillTestSubscribers <- o .: "subscribers"
-    skillTestIsRevelation <- o .: "isRevelation"
-    skillTestIconValues <- o .:? "iconValues" .!= iconValuesForSkillTestType skillTestType
-    skillTestCard <- o .:? "card"
-    pure SkillTest {..}
-
-$(deriveToJSON (aesonOptions $ Just "skillTest") ''SkillTest)
+$(deriveJSON (aesonOptions $ Just "skillTest") ''SkillTest)

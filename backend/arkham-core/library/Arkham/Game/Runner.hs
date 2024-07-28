@@ -46,6 +46,7 @@ import Arkham.Game.Json ()
 import Arkham.Game.Utils
 import {-# SOURCE #-} Arkham.GameEnv
 import Arkham.Helpers
+import Arkham.Helpers.Customization
 import Arkham.Helpers.Enemy (spawnAt)
 import Arkham.Helpers.Investigator hiding (investigator, matchTarget)
 import Arkham.Helpers.Message hiding (
@@ -92,7 +93,7 @@ import Arkham.Message qualified as Msg
 import Arkham.Movement
 import Arkham.Name
 import Arkham.Phase
-import Arkham.Placement hiding (TreacheryPlacement (..))
+import Arkham.Placement
 import Arkham.Placement qualified as Placement
 import Arkham.PlayerCard
 import Arkham.Projection
@@ -115,8 +116,10 @@ import Arkham.Treachery.Types (Field (..), drawnFromL)
 import Arkham.Window (Window (..), mkAfter, mkWhen, mkWindow)
 import Arkham.Window qualified as Window
 import Arkham.Zone qualified as Zone
-import Control.Lens (each, itraverseOf, itraversed, non, set)
+import Control.Lens (each, itraverseOf, itraversed, non, over, set)
 import Control.Monad.State.Strict (evalStateT, get, put)
+import Data.Data.Lens (biplate)
+import Data.IntMap.Strict qualified as IntMap
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Data.These
@@ -130,6 +133,50 @@ getInvestigatorsInOrder = do
 
 runGameMessage :: Runner Game
 runGameMessage msg g = case msg of
+  IncreaseCustomization iid cardCode customization choices -> do
+    cards <- select $ OwnedBy (InvestigatorWithId iid) <> basic (CardWithCardCode cardCode)
+
+    cards' <- forMaybeM cards \case
+      card@(PlayerCard pc) -> do
+        case customizationIndex card customization of
+          Nothing -> pure Nothing
+          Just i -> do
+            let card' =
+                  pc
+                    { pcCustomizations =
+                        IntMap.alter
+                          (Just . maybe (1, choices) (second (const choices) . first (+ 1)))
+                          i
+                          (pcCustomizations pc)
+                    }
+            replaceCard card.id (PlayerCard card')
+            pure $ Just card'
+      _ -> pure Nothing
+
+    let swapCard c d = if d.id == c.id then c else d
+
+    pure
+      $ g
+      & entitiesL
+      %~ (\e -> foldr (over biplate . swapCard) e cards')
+      & actionRemovedEntitiesL
+      %~ (\e -> foldr (over biplate . swapCard) e cards')
+      & outOfPlayEntitiesL
+      %~ (\e -> foldr (over biplate . swapCard) e cards')
+      & inHandEntitiesL
+      %~ (\e -> foldr (over biplate . swapCard) e cards')
+      & inDiscardEntitiesL
+      %~ (\e -> foldr (over biplate . swapCard) e cards')
+      & inSearchEntitiesL
+      %~ (\e -> foldr (over biplate . swapCard) e cards')
+      & focusedCardsL
+      %~ (\e -> foldr (over biplate . swapCard) e cards')
+      & removedFromPlayL
+      %~ (\e -> foldr (over biplate . swapCard) e cards')
+      & activeCardL
+      %~ (\e -> foldr (over biplate . swapCard) e cards')
+      & resolvingCardL
+      %~ (\e -> foldr (over biplate . swapCard) e cards')
   LoadDecklist playerId decklist -> do
     -- if the player is changing decks during the game (i.e. prologue investigators) we need to replace the old investigator
     let mOldId = toId <$> find ((== playerId) . attr investigatorPlayerId) (toList $ gameInvestigators g)
@@ -192,7 +239,7 @@ runGameMessage msg g = case msg of
   FinishAction -> do
     iid <- getActiveInvestigatorId
     let
-      historyItem = mempty {historyActionsCompleted = 1}
+      historyItem = HistoryItem HistoryActionsCompleted 1
       turn = isJust $ view turnPlayerInvestigatorIdL g
       setTurnHistory =
         if turn then turnHistoryL %~ insertHistory iid historyItem else id
@@ -200,7 +247,6 @@ runGameMessage msg g = case msg of
       $ g
       & (inActionL .~ False)
       & (actionCanBeUndoneL .~ False)
-      & (actionRemovedEntitiesL .~ mempty)
       & (actionDiffL .~ [])
       & (inDiscardEntitiesL .~ mempty)
       & (outOfPlayEntitiesL %~ deleteMap RemovedZone)
@@ -233,7 +279,7 @@ runGameMessage msg g = case msg of
       & (entitiesL . agendasL .~ mempty)
       & (entitiesL . treacheriesL .~ mempty)
       & (entitiesL . eventsL .~ mempty)
-      & (entitiesL . effectsL .~ mempty)
+      & (entitiesL . effectsL %~ filterMap effectIsForNextGame)
       & (entitiesL . skillsL .~ mempty)
       & (entitiesL . storiesL .~ mempty)
       & (inDiscardEntitiesL .~ mempty)
@@ -309,7 +355,8 @@ runGameMessage msg g = case msg of
     pure $ g & (phaseL .~ InvestigationPhase)
   BeginGame -> do
     (before, _, after) <- frame Window.GameBegins
-    pushAll [before, after]
+    iids <- getInvestigatorsInOrder
+    pushAll $ before : map (`ForInvestigator` BeginGame) iids <> [after]
     pure g
   InvestigatorsMulligan -> do
     iids <- getInvestigatorsInOrder
@@ -338,8 +385,8 @@ runGameMessage msg g = case msg of
     (effectId, effect) <- createEffect cardCode meffectMetadata source target
     push (CreatedEffect effectId meffectMetadata source target)
     pure $ g & entitiesL . effectsL %~ insertMap effectId effect
-  CreateChaosTokenValueEffect n source target -> do
-    (effectId, effect) <- createChaosTokenValueEffect n source target
+  CreateChaosTokenValueEffect sid n source target -> do
+    (effectId, effect) <- createChaosTokenValueEffect sid n source target
     push
       $ CreatedEffect
         effectId
@@ -428,9 +475,10 @@ runGameMessage msg g = case msg of
       isSetCost = \case
         SetAbilityCost _ -> True
         _ -> False
-      additionalCosts = flip mapMaybe modifiers' $ \case
-        AdditionalCost c -> Just c
-        _ -> Nothing
+      additionalCosts =
+        abilityAdditionalCosts ability <> flip mapMaybe modifiers' \case
+          AdditionalCost c -> Just c
+          _ -> Nothing
     let
       activeCost =
         ActiveCost
@@ -477,6 +525,8 @@ runGameMessage msg g = case msg of
     pure $ g & entitiesL . effectsL %~ deleteMap effectId & removedEntitiesF
   FocusCards cards -> pure $ g & focusedCardsL .~ cards
   UnfocusCards -> pure $ g & focusedCardsL .~ mempty
+  ClearFound FromDeck -> do
+    pure $ g & foundCardsL %~ Map.filterWithKey (\k _ -> not (zoneIsFromDeck k))
   ClearFound zone -> pure $ g & foundCardsL . at zone ?~ mempty
   FocusTarotCards cards -> pure $ g & focusedTarotCardsL .~ cards
   UnfocusTarotCards -> pure $ g & focusedTarotCardsL .~ mempty
@@ -540,7 +590,7 @@ runGameMessage msg g = case msg of
     pure $ g & activeInvestigatorIdL .~ iid & turnPlayerInvestigatorIdL ?~ iid
   MoveTo (moveTarget -> InvestigatorTarget iid) -> do
     let
-      historyItem = mempty {historyMoved = True}
+      historyItem = HistoryItem HistoryMoved True
       turn = isJust $ view turnPlayerInvestigatorIdL g
       setTurnHistory =
         if turn then turnHistoryL %~ insertHistory iid historyItem else id
@@ -558,22 +608,20 @@ runGameMessage msg g = case msg of
       iid = fromMaybe lead miid
       placement' = maybe (enemyPlacement attrs) AtLocation mlid
       historyItem =
-        mempty
-          { historyEnemiesDefeated =
-              [ DefeatedEnemyAttrs
-                  { defeatedEnemyAttrs = attrs {enemyPlacement = placement'}
-                  , defeatedEnemyHealth = enemyHealth
-                  }
-              ]
-          }
+        HistoryItem
+          HistoryEnemiesDefeated
+          [ DefeatedEnemyAttrs
+              { defeatedEnemyAttrs = attrs {enemyPlacement = placement'}
+              , defeatedEnemyHealth = enemyHealth
+              }
+          ]
       turn = isJust $ view turnPlayerInvestigatorIdL g
       setTurnHistory =
         if turn then turnHistoryL %~ insertHistory iid historyItem else id
     pure $ g & (phaseHistoryL %~ insertHistory iid historyItem) & setTurnHistory
   Successful (Action.Investigate, LocationTarget lid) iid _ _ _ -> do
     let
-      historyItem =
-        mempty {historyLocationsSuccessfullyInvestigated = singleton lid}
+      historyItem = HistoryItem HistoryLocationsSuccessfullyInvestigated (singleton lid)
       turn = isJust $ view turnPlayerInvestigatorIdL g
       setTurnHistory =
         if turn then turnHistoryL %~ insertHistory iid historyItem else id
@@ -717,7 +765,14 @@ runGameMessage msg g = case msg of
           & actionRemovedEntitiesL
           . enemiesL
           %~ insertEntity enemy
-  RemoveSkill sid -> pure $ g & entitiesL . skillsL %~ deleteMap sid
+  RemoveSkill sid -> do
+    removedEntitiesF <-
+      if notNull (gameActiveAbilities g)
+        then do
+          skill <- getSkill sid
+          pure $ actionRemovedEntitiesL . skillsL %~ insertEntity skill
+        else pure id
+    pure $ g & entitiesL . skillsL %~ deleteMap sid & removedEntitiesF
   When (RemoveEnemy enemy) -> do
     pushM $ checkWindows [mkWhen (Window.LeavePlay $ toTarget enemy)]
     pure g
@@ -835,7 +890,7 @@ runGameMessage msg g = case msg of
         _ -> pure g
       _ -> pure g
   SkillTestResults resultsData -> pure $ g & skillTestResultsL ?~ resultsData
-  Do (SkillTestEnds iid _) -> do
+  Do (SkillTestEnds _ iid _) -> do
     let result = skillTestResult <$> g ^. skillTestL
     let
       resultF =
@@ -848,7 +903,8 @@ runGameMessage msg g = case msg of
             other -> other
           _ -> id
 
-    skills' <- filterMapM (fieldMap SkillPlacement (== Limbo) . toId) $ g ^. entitiesL . skillsL
+    skills' <-
+      filterMapM (fieldMap SkillPlacement (== Limbo) . toId) $ g ^. entitiesL . skillsL
 
     skillPairs <- for (mapToList skills') $ \(skillId, skill) -> do
       card <- field SkillCard skillId
@@ -869,13 +925,21 @@ runGameMessage msg g = case msg of
           | LeaveCardWhereItIs `elem` mods ->
               (Run [], Just skillId)
           | otherwise -> case skillAfterPlay (toAttrs skill) of
-              DiscardThis ->
-                ( AddToDiscard
-                    (skillOwner $ toAttrs skill)
-                    (lookupPlayerCard (toCardDef skill) (toCardId skill))
-                , Just skillId
-                )
+              DiscardThis -> case toCard skill of
+                PlayerCard pc ->
+                  ( AddToDiscard (skillOwner $ toAttrs skill) pc
+                  , Just skillId
+                  )
+                _ -> error "Unhandled encounter card skill"
+              ExileThis -> case toCard skill of
+                PlayerCard _ ->
+                  ( Exile (toTarget skillId)
+                  , Just skillId
+                  )
+                _ -> error "Unhandled encounter card skill"
               RemoveThisFromGame ->
+                (RemoveFromGame (SkillTarget skillId), Nothing)
+              AbsoluteRemoveThisFromGame ->
                 (RemoveFromGame (SkillTarget skillId), Nothing)
               ReturnThisToHand ->
                 (ReturnToHand (skillOwner $ toAttrs skill) (SkillTarget skillId), Nothing)
@@ -893,7 +957,10 @@ runGameMessage msg g = case msg of
         Just ResourceSkillTest -> []
         Nothing -> []
       skillsToRemove = mapMaybe snd skillPairs
-      historyItem = mempty {historySkillTestsPerformed = [skillTypes]}
+      historyItem =
+        HistoryItem
+          HistorySkillTestsPerformed
+          [(skillTypes, fromMaybe Unrun $ skillTestResult <$> g ^. skillTestL)]
       turn = isJust $ view turnPlayerInvestigatorIdL g
       setTurnHistory =
         if turn then turnHistoryL %~ insertHistory iid historyItem else id
@@ -905,8 +972,14 @@ runGameMessage msg g = case msg of
               (\k _ -> k `notElem` skillsToRemove)
         )
       & (phaseHistoryL %~ insertHistory iid historyItem)
+      & ( actionRemovedEntitiesL
+            . skillsL
+            %~ foldr
+              (\s m -> Map.insert s.id s m)
+              skills'
+        )
       & setTurnHistory
-  Msg.SkillTestEnded -> do
+  Msg.SkillTestEnded _ -> do
     pure
       $ g
       & (skillTestL .~ Nothing)
@@ -942,16 +1015,12 @@ runGameMessage msg g = case msg of
               )
               (findWithDefault [] Zone.FromDeck foundCards)
         PutBackInAnyOrder -> do
-          when (foundKey cardSource /= Zone.FromDeck) $ error "Expects a deck"
+          when (foundKey cardSource /= Zone.FromDeck) $ error "Expects a deck: Game<PutBackInAnyOrder>"
           lift
             $ push
             $ chooseOneAtATime player
             $ map
-              ( \c ->
-                  TargetLabel
-                    (CardIdTarget $ toCardId c)
-                    [AddFocusedToTopOfDeck iid EncounterDeckTarget $ toCardId c]
-              )
+              (\c -> targetLabel c [AddFocusedToTopOfDeck iid EncounterDeckTarget c.id])
               (findWithDefault [] Zone.FromDeck foundCards)
         ShuffleBackIn -> lift $ pushAll [ClearFound $ foundKey cardSource, ShuffleDeck Deck.EncounterDeck]
         PutBack -> do
@@ -966,6 +1035,8 @@ runGameMessage msg g = case msg of
           lift $ pushAll $ map ObtainCard $ findWithDefault [] Zone.FromDeck foundCards
 
     pure g
+  FinishedSearch -> do
+    pure $ g & foundCardsL .~ mempty
   AddToEncounterDiscard card -> do
     pure
       $ g
@@ -1085,15 +1156,13 @@ runGameMessage msg g = case msg of
           ]
     let
       isFast = case card of
-        PlayerCard pc ->
-          isJust (cdFastWindow $ toCardDef pc)
-            || BecomesFast
-            `elem` allModifiers
+        PlayerCard _ ->
+          isJust $ cdFastWindow (toCardDef card) <|> listToMaybe [w | BecomesFast w <- allModifiers]
         _ -> False
       isPlayAction = if isFast then NotPlayAction else IsPlayAction
     activeCost <- createActiveCostForCard iid card isPlayAction windows'
 
-    let historyItem = mempty {historyPlayedCards = [card]}
+    let historyItem = HistoryItem HistoryPlayedCards [card]
         turn = isJust $ view turnPlayerInvestigatorIdL g
         setTurnHistory = if turn then turnHistoryL %~ insertHistory iid historyItem else id
 
@@ -1119,6 +1188,8 @@ runGameMessage msg g = case msg of
         let
           recordLimit g'' = \case
             MaxPerGame _ -> g'' & cardUsesL . at (toCardCode card) . non 0 +~ 1
+            MaxPerRound _ -> g'' & cardUsesL . at (toCardCode card) . non 0 +~ 1
+            MaxPerTraitPerRound _ _ -> g'' & cardUsesL . at (toCardCode card) . non 0 +~ 1
             _ -> g''
         pure $ foldl' recordLimit g' (cdLimits $ toCardDef card)
   PutCardIntoPlay iid card mtarget payment windows' -> do
@@ -1131,11 +1202,13 @@ runGameMessage msg g = case msg of
           let isPermanent = cdPermanent $ toCardDef treachery
           if isPermanent
             then do
-              push $ PlaceTreachery tid (Placement.TreacheryAttachedTo $ toTarget iid)
+              push $ PlaceTreachery tid (Placement.InThreatArea iid)
               pure $ g & (entitiesL . treacheriesL %~ insertMap tid treachery)
             else do
+              modifiers' <- getCombinedModifiers [TreacheryTarget tid, CardIdTarget cardId]
+              let ignoreRevelation = IgnoreRevelation `elem` modifiers'
               pushAll
-                $ resolve (Revelation iid (TreacherySource tid))
+                $ (guard (not ignoreRevelation) *> resolve (Revelation iid (TreacherySource tid)))
                 <> [UnsetActiveCard]
               pure
                 $ g
@@ -1173,6 +1246,7 @@ runGameMessage msg g = case msg of
                   , eventTarget = mtarget
                   , eventOriginalCardCode = pcOriginalCardCode pc
                   , eventPayment = payment
+                  , eventPlacement = Limbo
                   }
 
           pushAll
@@ -1187,7 +1261,7 @@ runGameMessage msg g = case msg of
         TreacheryType -> do
           tid <- getRandom
           let treachery = createTreachery card iid tid
-          push $ AttachTreachery tid (toTarget iid)
+          push $ PlaceTreachery tid (InThreatArea iid)
           pure $ g & (entitiesL . treacheriesL %~ insertMap tid treachery)
         EncounterAssetType -> do
           -- asset might have been put into play via revelation
@@ -1288,7 +1362,8 @@ runGameMessage msg g = case msg of
     push =<< checkWindows [mkAfter (Window.EnemyEngaged iid eid)]
     pure g
   EnemyEngageInvestigator eid iid -> do
-    push =<< checkWindows [mkAfter (Window.EnemyEngaged iid eid)]
+    (before, _, after) <- frame (Window.EnemyEngaged iid eid)
+    pushAll [before, after]
     pure g
   SkillTestAsk (Ask iid1 (ChooseOne c1)) -> do
     mNextMessage <- peekMessage
@@ -1616,8 +1691,9 @@ runGameMessage msg g = case msg of
         ]
     pure $ g & activeInvestigatorIdL .~ gameLeadInvestigatorId g
   ChooseEndTurn iid -> do
+    wouldWindow <- checkWindows [mkWhen $ Window.WouldEndTurn iid]
     msgs <- resolveWithWindow (EndTurn iid) (Window.TurnEnds iid)
-    pushAll msgs
+    pushAll $ wouldWindow : msgs
     pure g
   After (EndTurn _) ->
     pure $ g & turnHistoryL .~ mempty & turnPlayerInvestigatorIdL .~ Nothing
@@ -1728,7 +1804,21 @@ runGameMessage msg g = case msg of
     pure g
   EndRound -> do
     pushAllEnd [BeginRoundWindow, BeginRound, Begin MythosPhase]
-    pure $ g & (roundHistoryL .~ mempty)
+    let
+      isPerRound = \case
+        MaxPerRound _ -> True
+        MaxPerTraitPerRound _ _ -> True
+        _ -> False
+    let roundEndUses =
+          map cdCardCode
+            . filter (any isPerRound . cdLimits)
+            . mapMaybe lookupCardDef
+            $ Map.keys (view cardUsesL g)
+    pure
+      $ g
+      & (roundHistoryL .~ mempty)
+      & cardUsesL
+      %~ Map.filterWithKey (\k _ -> k `notElem` roundEndUses)
   Begin MythosPhase {} -> do
     let playerOrder = g ^. playerOrderL
     mGloria <- selectOne $ investigatorIs Investigators.gloriaGoldberg
@@ -1770,18 +1860,11 @@ runGameMessage msg g = case msg of
     pushAll msgs
     pure $ g & phaseStepL ?~ step
   AllDrawEncounterCard -> do
-    investigators <-
-      traverse (traverseToSnd getPlayer) =<< filterM (fmap not . isEliminated) =<< getInvestigatorsInOrder
-    pushAll
-      $ [ chooseOne
-          player
-          [ TargetLabel
-              EncounterDeckTarget
-              [InvestigatorDrawEncounterCard iid]
-          ]
-        | (iid, player) <- investigators
-        ]
-      <> [SetActiveInvestigator $ g ^. activeInvestigatorIdL]
+    investigators <- filterM (fmap not . isEliminated) =<< getInvestigatorsInOrder
+    push $ SetActiveInvestigator $ g ^. activeInvestigatorIdL
+    for_ (reverse investigators) \iid -> do
+      player <- getPlayer iid
+      push $ chooseOne player [TargetLabel EncounterDeckTarget [drawEncounterCard iid GameSource]]
     pure g
   EndMythos -> do
     pushAll
@@ -1790,76 +1873,70 @@ runGameMessage msg g = case msg of
     pure $ g & (phaseHistoryL .~ mempty)
   BeginSkillTestWithPreMessages _ pre skillTest -> runMessage (BeginSkillTestWithPreMessages' pre skillTest) g
   BeginSkillTestWithPreMessages' pre skillTest -> do
-    inSkillTestWindow <- fromQueue $ elem EndSkillTestWindow
+    handleSkillTestNesting skillTest.id msg g do
+      let iid = skillTest.investigator
+      windows' <- windows [Window.InitiatedSkillTest skillTest]
+      let defaultCase = windows' <> [BeginSkillTestAfterFast]
 
-    if inSkillTestWindow
-      then do
-        insertAfterMatching [msg] (== EndSkillTestWindow)
-        pure g
-      else do
-        let iid = skillTest.investigator
-        windows' <- windows [Window.InitiatedSkillTest skillTest]
-        let defaultCase = windows' <> [BeginSkillTestAfterFast]
+      performRevelationSkillTestWindow <-
+        checkWindows [mkWhen $ Window.WouldPerformRevelationSkillTest iid skillTest.id]
 
-        performRevelationSkillTestWindow <-
-          checkWindows [mkWhen $ Window.WouldPerformRevelationSkillTest iid]
-
-        msgs <- case skillTestType skillTest of
-          ResourceSkillTest -> pure defaultCase
-          SkillSkillTest skillType -> do
-            availableSkills <- getAvailableSkillsFor skillType iid
-            player <- getPlayer iid
-            pure
-              $ if Set.size availableSkills < 2
-                then defaultCase
-                else
-                  [ chooseOne
-                      player
-                      $ SkillLabel skillType []
-                      : [ SkillLabel skillType' [ReplaceSkillTestSkill (FromSkillType skillType) (ToSkillType skillType')]
-                        | skillType' <- setToList availableSkills
-                        , skillType' /= skillType
-                        ]
-                  ]
-                    <> windows'
-                    <> [BeginSkillTestAfterFast]
-          AndSkillTest types -> do
-            availableSkills <- for types $ traverseToSnd (`getAvailableSkillsFor` iid)
-            -- (base, other choices)
-            let skillsWithChoice = filter ((> 1) . Set.size . snd) availableSkills
-            if null skillsWithChoice
-              then pure defaultCase
-              else do
-                -- if we have base skills with other choices we need to choose for each one
-                -- if we choose a type it should replace for example if we have int+agi+wil+com and we use mind over matter
-                -- we should be asked for agi and com and end up with int+int+wil+int
-                -- Easiest way might be to let the skill test handle the replacement so we don't have to nest
-                player <- getPlayer skillTest.investigator
-                pure
-                  $ map
-                    ( \(base, setToList -> skillsTypes) ->
-                        chooseOne player
-                          $ SkillLabel base []
-                          : [ SkillLabel skillType' [ReplaceSkillTestSkill (FromSkillType base) (ToSkillType skillType')]
-                            | skillType' <- skillsTypes
-                            , skillType' /= base
-                            ]
-                    )
-                    skillsWithChoice
+      msgs <- case skillTestType skillTest of
+        ResourceSkillTest -> pure defaultCase
+        SkillSkillTest skillType -> do
+          availableSkills <- getAvailableSkillsFor skillType iid
+          player <- getPlayer iid
+          pure
+            $ if Set.size availableSkills < 2
+              then defaultCase
+              else
+                [ chooseOne
+                    player
+                    $ SkillLabel skillType []
+                    : [ SkillLabel skillType' [ReplaceSkillTestSkill (FromSkillType skillType) (ToSkillType skillType')]
+                      | skillType' <- setToList availableSkills
+                      , skillType' /= skillType
+                      ]
+                ]
                   <> windows'
                   <> [BeginSkillTestAfterFast]
+        AndSkillTest types -> do
+          availableSkills <- for types $ traverseToSnd (`getAvailableSkillsFor` iid)
+          -- (base, other choices)
+          let skillsWithChoice = filter ((> 1) . Set.size . snd) availableSkills
+          if null skillsWithChoice
+            then pure defaultCase
+            else do
+              -- if we have base skills with other choices we need to choose for each one
+              -- if we choose a type it should replace for example if we have int+agi+wil+com and we use mind over matter
+              -- we should be asked for agi and com and end up with int+int+wil+int
+              -- Easiest way might be to let the skill test handle the replacement so we don't have to nest
+              player <- getPlayer skillTest.investigator
+              pure
+                $ map
+                  ( \(base, setToList -> skillsTypes) ->
+                      chooseOne player
+                        $ SkillLabel base []
+                        : [ SkillLabel skillType' [ReplaceSkillTestSkill (FromSkillType base) (ToSkillType skillType')]
+                          | skillType' <- skillsTypes
+                          , skillType' /= base
+                          ]
+                  )
+                  skillsWithChoice
+                <> windows'
+                <> [BeginSkillTestAfterFast]
 
-        msgs' <-
-          if skillTestIsRevelation skillTest
-            then pure $ performRevelationSkillTestWindow : msgs
-            else pure msgs
+      msgs' <-
+        if skillTestIsRevelation skillTest
+          then pure $ performRevelationSkillTestWindow : msgs
+          else pure msgs
 
-        pushAll
-          $ [SetActiveInvestigator skillTest.investigator]
-          <> pre
-          <> msgs'
-          <> [SetActiveInvestigator (g ^. activeInvestigatorIdL)]
-        pure $ g & (skillTestL ?~ skillTest)
+      pushAll
+        $ [SetActiveInvestigator skillTest.investigator]
+        <> pre
+        <> msgs'
+        <> [SetActiveInvestigator (g ^. activeInvestigatorIdL)]
+      pure $ g & (skillTestL ?~ skillTest)
   BeforeSkillTest skillTest -> do
     player <- getPlayer skillTest.investigator
     pure $ g & activeInvestigatorIdL .~ skillTest.investigator & activePlayerIdL .~ player
@@ -1942,11 +2019,20 @@ runGameMessage msg g = case msg of
   CreateWeaknessInThreatArea card iid -> do
     treacheryId <- getRandom
     let treachery = createTreachery card iid treacheryId
-    push (AttachTreachery treacheryId (InvestigatorTarget iid))
+    push (PlaceTreachery treacheryId (InThreatArea iid))
     pure $ g & entitiesL . treacheriesL . at treacheryId ?~ treachery
   AttachStoryTreacheryTo treacheryId card target -> do
     let treachery = createTreachery card (g ^. leadInvestigatorIdL) treacheryId
-    push (AttachTreachery treacheryId target)
+    push
+      $ PlaceTreachery treacheryId
+      $ case target of
+        LocationTarget lid -> AttachedToLocation lid
+        EnemyTarget eid -> AttachedToEnemy eid
+        AssetTarget aid -> AttachedToAsset aid Nothing
+        ActTarget aid -> AttachedToAct aid
+        AgendaTarget aid -> AttachedToAgenda aid
+        InvestigatorTarget iid -> InThreatArea iid
+        _ -> error $ "unhandled attach target : " <> show target
     pure $ g & entitiesL . treacheriesL . at treacheryId ?~ treachery
   TakeControlOfSetAsideAsset iid card -> do
     assetId <- getRandom
@@ -1954,8 +2040,9 @@ runGameMessage msg g = case msg of
     pushAll [TakeControlOfAsset iid assetId]
     pure $ g & entitiesL . assetsL . at assetId ?~ asset
   ReplaceInvestigatorAsset iid assetId card -> do
+    tokens <- field AssetTokens assetId
     replaceCard (toCardId card) card
-    let asset = createAsset card assetId
+    let asset = overAttrs (\attrs -> attrs {assetTokens = tokens}) (createAsset card assetId)
     push (ReplacedInvestigatorAsset iid assetId)
     pure $ g & entitiesL . assetsL . at assetId ?~ asset
   When (EnemySpawn _ lid eid) -> do
@@ -2079,7 +2166,7 @@ runGameMessage msg g = case msg of
   Discarded (InvestigatorTarget iid) source card -> do
     pushM
       $ checkWindows
-      $ (`mkWindow` Window.Discarded iid source card)
+      $ (`mkWindow` Window.Discarded (Just iid) source card)
       <$> [#when, #after]
     pure g
   InvestigatorAssignDamage iid' source _ n 0 | n > 0 -> do
@@ -2088,7 +2175,7 @@ runGameMessage msg g = case msg of
       Nothing -> pure g
       Just iid -> do
         let
-          historyItem = mempty {historyDealtDamageTo = [InvestigatorTarget iid']}
+          historyItem = HistoryItem HistoryDealtDamageTo [InvestigatorTarget iid']
           turn = isJust $ view turnPlayerInvestigatorIdL g
           setTurnHistory = if turn then turnHistoryL %~ insertHistory iid historyItem else id
 
@@ -2102,7 +2189,7 @@ runGameMessage msg g = case msg of
     -- the iid for cases where we aren't looking at a specific investigator
     let
       iid = fromMaybe lead miid
-      historyItem = mempty {historyDealtDamageTo = [EnemyTarget eid]}
+      historyItem = HistoryItem HistoryDealtDamageTo [EnemyTarget eid]
       turn = isJust $ view turnPlayerInvestigatorIdL g
       setTurnHistory =
         if turn then turnHistoryL %~ insertHistory iid historyItem else id
@@ -2137,7 +2224,7 @@ runGameMessage msg g = case msg of
       _ -> error "Unhandled surge target"
     (effectId, surgeEffect) <- createSurgeEffect source cardId
     pure $ g & entitiesL . effectsL . at effectId ?~ surgeEffect
-  Surge iid _ -> g <$ push (InvestigatorDrawEncounterCard iid)
+  Surge iid source -> g <$ push (drawEncounterCard iid source)
   ReplaceCard cardId card -> do
     replaceCard cardId card -- We must update the IORef
     pure $ g & cardsL %~ insertMap cardId card
@@ -2145,28 +2232,22 @@ runGameMessage msg g = case msg of
   SetActiveInvestigator iid -> do
     player <- getPlayer iid
     pure $ g & activeInvestigatorIdL .~ iid & activePlayerIdL .~ player
-  InvestigatorDrawEncounterCard iid -> do
-    drawEncounterCardWindow <- checkWindows [mkWhen $ Window.WouldDrawEncounterCard iid $ g ^. phaseL]
-    pushAll
-      [ SetActiveInvestigator iid
-      , drawEncounterCardWindow
-      , InvestigatorDoDrawEncounterCard iid
-      , SetActiveInvestigator (g ^. activeInvestigatorIdL)
-      ]
-    pure g
-  RevelationSkillTest iid (TreacherySource tid) skillType difficulty -> do
+  -- InvestigatorDrawEncounterCard iid -> do
+  --   drawEncounterCardWindow <- checkWindows [mkWhen $ Window.WouldDrawEncounterCard iid $ g ^. phaseL]
+  --   pushAll
+  --     [ SetActiveInvestigator iid
+  --     , drawEncounterCardWindow
+  --     , InvestigatorDoDrawEncounterCard iid
+  --     , SetActiveInvestigator (g ^. activeInvestigatorIdL)
+  --     ]
+  --   pure g
+  RevelationSkillTest sid iid (TreacherySource tid) skillType difficulty -> do
     -- [ALERT] If changed update (DreamersCurse, Somniphobia)
     card <- field TreacheryCard tid
 
     let
       skillTest =
-        ( initSkillTest
-            iid
-            (TreacherySource tid)
-            (TreacheryTarget tid)
-            skillType
-            difficulty
-        )
+        (initSkillTest sid iid tid tid skillType difficulty)
           { skillTestIsRevelation = True
           }
     pushAll [BeginSkillTest skillTest, UnsetActiveCard]
@@ -2180,6 +2261,22 @@ runGameMessage msg g = case msg of
       -- Asset is assumed to have a revelation ability if drawn from encounter deck
       pushAll $ resolve $ Revelation iid (AssetSource assetId)
       pure $ g & (entitiesL . assetsL . at assetId ?~ asset)
+    EventType -> do
+      pid <- getPlayer iid
+      sendRevelation pid (toJSON $ toCard card)
+      eventId <- getRandom
+      pushAll $ resolve $ Revelation iid (EventSource eventId)
+      let
+        recordLimit g'' = \case
+          MaxPerGame _ -> g'' & cardUsesL . at (toCardCode card) . non 0 +~ 1
+          MaxPerRound _ -> g'' & cardUsesL . at (toCardCode card) . non 0 +~ 1
+          MaxPerTraitPerRound _ _ -> g'' & cardUsesL . at (toCardCode card) . non 0 +~ 1
+          _ -> g''
+      pure
+        $ foldl'
+          recordLimit
+          (g & entitiesL . eventsL . at eventId ?~ createEvent card iid eventId)
+          (cdLimits $ toCardDef card)
     PlayerEnemyType -> do
       enemyId <- getRandom
       let enemy = createEnemy card enemyId
@@ -2209,68 +2306,93 @@ runGameMessage msg g = case msg of
         other -> other
     pure $ g & resolvingCardL .~ Nothing & activeCardL %~ unsetActiveCard
   InvestigatorDrewEncounterCard iid card -> do
-    push $ ResolvedCard iid (toCard card)
-    let
-      g' =
-        g
-          & (resolvingCardL ?~ EncounterCard card)
-          & (focusedCardsL %~ filter ((/= Just card) . preview _EncounterCard))
-          & ( foundCardsL
-                %~ Map.map
-                  (filter ((/= Just card) . preview _EncounterCard))
-            )
-
+    hasForesight <- hasModifier iid (Foresight $ toTitle card)
     whenDraw <- checkWindows [mkWhen (Window.DrawCard iid (toCard card) Deck.EncounterDeck)]
-    afterDraw <- checkWindows [mkAfter (Window.DrawCard iid (toCard card) Deck.EncounterDeck)]
-    -- [ALERT]: If you extend this make sure to update LetMeHandleThis
+    let uiRevelation = getPlayer iid >>= (`sendRevelation` (toJSON $ toCard card))
     case toCardType card of
       EnemyType -> do
         investigator <- getInvestigator iid
         sendEnemy (toTitle investigator <> " drew Enemy") (toJSON $ toCard card)
+      TreacheryType -> uiRevelation
+      EncounterAssetType -> uiRevelation
+      EncounterEventType -> uiRevelation
+      LocationType -> uiRevelation
+      _ -> pure ()
+    if hasForesight
+      then do
+        canCancel <- (EncounterCard card) <=~> CanCancelRevelationEffect #any
+        if canCancel
+          then do
+            player <- getPlayer iid
+            push
+              $ chooseOne
+                player
+                [ Label
+                    "Cancel card effects and discard it"
+                    [UnfocusCards, CancelNext GameSource RevelationMessage, AddToEncounterDiscard card]
+                , Label "Draw as normal" [UnfocusCards, whenDraw, Do msg]
+                ]
+            pure $ g & focusedCardsL .~ [toCard card]
+          else do
+            pushAll [whenDraw, Do msg]
+            pure g
+      else do
+        pushAll [whenDraw, Do msg]
+        pure g
+  Do (InvestigatorDrewEncounterCard iid card) -> do
+    push $ ResolvedCard iid (toCard card)
+    let
+      removeCard = filter ((/= Just card) . preview _EncounterCard)
+      g' =
+        g
+          & (resolvingCardL ?~ toCard card)
+          & (focusedCardsL %~ removeCard)
+          & (foundCardsL %~ Map.map removeCard)
+
+    afterDraw <- checkWindows [mkAfter (Window.DrawCard iid (toCard card) Deck.EncounterDeck)]
+    -- [ALERT]: If you extend this make sure to update LetMeHandleThis
+    --
+    modifiers' <- getModifiers card
+    let ignoreRevelation = IgnoreRevelation `elem` modifiers'
+    case toCardType card of
+      EnemyType -> do
         enemyId <- getRandom
         let enemy = createEnemy card enemyId
         pushAll
-          $ [whenDraw, afterDraw, InvestigatorDrawEnemy iid enemyId]
-          <> [Revelation iid (EnemySource enemyId) | hasRevelation card]
+          $ [afterDraw, InvestigatorDrawEnemy iid enemyId]
+          <> [Revelation iid (EnemySource enemyId) | hasRevelation card && not ignoreRevelation]
           <> [UnsetActiveCard]
         pure
           $ g'
           & (entitiesL . enemiesL . at enemyId ?~ enemy)
           & (activeCardL ?~ toCard card)
       TreacheryType -> do
-        pid <- getPlayer iid
-        sendRevelation pid (toJSON $ toCard card)
         -- handles draw windows
         push $ DrewTreachery iid (Just Deck.EncounterDeck) (toCard card)
         pure g'
       EncounterAssetType -> do
-        pid <- getPlayer iid
-        sendRevelation pid (toJSON $ toCard card)
         assetId <- getRandom
         let asset = createAsset card assetId
         -- Asset is assumed to have a revelation ability if drawn from encounter deck
-        pushAll $ whenDraw : afterDraw : resolve (Revelation iid $ AssetSource assetId)
+        pushAll $ afterDraw
+          : (guard (not ignoreRevelation) *> resolve (Revelation iid $ AssetSource assetId))
         pure $ g' & (entitiesL . assetsL . at assetId ?~ asset)
       EncounterEventType -> do
-        pid <- getPlayer iid
-        sendRevelation pid (toJSON $ toCard card)
         eventId <- getRandom
         let owner = fromMaybe iid (toCardOwner card)
         let event' = createEvent card owner eventId
         -- Event is assumed to have a revelation ability if drawn from encounter deck
-        pushAll $ whenDraw : afterDraw : resolve (Revelation iid $ EventSource eventId)
+        pushAll $ afterDraw
+          : (guard (not ignoreRevelation) *> resolve (Revelation iid $ EventSource eventId))
         pure $ g' & (entitiesL . eventsL . at eventId ?~ event')
       LocationType -> do
-        pid <- getPlayer iid
-        sendRevelation pid (toJSON $ toCard card)
         locationId <- getRandom
         let location = createLocation card locationId
 
         pushAll
-          $ whenDraw
-          : afterDraw
+          $ afterDraw
           : PlacedLocation (toName location) (toCardCode card) locationId
-          : resolve (Revelation iid (LocationSource locationId))
+          : (guard (not ignoreRevelation) *> resolve (Revelation iid (LocationSource locationId)))
         pure $ g' & (entitiesL . locationsL . at locationId ?~ location)
       _ ->
         error
@@ -2283,7 +2405,7 @@ runGameMessage msg g = case msg of
     let
       treachery =
         overAttrs (drawnFromL .~ mdeck) $ createTreachery card iid treacheryId
-      historyItem = mempty {historyTreacheriesDrawn = [toCardCode treachery]}
+      historyItem = HistoryItem HistoryTreacheriesDrawn [toCardCode treachery]
       turn = isJust $ view turnPlayerInvestigatorIdL g
       setTurnHistory =
         if turn then turnHistoryL %~ insertHistory iid historyItem else id
@@ -2303,16 +2425,12 @@ runGameMessage msg g = case msg of
       & setTurnHistory
   ResolveTreachery iid treacheryId -> do
     treachery <- getTreachery treacheryId
-    whenDraw <- checkWindows [mkWhen $ Window.DrawCard iid (toCard treachery) Deck.EncounterDeck]
-    afterDraw <- checkWindows [mkAfter $ Window.DrawCard iid (toCard treachery) Deck.EncounterDeck]
 
-    modifiers' <- getModifiers (TreacheryTarget treacheryId)
+    modifiers' <- getCombinedModifiers [TreacheryTarget treacheryId, CardIdTarget $ toCardId treachery]
     let ignoreRevelation = IgnoreRevelation `elem` modifiers'
 
     pushAll
-      $ whenDraw
-      : afterDraw
-      : if ignoreRevelation
+      $ if ignoreRevelation
         then [toDiscardBy iid GameSource (TreacheryTarget treacheryId)]
         else
           resolve (Revelation iid (TreacherySource treacheryId))
@@ -2333,7 +2451,7 @@ runGameMessage msg g = case msg of
       <> [ResolveTreachery iid treacheryId]
 
     let
-      historyItem = mempty {historyTreacheriesDrawn = [toCardCode treachery]}
+      historyItem = HistoryItem HistoryTreacheriesDrawn [toCardCode treachery]
       turn = isJust $ view turnPlayerInvestigatorIdL g
       setTurnHistory =
         if turn then turnHistoryL %~ insertHistory iid historyItem else id
@@ -2366,13 +2484,10 @@ runGameMessage msg g = case msg of
   ResolvedAbility _ -> do
     let removedEntitiesF = if length (gameActiveAbilities g) <= 1 then actionRemovedEntitiesL .~ mempty else id
     pure $ g & activeAbilitiesL %~ drop 1 & removedEntitiesF
-  Do (Discarded (EnemyTarget eid) _ _) -> do
-    pure $ g & actionRemovedEntitiesL . enemiesL %~ deleteMap eid
   Discarded (AssetTarget aid) _ (EncounterCard _) -> do
     runMessage (RemoveAsset aid) g
-  Discarded (AssetTarget aid) _ _ -> do
-    mAsset <- maybeAsset aid
-    case mAsset of
+  Discarded (AssetTarget aid) _source _card -> do
+    maybeAsset aid >>= \case
       Nothing -> pure g
       Just _ -> runMessage (RemoveAsset aid) g
   DiscardedCost (SearchedCardTarget cid) -> do
@@ -2426,7 +2541,7 @@ runGameMessage msg g = case msg of
     wouldDo
       (Run $ windows'' <> [Discarded (TreacheryTarget tid) source card])
       (Window.WouldBeDiscarded (TreacheryTarget tid))
-      (Window.Discarded iid source card)
+      (Window.Discarded (Just iid) source card)
 
     pure g
   UpdateHistory iid historyItem -> do
@@ -2453,6 +2568,10 @@ preloadEntities g = do
         setAssetPlacement a = case eqT @a @Asset of
           Just Refl -> overAttrs (\attrs -> attrs {assetPlacement = StillInHand (toId investigator')}) a
           Nothing -> a
+        setEventPlacement :: forall a. Typeable a => a -> a
+        setEventPlacement a = case eqT @a @Event of
+          Just Refl -> overAttrs (\attrs -> attrs {eventPlacement = StillInHand (toId investigator')}) a
+          Nothing -> a
         handEffectCards =
           filter (cdCardInHandEffects . toCardDef)
             $ investigatorHand (toAttrs investigator')
@@ -2464,7 +2583,7 @@ preloadEntities g = do
             let
               handEntities =
                 foldl'
-                  (addCardEntityWith (toId investigator') setAssetPlacement)
+                  (addCardEntityWith (toId investigator') (setEventPlacement . setAssetPlacement))
                   defaultEntities
                   handEffectCards
              in

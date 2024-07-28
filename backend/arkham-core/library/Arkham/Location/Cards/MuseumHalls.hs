@@ -1,21 +1,18 @@
-module Arkham.Location.Cards.MuseumHalls (
-  museumHalls,
-  MuseumHalls (..),
-) where
-
-import Arkham.Prelude
+module Arkham.Location.Cards.MuseumHalls (museumHalls, MuseumHalls (..)) where
 
 import Arkham.Ability
 import Arkham.Classes
+import Arkham.Draw.Types
 import Arkham.GameValue
 import Arkham.Location.Cards qualified as Cards (museumHalls)
 import Arkham.Location.Helpers
 import Arkham.Location.Runner
 import Arkham.Matcher
+import Arkham.Prelude
 import Arkham.Scenario.Deck
 
 newtype MuseumHalls = MuseumHalls LocationAttrs
-  deriving anyclass (IsLocation)
+  deriving anyclass IsLocation
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
 
 museumHalls :: LocationCard MuseumHalls
@@ -50,13 +47,14 @@ instance RunMessage MuseumHalls where
   runMessage msg l@(MuseumHalls attrs) = case msg of
     UseThisAbility iid this@(isProxySource attrs -> True) 1 | unrevealed attrs -> do
       museumEntrance <- selectJust $ LocationWithTitle "Museum Entrance"
-      push $ beginSkillTest iid (toAbilitySource this 1) museumEntrance #combat (Fixed 5)
+      sid <- getRandom
+      push $ beginSkillTest sid iid (toAbilitySource this 1) museumEntrance #combat (Fixed 5)
       pure l
     UseThisAbility iid (isSource attrs -> True) 1 | revealed attrs -> do
-      push $ DrawFromScenarioDeck iid ExhibitDeck (toTarget attrs) 1
+      push $ DrawCards iid $ targetCardDraw attrs ExhibitDeck 1
       pure l
-    DrewFromScenarioDeck _ _ (isTarget attrs -> True) cards -> do
-      placements <- traverse placeLocation_ cards
+    DrewCards _ drewCards | maybe False (isTarget attrs) drewCards.target -> do
+      placements <- traverse placeLocation_ drewCards.cards
       pushAll placements
       pure l
     PassedThisSkillTest _ source@(isProxyAbilitySource attrs 1 -> True) -> do

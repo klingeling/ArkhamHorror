@@ -14,6 +14,7 @@ import Arkham.Projection
 newtype AkachiOnyele = AkachiOnyele InvestigatorAttrs
   deriving anyclass (IsInvestigator, HasAbilities)
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock (Data)
 
 instance HasModifiersFor AkachiOnyele where
   getModifiersFor (AssetTarget aid) (AkachiOnyele attrs) = do
@@ -39,6 +40,6 @@ instance RunMessage AkachiOnyele where
       player <- getPlayer iid
       pushIfAny assets
         $ chooseOne player
-        $ targetLabels assets (\asset -> only $ AddUses asset Charge 1)
+        $ targetLabels assets (\asset -> only $ AddUses #elderSign asset Charge 1)
       pure i
     _ -> AkachiOnyele <$> runMessage msg attrs

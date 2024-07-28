@@ -13,6 +13,7 @@ import Arkham.Campaigns.TheForgottenAge.Supply (Supply)
 import Arkham.Capability (Capabilities, Capable (..), FromSource)
 import Arkham.Cost.Status (CostStatus)
 import Arkham.Criteria.Override
+import Arkham.Customization
 import Arkham.Direction (GridDirection)
 import Arkham.GameValue (GameValue (Static))
 import Arkham.History.Types (HistoryType)
@@ -115,8 +116,12 @@ pattern DuringAnySkillTest <- DuringSkillTest AnySkillTest
   where
     DuringAnySkillTest = DuringSkillTest AnySkillTest
 
+data CostReduction = Reduce Int | ReduceBySuccessAmount
+  deriving stock (Show, Eq, Ord, Data)
+
 data Criterion
   = AssetExists AssetMatcher
+  | TargetExists TargetMatcher
   | DifferentAssetsExist AssetMatcher AssetMatcher
   | DifferentEnemiesExist EnemyMatcher EnemyMatcher
   | EventExists EventMatcher
@@ -165,8 +170,9 @@ data Criterion
   | OwnCardWithDoom
   | CardWithDoomExists
   | ControlsThis -- really controls this
+  | OwnsThis -- just the owner
   | PlayableCardExists CostStatus ExtendedCardMatcher
-  | PlayableCardExistsWithCostReduction Int ExtendedCardMatcher
+  | PlayableCardExistsWithCostReduction CostReduction ExtendedCardMatcher
   | ResourcesOnThis ValueMatcher
   | ResourcesOnLocation Where ValueMatcher
   | ReturnableCardInDiscard DiscardSignifier [Trait]
@@ -197,6 +203,7 @@ data Criterion
   | HasCalculation GameCalculation ValueMatcher
   | HasRemainingBlessTokens
   | HasRemainingCurseTokens
+  | OnlySources SourceMatcher
   | -- Special Criterion
     AtLeastNCriteriaMet Int [Criterion]
   | Criteria [Criterion]
@@ -206,6 +213,10 @@ data Criterion
   | Negate Criterion
   | DuringAction
   | AffectedByTarot
+  | HasTrueMagick
+  | ChosenCustomizationCardIsInPlay
+  | HasCustomization Customization
+  | IfYouOweBiancaDieKatz
   deriving stock (Show, Eq, Ord, Data)
 
 instance Not Criterion where
@@ -232,11 +243,17 @@ atYourLocation matcher = exists (AtYourLocation <> matcher)
 class Exists a where
   exists :: a -> Criterion
 
+any_ :: (Exists a, OneOf a) => [a] -> Criterion
+any_ = exists . oneOf
+
 overrideExists :: Exists a => a -> CriteriaOverride
 overrideExists = CriteriaOverride . exists
 
 notExists :: Exists a => a -> Criterion
 notExists = not_ . exists
+
+instance Exists TargetMatcher where
+  exists = TargetExists
 
 instance Exists EventMatcher where
   exists = EventExists
@@ -306,6 +323,15 @@ data EnemyCriterion
   | EnemyMatchesCriteria [EnemyCriterion]
   deriving stock (Show, Eq, Ord, Data)
 
+fightOverride :: EnemyMatcher -> EnemyMatcher
+fightOverride = CanFightEnemyWithOverride . CriteriaOverride . EnemyCriteria . ThisEnemy
+
+ignoreAloofFightOverride :: EnemyMatcher -> EnemyMatcher
+ignoreAloofFightOverride matcher = fightOverride $ IgnoreAloofFightable <> matcher
+
+evadeOverride :: EnemyMatcher -> EnemyMatcher
+evadeOverride = CanEvadeEnemyWithOverride . CriteriaOverride . EnemyCriteria . ThisEnemy
+
 instance Semigroup EnemyCriterion where
   EnemyMatchesCriteria xs <> EnemyMatchesCriteria ys =
     EnemyMatchesCriteria $ xs <> ys
@@ -344,6 +370,7 @@ instance Capable (FromSource -> InvestigatorMatcher -> Criterion) where
           (\(m :: FromSource -> InvestigatorMatcher) fSource matcher -> exists (m fSource <> matcher))
           can'
 
+$(deriveJSON defaultOptions ''CostReduction)
 $(deriveJSON defaultOptions ''DiscardSignifier)
 $(deriveJSON defaultOptions ''UnderZone)
 $(deriveJSON defaultOptions ''EnemyCriterion)

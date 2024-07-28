@@ -7,6 +7,7 @@ import type { Game } from '@/arkham/types/Game';
 import * as ArkhamGame from '@/arkham/types/Game';
 import type { AbilityLabel, AbilityMessage, Message } from '@/arkham/types/Message';
 import { MessageType } from '@/arkham/types/Message';
+import EditAsset from '@/arkham/components/EditAsset.vue';
 import Key from '@/arkham/components/Key.vue';
 import Event from '@/arkham/components/Event.vue';
 import Treachery from '@/arkham/components/Treachery.vue';
@@ -15,6 +16,7 @@ import AbilityButton from '@/arkham/components/AbilityButton.vue'
 import Story from '@/arkham/components/Story.vue';
 import Token from '@/arkham/components/Token.vue';
 import * as Arkham from '@/arkham/types/Asset';
+import {isUse} from '@/arkham/types/Token';
 import { Card } from '../types/Card';
 import { useI18n } from 'vue-i18n';
 
@@ -24,6 +26,8 @@ const props = defineProps<{
   asset: Arkham.Asset
   playerId: string
 }>()
+
+const edit = ref(false)
 
 const emits = defineEmits<{
   choose: [value: number]
@@ -110,12 +114,8 @@ const debug = useDebug()
 
 const doom = computed(() => props.asset.tokens[TokenType.Doom])
 const clues = computed(() => props.asset.tokens[TokenType.Clue])
-const resources = computed(() => props.asset.tokens[TokenType.Resource])
-const leylines = computed(() => props.asset.tokens[TokenType.Leyline])
-const charges = computed(() => props.asset.tokens[TokenType.Charge])
-const secrets = computed(() => props.asset.tokens[TokenType.Secret])
-const corruption = computed(() => props.asset.tokens[TokenType.Corruption])
-const offerings = computed(() => props.asset.tokens[TokenType.Offering])
+const uses = computed(() => Object.entries(props.asset.tokens).filter(([k, v]) => isUse(k) && v > 0))
+const formatUse = (k: string) => k.replace(/([a-z])([A-Z])/g, '$1 $2')
 
 const damage = computed(() => props.asset.tokens[TokenType.Damage])
 const horror = computed(() => props.asset.tokens[TokenType.Horror])
@@ -124,23 +124,12 @@ const hasPool = computed(() => {
   const {
     sanity,
     health,
-    uses,
     tokens,
     sealedChaosTokens,
     keys,
   } = props.asset;
 
-  return cardCode.value == 'c07189' || (Object.values(tokens).some((v) => v > 0) || sealedChaosTokens.length > 0 || keys.length > 0 || uses || sanity || health
-    || (doom.value ?? 0) > 0
-    || (clues.value ?? 0) > 0
-    || (resources.value ?? 0) > 0
-    || (leylines.value ?? 0) > 0
-    || (charges.value ?? 0) > 0
-    || (secrets.value ?? 0) > 0
-    || (corruption.value ?? 0) > 0
-    || (offerings.value ?? 0) > 0
-    || (damage.value ?? 0) > 0
-    || (horror.value ?? 0) > 0)
+  return cardCode.value == 'c07189' || (Object.values(tokens).some((v) => v > 0) || sealedChaosTokens.length > 0 || keys.length > 0 || sanity || health)
 })
 
 const choose = (idx: number) => emits('choose', idx)
@@ -182,23 +171,32 @@ const assetStory = computed(() => {
     <Story v-if="assetStory" :story="assetStory" :game="game" :playerId="playerId" @choose="choose"/>
     <div v-else class="asset" :data-index="asset.cardId">
       <div class="card-frame">
+        <div v-if="asset.marketDeck" class="market-deck">
+          <img
+            class="deck card"
+            :src="imgsrc('player_back.jpg')"
+            width="150px"
+          />
+          <span class="deck-size">{{asset.marketDeck.length}}</span>
+        </div>
         <div class="card-wrapper" :class="{ 'asset--can-interact': canInteract, exhausted}">
           <img
             :data-id="id"
             :src="image"
             class="card"
             @click="clicked"
-            :data-customizations="asset.customizations"
+            :data-customizations="JSON.stringify(asset.customizations)"
           />
         </div>
         <div v-if="hasPool" class="pool">
           <div class="keys" v-if="keys.length > 0">
             <Key v-for="key in keys" :key="key" :name="key" />
           </div>
-          <template v-for="[use, amount] in Object.entries(asset.uses)" :key="use">
+          <template v-for="[use, amount] in uses" :key="use">
             <PoolItem
               v-if="amount > 0"
               type="resource"
+              :tooltip="formatUse(use)"
               :amount="amount"
             />
           </template>
@@ -218,12 +216,6 @@ const assetStory = computed(() => {
           />
           <PoolItem v-if="doom && doom > 0" type="doom" :amount="doom" />
           <PoolItem v-if="clues && clues > 0" type="clue" :amount="clues" />
-          <PoolItem v-if="resources && resources > 0" type="resource" :amount="resources" />
-          <PoolItem v-if="leylines && leylines > 0" type="resource" tooltip="Leyline" :amount="leylines" />
-          <PoolItem v-if="charges && charges > 0" type="resource" :amount="charges" />
-          <PoolItem v-if="secrets && secrets > 0" type="resource" :amount="secrets" />
-          <PoolItem v-if="corruption && corruption > 0" type="resource" :amount="corruption" />
-          <PoolItem v-if="offerings && offerings > 0" type="resource" :amount="offerings" />
           <Token v-for="(sealedToken, index) in asset.sealedChaosTokens" :key="index" :token="sealedToken" :playerId="playerId" :game="game" @choose="choose" />
         </div>
 
@@ -255,9 +247,7 @@ const assetStory = computed(() => {
       />
       <button v-if="cardsUnderneath.length > 0" class="view-discard-button" @click="showCardsUnderneath">{{cardsUnderneathLabel}}</button>
       <template v-if="debug.active">
-        <button v-if="!asset.owner" @click="debug.send(game.id, {tag: 'TakeControlOfAsset', contents: [investigatorId, id]})">{{$t('takeControl')}}</button>
-        <button v-if="asset.owner" @click="debug.send(game.id, {tag: 'Discard', contents: [null, { tag: 'GameSource' }, { tag: 'AssetTarget', contents: id}]})">{{$t('discard')}}</button>
-        <button v-if="asset.owner && asset.exhausted" @click="debug.send(game.id, {tag: 'Ready', contents: { tag: 'AssetTarget', contents: id}})">{{$t('ready')}}</button>
+        <button @click="edit = true">{{$t('debug')}}</button>
       </template>
       <Asset
         v-for="assetId in asset.assets"
@@ -268,6 +258,7 @@ const assetStory = computed(() => {
         @choose="$emit('choose', $event)"
       />
     </div>
+    <EditAsset v-if="edit" :game="game" :asset="asset" :playerId="playerId" @close="edit = false" @choose="$emit('choose', $event)"/>
   </div>
 </template>
 
@@ -353,5 +344,26 @@ const assetStory = computed(() => {
   gap: 5px;
   bottom:100%;
   left: 0;
+  z-index: 1000;
 }
+
+.deck-size {
+  pointer-events: none;
+  position: absolute;
+  font-weight: bold;
+  font-size: 1.2em;
+  color: rgba(255, 255, 255, 0.6);
+  left: 50%;
+  top: 40%;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 10px;
+  border-radius: 20px;
+  transform: translateX(-50%) translateY(-50%);
+}
+
+.market-deck {
+  position: relative;
+  margin-right: 5px;
+}
+
 </style>

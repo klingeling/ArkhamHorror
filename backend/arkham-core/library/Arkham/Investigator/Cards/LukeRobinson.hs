@@ -19,12 +19,13 @@ import Arkham.Window (Window, defaultWindows, mkAfter, mkWhen)
 import Arkham.Window qualified as Window
 
 newtype Meta = Meta {active :: Bool}
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Eq, Generic, Data)
   deriving anyclass (ToJSON, FromJSON)
 
 newtype LukeRobinson = LukeRobinson (InvestigatorAttrs `With` Meta)
   deriving anyclass (IsInvestigator, HasAbilities)
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock Data
 
 instance HasModifiersFor LukeRobinson where
   getModifiersFor target (LukeRobinson (a `With` meta)) | a `is` target && active meta = do
@@ -60,7 +61,7 @@ instance RunMessage LukeRobinson where
   runMessage msg i@(LukeRobinson (attrs `With` meta)) = case msg of
     ResolveChaosToken _ ElderSign iid | attrs `is` iid -> do
       gateBox <- selectJust $ assetIs Assets.gateBox
-      push $ AddUses gateBox Charge 1
+      push $ AddUses #elderSign gateBox Charge 1
       pure i
     PlayerWindow iid additionalActions isAdditional | active meta -> do
       -- N.B. we are not checking if iid is us so we must be careful not to use it incorrectly

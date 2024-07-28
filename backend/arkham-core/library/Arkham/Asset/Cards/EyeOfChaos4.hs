@@ -8,6 +8,7 @@ import Arkham.Discover
 import Arkham.Effect.Runner
 import Arkham.Investigate
 import Arkham.Matcher hiding (RevealChaosToken)
+import Arkham.Message qualified as Msg
 import Arkham.Prelude
 
 newtype EyeOfChaos4 = EyeOfChaos4 AssetAttrs
@@ -29,10 +30,12 @@ instance RunMessage EyeOfChaos4 where
   runMessage msg a@(EyeOfChaos4 attrs) = case msg of
     UseThisAbility iid (isSource attrs -> True) 1 -> do
       let source = attrs.ability 1
-      investigation <- aspect iid source (#willpower `InsteadOf` #intellect) (mkInvestigate iid source)
+      sid <- getRandom
+      investigation <-
+        aspect iid source (#willpower `InsteadOf` #intellect) (mkInvestigate sid iid source)
       pushAll
-        $ [ skillTestModifier source iid (SkillModifier #intellect 2)
-          , createCardEffect Cards.eyeOfChaos4 Nothing source iid
+        $ [ skillTestModifier sid source iid (SkillModifier #intellect 2)
+          , createCardEffect Cards.eyeOfChaos4 (effectMetaTarget sid) source iid
           ]
         <> leftOr investigation
       pure a
@@ -47,9 +50,9 @@ eyeOfChaos4Effect = cardEffect EyeOfChaos4Effect Cards.eyeOfChaos4
 
 instance RunMessage EyeOfChaos4Effect where
   runMessage msg e@(EyeOfChaos4Effect attrs) = case msg of
-    RevealChaosToken _ iid token | InvestigatorTarget iid == attrs.target -> do
-      case attrs.source of
-        AbilitySource (AssetSource assetId) 1 ->
+    RevealChaosToken (SkillTestSource sid) iid token | InvestigatorTarget iid == attrs.target && maybe False (isTarget sid) attrs.metaTarget -> do
+      let
+        handleIt assetId = do
           when (token.face == #curse) do
             lids <- select $ ConnectedLocation <> LocationWithDiscoverableCluesBy (InvestigatorWithId iid)
             stillInPlay <- selectAny $ AssetWithId assetId
@@ -58,21 +61,24 @@ instance RunMessage EyeOfChaos4Effect where
             pushAll
               $ [ chooseOrRunOne
                   player
-                  $ [Label "Place 1 Charge on Eye of Chaos (4)" [AddUses assetId Charge 1] | stillInPlay]
+                  $ [Label "Place 1 Charge on Eye of Chaos (4)" [AddUses attrs.source assetId Charge 1] | stillInPlay]
                   <> [ Label
                         "Discover 1 clues at a connecting location"
                         [ chooseOne
                             player
-                            [ targetLabel lid' [toMessage $ discover iid lid' attrs 1]
+                            [ targetLabel lid' [Msg.DiscoverClues iid $ discover lid' attrs 1]
                             | lid' <- lids
                             ]
                         ]
                      ]
                 | stillInPlay || notNull lids
                 ]
+      case attrs.source of
+        AbilitySource (AssetSource assetId) 1 -> handleIt assetId
+        AbilitySource (ProxySource (CardIdSource _) (AssetSource assetId)) 1 -> handleIt assetId
         _ -> error "wrong source"
       pure e
-    SkillTestEnds _ _ -> do
+    SkillTestEnds sid _ _ | maybe False (isTarget sid) attrs.metaTarget -> do
       push (disable attrs)
       pure e
     _ -> EyeOfChaos4Effect <$> runMessage msg attrs

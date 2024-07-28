@@ -27,11 +27,12 @@ theTrueCulpritV9 = agenda (3, A) TheTrueCulpritV9 Cards.theTrueCulpritV9 (Static
 instance HasAbilities TheTrueCulpritV9 where
   getAbilities (TheTrueCulpritV9 attrs) =
     guard (onSide A attrs)
-      *> [ restrictedAbility
-            (proxied (locationIs Cards.room212) attrs)
-            1
-            (exists (assetIs Cards.tomeOfRituals <> AssetAt (locationIs Cards.room212)))
-            actionAbility
+      *> [ skillTestAbility
+            $ restrictedAbility
+              (proxied (locationIs Cards.room212) attrs)
+              1
+              (exists (assetIs Cards.tomeOfRituals <> AssetAt (locationIs Cards.room212)))
+              actionAbility
          , restrictedAbility
             attrs
             2
@@ -63,7 +64,7 @@ instance RunMessage TheTrueCulpritV9 where
       ResolveAmounts _ (getChoiceAmount "Clues" -> n) (isTarget attrs -> True) -> do
         tomeOfRituals <- selectJust $ assetIs Cards.tomeOfRituals
         harvestedBrain <- selectJust $ treacheryIs Cards.harvestedBrain
-        push $ MovedClues (toSource tomeOfRituals) (toTarget harvestedBrain) n
+        push $ MovedClues (attrs.ability 1) (toSource tomeOfRituals) (toTarget harvestedBrain) n
         pure a
       UseThisAbility _ (isSource attrs -> True) 2 -> do
         push $ AdvanceAgendaBy (toId attrs) AgendaAdvancedWithOther

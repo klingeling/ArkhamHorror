@@ -4,43 +4,39 @@ module Arkham.Treachery.Cards.LawOfYgirothPandemonium (
 )
 where
 
-import Arkham.Prelude
-
 import Arkham.Ability
-import Arkham.Classes
+import Arkham.Helpers.Modifiers
 import Arkham.Matcher hiding (TreacheryInHandOf, treacheryInHandOf)
-import Arkham.Message
+import Arkham.Placement
 import Arkham.Treachery.Cards qualified as Cards
-import Arkham.Treachery.Runner
+import Arkham.Treachery.Import.Lifted
 
 newtype LawOfYgirothPandemonium = LawOfYgirothPandemonium TreacheryAttrs
-  deriving anyclass (IsTreachery)
+  deriving anyclass IsTreachery
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
 
 lawOfYgirothPandemonium :: TreacheryCard LawOfYgirothPandemonium
 lawOfYgirothPandemonium = treachery LawOfYgirothPandemonium Cards.lawOfYgirothPandemonium
 
 instance HasModifiersFor LawOfYgirothPandemonium where
-  getModifiersFor (InvestigatorTarget iid) (LawOfYgirothPandemonium a)
-    | treacheryInHandOf a == Just iid =
-        pure
-          $ toModifiers
-            a
-            [CannotPlay CardWithOddNumberOfWordsInTitle, CannotCommitCards CardWithOddNumberOfWordsInTitle]
+  getModifiersFor (InvestigatorTarget iid) (LawOfYgirothPandemonium a) | treacheryInHandOf a == Just iid = do
+    modified
+      a
+      [CannotPlay CardWithOddNumberOfWordsInTitle, CannotCommitCards CardWithOddNumberOfWordsInTitle]
   getModifiersFor _ _ = pure []
 
 instance HasAbilities LawOfYgirothPandemonium where
   getAbilities (LawOfYgirothPandemonium a) =
     [ restrictedAbility a 1 InYourHand
-        $ actionAbilityWithCost (HandDiscardCost 1 CardWithEvenNumberOfWordsInTitle)
+        $ actionAbilityWithCost (HandDiscardCost 1 $ basic CardWithEvenNumberOfWordsInTitle)
     ]
 
 instance RunMessage LawOfYgirothPandemonium where
-  runMessage msg t@(LawOfYgirothPandemonium attrs) = case msg of
+  runMessage msg t@(LawOfYgirothPandemonium attrs) = runQueueT $ case msg of
     Revelation iid (isSource attrs -> True) -> do
-      push $ PlaceTreachery (toId attrs) (TreacheryInHandOf iid)
+      placeTreachery attrs (HiddenInHand iid)
       pure t
     UseThisAbility iid (isSource attrs -> True) 1 -> do
-      push $ toDiscardBy iid (toAbilitySource attrs 1) (toTarget attrs)
+      toDiscardBy iid (attrs.ability 1) attrs
       pure t
-    _ -> LawOfYgirothPandemonium <$> runMessage msg attrs
+    _ -> LawOfYgirothPandemonium <$> liftRunMessage msg attrs

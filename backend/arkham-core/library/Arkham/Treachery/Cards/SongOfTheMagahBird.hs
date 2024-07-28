@@ -2,11 +2,10 @@ module Arkham.Treachery.Cards.SongOfTheMagahBird (songOfTheMagahBird, SongOfTheM
 
 import Arkham.Ability
 import Arkham.Classes
-import Arkham.Investigator.Types (Field (..))
+import Arkham.Helpers.Investigator (withLocationOf)
 import Arkham.Matcher
 import Arkham.Message
 import Arkham.Prelude
-import Arkham.Projection
 import Arkham.Treachery.Cards qualified as Cards
 import Arkham.Treachery.Runner
 
@@ -20,13 +19,13 @@ songOfTheMagahBird = treachery SongOfTheMagahBird Cards.songOfTheMagahBird
 instance HasAbilities SongOfTheMagahBird where
   getAbilities (SongOfTheMagahBird a) =
     [ mkAbility a 1 $ forced $ Leaves #after You $ locationWithTreachery a
-    , restrictedAbility a 2 OnSameLocation actionAbility
+    , skillTestAbility $ restrictedAbility a 2 OnSameLocation actionAbility
     ]
 
 instance RunMessage SongOfTheMagahBird where
   runMessage msg t@(SongOfTheMagahBird attrs) = case msg of
     Revelation iid (isSource attrs -> True) -> do
-      forField InvestigatorLocation (push . attachTreachery attrs) iid
+      withLocationOf iid (push . attachTreachery attrs)
       pure t
     UseThisAbility iid (isSource attrs -> True) 1 -> do
       pushAll
@@ -36,7 +35,8 @@ instance RunMessage SongOfTheMagahBird where
         ]
       pure t
     UseThisAbility iid (isSource attrs -> True) 2 -> do
-      let chooseSkillTest (lbl, sType) = skillTestLabel lbl sType iid (attrs.ability 2) attrs (Fixed 4)
+      sid <- getRandom
+      let chooseSkillTest (lbl, sType) = skillTestLabel lbl sType sid iid (attrs.ability 2) attrs (Fixed 4)
       player <- getPlayer iid
       push
         $ chooseOne player

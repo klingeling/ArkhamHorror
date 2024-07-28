@@ -433,6 +433,21 @@ allTreacheries =
     , SomeTreacheryCard buriedSecrets
     , SomeTreacheryCard burdenOfDestiny
     , SomeTreacheryCard greed
+    , -- neutral
+      SomeTreacheryCard armInjury
+    , SomeTreacheryCard legInjury
+    , SomeTreacheryCard panic
+    , SomeTreacheryCard stupor
+    , -- The Scarlet Keys
+      -- signature
+      SomeTreacheryCard selflessToAFault
+    , SomeTreacheryCard deafeningSilence
+    , SomeTreacheryCard ruinedFilm
+    , SomeTreacheryCard burdenOfLeadership
+    , -- The Feast of Hemloch Vale
+      -- signature
+      SomeTreacheryCard hastyRepairs
+    , SomeTreacheryCard failedExperiment
     , -- Return to the Night of the Zealot
       -- Return to the Gathering
       SomeTreacheryCard theZealotsSeal

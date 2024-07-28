@@ -19,7 +19,8 @@ abandonedByTheGods = treacheryWith AbandonedByTheGods Cards.abandonedByTheGods (
 instance RunMessage AbandonedByTheGods where
   runMessage msg t@(AbandonedByTheGods attrs) = runQueueT $ case msg of
     Revelation iid (isSource attrs -> True) -> do
-      revelationSkillTest iid attrs #willpower (Fixed 3)
+      sid <- getRandom
+      revelationSkillTest sid iid attrs #willpower (Fixed 3)
       pure t
     FailedThisSkillTestBy iid (isSource attrs -> True) (min 5 -> n) -> do
       chooseN
@@ -38,4 +39,4 @@ instance RunMessage AbandonedByTheGods where
       eachInvestigator \iid -> do
         push $ discardAll iid attrs (oneOf [#event, #asset] <> oneOf (map CardWithCost xs))
       pure t
-    _ -> AbandonedByTheGods <$> lift (runMessage msg attrs)
+    _ -> AbandonedByTheGods <$> liftRunMessage msg attrs

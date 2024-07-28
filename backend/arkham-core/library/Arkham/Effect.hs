@@ -40,6 +40,7 @@ import Arkham.Asset.Assets (
   azureFlame3Effect,
   azureFlame5Effect,
   azureFlameEffect,
+  baseballBat2Effect,
   baseballBatEffect,
   charlesRossEsqEffect,
   clairvoyance3Effect,
@@ -48,6 +49,7 @@ import Arkham.Asset.Assets (
   crystalPendulumEffect,
   daisysToteBagAdvancedEffect,
   disciplinePrescienceOfFateEffect,
+  eldritchTongueEffect,
   empiricalHypothesisEffect,
   eyeOfChaos4Effect,
   eyeOfChaosEffect,
@@ -56,6 +58,8 @@ import Arkham.Asset.Assets (
   fieldworkEffect,
   fireExtinguisher1Effect,
   gildedVoltoEffect,
+  grapplingHookEffect,
+  graysAnatomyTheDoctorsBible5Effect,
   gregoryGryEffect,
   grislyTotemSeeker3Effect,
   grislyTotemSurvivor3Effect,
@@ -85,7 +89,6 @@ import Arkham.Asset.Assets (
   sixthSenseEffect,
   songOfTheDead2Effect,
   thirtyFiveWinchesterEffect,
-  twilightBladeEffect,
   wellConnected3Effect,
   wellConnectedEffect,
   wither4Effect,
@@ -104,6 +107,7 @@ import Arkham.Enemy.Enemies (
 import Arkham.Event.Events (
   aChanceEncounterEffect,
   actOfDesperationEffect,
+  atACrossroads1Effect,
   backstab3Effect,
   bindMonster2Effect,
   blackMarket2Effect,
@@ -112,19 +116,22 @@ import Arkham.Event.Events (
   callingInFavorsEffect,
   cheapShot2Effect,
   eideticMemory3Effect,
+  explosiveWardEffect,
   exposeWeakness1Effect,
   exposeWeakness3Effect,
   fightOrFlightEffect,
   followedEffect,
   getBehindMeEffect,
+  hitAndRunEffect,
   imDoneRunninEffect,
   improvisationEffect,
-  letMeHandleThisEffect,
   marksmanship1Effect,
   mystifyingSongEffect,
+  oneInTheChamberEffect,
   pilfer3Effect,
   sleightOfHandEffect,
   slipAway2Effect,
+  snipe1Effect,
   spectralRazorEffect,
   stormOfSpirits3Effect,
   stormOfSpiritsEffect,
@@ -141,6 +148,7 @@ import Arkham.Event.Events (
 import Arkham.Investigator.Investigators (
   dexterDrakeEffect,
   fatherMateoElderSignEffect,
+  kymaniJonesEffect,
   nathanielChoEffect,
   pennyWhiteEffect,
   ritaYoungElderSignEffect,
@@ -213,10 +221,10 @@ createEffect cardCode meffectMetadata source target = do
   pure (eid, lookupEffect cardCode eid meffectMetadata source target)
 
 createChaosTokenValueEffect
-  :: MonadRandom m => Int -> Source -> Target -> m (EffectId, Effect)
-createChaosTokenValueEffect n source target = do
+  :: MonadRandom m => SkillTestId -> Int -> Source -> Target -> m (EffectId, Effect)
+createChaosTokenValueEffect sid n source target = do
   eid <- getRandom
-  pure (eid, buildChaosTokenValueEffect eid n source target)
+  pure (eid, buildChaosTokenValueEffect sid eid n source target)
 
 createWindowModifierEffect
   :: MonadRandom m
@@ -269,12 +277,12 @@ lookupEffect cardCode eid mmetadata source target =
     Nothing -> error $ "Unknown effect: " <> show cardCode
     Just (SomeEffect f) -> Effect $ f (eid, mmetadata, source, target)
 
-buildChaosTokenValueEffect :: EffectId -> Int -> Source -> Target -> Effect
-buildChaosTokenValueEffect eid n source =
+buildChaosTokenValueEffect :: SkillTestId -> EffectId -> Int -> Source -> Target -> Effect
+buildChaosTokenValueEffect sid eid n source =
   buildWindowModifierEffect
     eid
     (EffectModifiers [Modifier source (ChaosTokenValueModifier n) False])
-    EffectSkillTestWindow
+    (EffectSkillTestWindow sid)
     source
 
 buildWindowModifierEffect
@@ -291,6 +299,9 @@ buildChaosTokenEffect
   :: EffectId -> EffectMetadata Window Message -> Source -> ChaosToken -> Effect
 buildChaosTokenEffect eid metadata source token =
   Effect $ chaosTokenEffect' eid metadata source token
+
+effectIsForNextGame :: Effect -> Bool
+effectIsForNextGame e = e.window == Just EffectSetupWindow
 
 instance FromJSON Effect where
   parseJSON = withObject "Effect" $ \o -> do
@@ -324,7 +335,6 @@ allEffects =
     , ("03005", SomeEffect williamYorickEffect)
     , ("03012", SomeEffect thePaintedWorldEffect)
     , ("03018", SomeEffect improvisationEffect)
-    , ("03022", SomeEffect letMeHandleThisEffect)
     , ("03024", SomeEffect fieldworkEffect)
     , ("03029", SomeEffect sleightOfHandEffect)
     , ("03031", SomeEffect lockpicks1Effect)
@@ -419,8 +429,17 @@ allEffects =
     , ("08021", SomeEffect getBehindMeEffect)
     , ("08034", SomeEffect writtenInTheStarsEffect)
     , ("08055", SomeEffect blackMarket2Effect)
+    , ("08087", SomeEffect snipe1Effect)
+    , ("09008", SomeEffect kymaniJonesEffect)
+    , ("09009", SomeEffect grapplingHookEffect)
+    , ("09029", SomeEffect oneInTheChamberEffect)
     , ("09041", SomeEffect empiricalHypothesisEffect)
-    , ("50013", SomeEffect twilightBladeEffect)
+    , ("09058", SomeEffect graysAnatomyTheDoctorsBible5Effect)
+    , ("09066", SomeEffect hitAndRunEffect)
+    , ("09087", SomeEffect explosiveWardEffect)
+    , ("09109", SomeEffect atACrossroads1Effect)
+    , ("09113", SomeEffect baseballBat2Effect)
+    , ("10128", SomeEffect eldritchTongueEffect)
     , ("50044", SomeEffect jeremiahPierceEffect)
     , ("52007", SomeEffect alchemicalTransmutation2Effect)
     , ("52008", SomeEffect stormOfSpirits3Effect)

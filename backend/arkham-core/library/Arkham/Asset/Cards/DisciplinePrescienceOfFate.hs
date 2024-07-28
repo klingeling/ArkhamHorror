@@ -13,7 +13,7 @@ import Arkham.Effect.Runner hiding (createCardEffect)
 import Arkham.Modifier
 
 newtype DisciplinePrescienceOfFate = DisciplinePrescienceOfFate AssetAttrs
-  deriving anyclass (IsAsset)
+  deriving anyclass IsAsset
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
 
 disciplinePrescienceOfFate :: AssetCard DisciplinePrescienceOfFate
@@ -36,7 +36,7 @@ instance RunMessage DisciplinePrescienceOfFate where
     Flip iid _ (isTarget attrs -> True) -> do
       push $ ReplaceInvestigatorAsset iid attrs.id (flipCard $ toCard attrs)
       pure a
-    _ -> DisciplinePrescienceOfFate <$> lift (runMessage msg attrs)
+    _ -> DisciplinePrescienceOfFate <$> liftRunMessage msg attrs
 
 newtype DisciplinePrescienceOfFateEffect = DisciplinePrescienceOfFateEffect EffectAttrs
   deriving anyclass (HasAbilities, IsEffect)
@@ -54,9 +54,12 @@ instance HasModifiersFor DisciplinePrescienceOfFateEffect where
 
 instance RunMessage DisciplinePrescienceOfFateEffect where
   runMessage msg e@(DisciplinePrescienceOfFateEffect attrs) = runQueueT $ case msg of
-    SkillTestEnded -> do
+    SkillTestEnded {} -> do
       case attrs.source of
         AbilitySource (AssetSource inner) _ -> case attrs.target of
+          InvestigatorTarget iid -> flipOverBy iid attrs.source inner
+          _ -> error "invalid target"
+        AbilitySource (ProxySource (CardIdSource _) (AssetSource inner)) _ -> case attrs.target of
           InvestigatorTarget iid -> flipOverBy iid attrs.source inner
           _ -> error "invalid target"
         _ -> error "invalid source"
@@ -65,4 +68,4 @@ instance RunMessage DisciplinePrescienceOfFateEffect where
     EndTurn {} -> do
       push $ disable attrs
       pure e
-    _ -> DisciplinePrescienceOfFateEffect <$> lift (runMessage msg attrs)
+    _ -> DisciplinePrescienceOfFateEffect <$> liftRunMessage msg attrs

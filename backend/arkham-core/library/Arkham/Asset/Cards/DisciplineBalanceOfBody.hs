@@ -16,7 +16,7 @@ newtype Metadata = Metadata {chosenAbilities :: [DifferentAbility]}
   deriving anyclass (ToJSON, FromJSON)
 
 newtype DisciplineBalanceOfBody = DisciplineBalanceOfBody (AssetAttrs `With` Metadata)
-  deriving anyclass (IsAsset)
+  deriving anyclass IsAsset
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
 
 disciplineBalanceOfBody :: AssetCard DisciplineBalanceOfBody
@@ -49,6 +49,7 @@ instance RunMessage DisciplineBalanceOfBody where
             iid
             ab
             []
+            []
             [HandleTargetChoice iid (toSource attrs) (AbilityTarget iid ab), DoStep (n - 1) msg']
           | DifferentAbility ab <- filter (`notElem` chosenAbilities meta) abilities'
           ]
@@ -58,4 +59,4 @@ instance RunMessage DisciplineBalanceOfBody where
     Flip iid _ (isTarget attrs -> True) -> do
       push $ ReplaceInvestigatorAsset iid attrs.id (flipCard $ toCard attrs)
       pure a
-    _ -> DisciplineBalanceOfBody . (`with` meta) <$> lift (runMessage msg attrs)
+    _ -> DisciplineBalanceOfBody . (`with` meta) <$> liftRunMessage msg attrs

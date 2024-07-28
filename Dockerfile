@@ -25,9 +25,8 @@ ENV TZ=UTC
 RUN \
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
     apt-get update -y && \
-    apt-get install -y --no-install-recommends \
+    apt-get install -y --no-install-recommends --fix-missing \
         libpq-dev \
-        postgresql \
         curl \
         libtinfo6 \
         libnuma-dev \
@@ -55,14 +54,16 @@ RUN \
     curl https://downloads.haskell.org/~ghcup/aarch64-linux-ghcup > /usr/bin/ghcup; \
     else \
     curl https://downloads.haskell.org/~ghcup/x86_64-linux-ghcup > /usr/bin/ghcup; \
-    fi; \
-    chmod +x /usr/bin/ghcup && \
+    fi;
+# Don't combine
+RUN chmod +x /usr/bin/ghcup && \
     ghcup config set gpg-setting GPGNone
 
 ARG GHC=9.8.2
 ARG CABAL=3.10.3.0
-ARG STACK=2.15.5
-
+ARG STACK=2.15.7
+ARG CACHE_ID="${TARGETARCH}-${GHC}-${CABAL}-${STACK}"
+ENV CACHE_ID=${CACHE_ID}
 ENV BOOTSTRAP_HASKELL_NONINTERACTIVE=1
 
 # install GHC and cabal
@@ -86,7 +87,14 @@ COPY ./backend/arkham-api/package.yaml /opt/arkham/src/backend/arkham-api/packag
 COPY ./backend/arkham-core/package.yaml /opt/arkham/src/backend/arkham-core/package.yaml
 COPY ./backend/validate/package.yaml /opt/arkham/src/backend/validate/package.yaml
 COPY ./backend/cards-discover/package.yaml /opt/arkham/src/backend/cards-discover/package.yaml
-RUN --mount=type=cache,id=stack-${TARGETARCH},target=/root/.stack stack build --system-ghc --dependencies-only --no-terminal --ghc-options '-j4 +RTS -A128m -n2m -RTS'
+RUN --mount=type=cache,id=stack-root-${CACHE_ID},target=/opt/arkham/src/backend/.stack-work \
+    --mount=type=cache,id=stack-api-${CACHE_ID},target=/opt/arkham/src/backend/arkham-api/.stack-work \
+    --mount=type=cache,id=stack-api-hie-${CACHE_ID},target=/opt/arkham/src/backend/arkham-api/.hie \
+    --mount=type=cache,id=stack-core-${CACHE_ID},target=/opt/arkham/src/backend/arkham-core/.stack-work \
+    --mount=type=cache,id=stack-core-hie-${CACHE_ID},target=/opt/arkham/src/backend/arkham-core/.hie \
+    --mount=type=cache,id=stack-validate-hie-${CACHE_ID},target=/opt/arkham/src/backend/arkham-validate/.hie \
+    --mount=type=cache,id=stack-discover-hie-${CACHE_ID},target=/opt/arkham/src/backend/cards-discover/.hie \
+    stack build --system-ghc --dependencies-only --no-terminal --ghc-options '-j4 +RTS -A128m -n2m -RTS'
 
 FROM dependencies as api
 
@@ -97,10 +105,17 @@ RUN mkdir -p \
 COPY ./backend /opt/arkham/src/backend
 
 WORKDIR /opt/arkham/src/backend/cards-discover
-RUN --mount=type=cache,id=stack-${TARGETARCH},target=/root/.stack stack build --system-ghc --no-terminal --ghc-options '-j4 +RTS -A128m -n2m -RTS' cards-discover
+RUN --mount=type=cache,id=stack-discover-${CACHE_ID},target=/opt/arkham/src/backend/cards-discover/.stack-work \
+    stack build --system-ghc --no-terminal --ghc-options '-j4 +RTS -A128m -n2m -RTS' cards-discover
 
 WORKDIR /opt/arkham/src/backend/arkham-api
-RUN --mount=type=cache,id=stack-${TARGETARCH},target=/root/.stack \
+RUN --mount=type=cache,id=stack-root-${CACHE_ID},target=/opt/arkham/src/backend/.stack-work \
+    --mount=type=cache,id=stack-api-${CACHE_ID},target=/opt/arkham/src/backend/arkham-api/.stack-work \
+    --mount=type=cache,id=stack-api-hie-${CACHE_ID},target=/opt/arkham/src/backend/arkham-api/.hie \
+    --mount=type=cache,id=stack-core-${CACHE_ID},target=/opt/arkham/src/backend/arkham-core/.stack-work \
+    --mount=type=cache,id=stack-core-hie-${CACHE_ID},target=/opt/arkham/src/backend/arkham-core/.hie \
+    --mount=type=cache,id=stack-validate-hie-${CACHE_ID},target=/opt/arkham/src/backend/arkham-validate/.hie \
+    --mount=type=cache,id=stack-discover-hie-${CACHE_ID},target=/opt/arkham/src/backend/cards-discover/.hie \
   stack build --no-terminal --system-ghc --ghc-options '-j4 +RTS -A128m -n2m -RTS' && \
   stack --no-terminal --local-bin-path /opt/arkham/bin install
 
@@ -128,6 +143,7 @@ COPY --from=api /opt/arkham/bin/arkham-api /opt/arkham/bin/arkham-api
 COPY ./backend/arkham-api/config /opt/arkham/src/backend/arkham-api/config
 COPY ./prod.nginxconf /opt/arkham/src/backend/prod.nginxconf
 COPY ./start.sh /opt/arkham/src/backend/arkham-api/start.sh
+COPY ./backend/arkham-api/digital-ocean.crt /opt/arkham/src/backend/arkham-api/digital-ocean.crt
 
 RUN useradd -ms /bin/bash yesod && \
   chown -R yesod:yesod /opt/arkham /var/log/nginx /var/lib/nginx /run && \

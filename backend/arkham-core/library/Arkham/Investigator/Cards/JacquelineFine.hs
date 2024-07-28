@@ -17,6 +17,7 @@ import Arkham.Window qualified as Window
 newtype JacquelineFine = JacquelineFine InvestigatorAttrs
   deriving anyclass (IsInvestigator, HasModifiersFor)
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock (Data)
 
 jacquelineFine :: InvestigatorCard JacquelineFine
 jacquelineFine =
@@ -73,9 +74,9 @@ instance RunMessage JacquelineFine where
         ]
       pure i
     ChaosTokenCanceled iid _ (chaosTokenFace -> ElderSign) | attrs `is` iid -> do
-      pushM $ drawCards (toId attrs) (toAbilitySource attrs 1) 1
+      push $ drawCards (toId attrs) (toAbilitySource attrs 1) 1
       JacquelineFine <$> runMessage msg attrs
     ChaosTokenIgnored iid _ (chaosTokenFace -> ElderSign) | attrs `is` iid -> do
-      pushM $ drawCards (toId attrs) (toAbilitySource attrs 1) 1
+      push $ drawCards (toId attrs) (toAbilitySource attrs 1) 1
       JacquelineFine <$> runMessage msg attrs
     _ -> JacquelineFine <$> runMessage msg attrs

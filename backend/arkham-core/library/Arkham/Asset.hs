@@ -785,33 +785,57 @@ allAssets =
       SomeAssetCard downTheRabbitHole
     , SomeAssetCard dragonPole
     , SomeAssetCard closeTheCircle1
+    , SomeAssetCard astronomicalAtlas3
+    , SomeAssetCard healingWords3
     , SomeAssetCard grounded3
+    , SomeAssetCard trueMagickReworkingReality5
     , --- survivor [eote]
       SomeAssetCard shortSupply
     , SomeAssetCard schoffnersCatalogue
     , SomeAssetCard bandages
     , SomeAssetCard bangleOfJinxes1
+    , SomeAssetCard fireExtinguisher3
     , SomeAssetCard plucky3
     , --- guardian/seeker [eote]
       SomeAssetCard medicalStudent
     , SomeAssetCard michaelLeigh5
+    , --- guardian/rogue [eote]
+      SomeAssetCard oldShotgun2
+    , SomeAssetCard quickdrawHolster4
     , --- guardian/mystic [eote]
       SomeAssetCard brandOfCthugha1
+    , SomeAssetCard nkosiMabatiEnigmaticWarlock3
     , SomeAssetCard brandOfCthugha4
+    , SomeAssetCard cyclopeanHammer5
     , --- guardian/survivor [eote]
       SomeAssetCard sledgehammer
+    , SomeAssetCard protectiveGear2
     , SomeAssetCard sledgehammer4
     , --- seeker/rogue [eote]
       SomeAssetCard pocketTelescope
     , SomeAssetCard eonChart1
     , SomeAssetCard geneBeauregard3
     , SomeAssetCard eonChart4
+    , --- seeker/mystic [eote]
+      SomeAssetCard divination1
+    , SomeAssetCard divination4
+    , --- seeker/survivor [eote]
+      SomeAssetCard professorWilliamWebbFinderOfHiddenConnections
+    , SomeAssetCard icePick1
+    , SomeAssetCard professorWilliamWebbFinderOfHiddenConnections2
+    , SomeAssetCard icePick3
+    , --- rogue/mystic [eote]
+      SomeAssetCard blur1
+    , SomeAssetCard blur4
     , --- rogue/survivor [eote]
       SomeAssetCard unscrupulousLoan3
     , SomeAssetCard preciousMementoFromAFormerLife4
     , SomeAssetCard preciousMementoFromAFutureLife4
     , --- mystic/survivor [eote]
       SomeAssetCard talismanOfProtection
+    , SomeAssetCard earthlySerenity1
+    , SomeAssetCard enchantedBow2
+    , SomeAssetCard earthlySerenity4
     , --- guardian/mystic/survivor [eote]
       SomeAssetCard prophetic3
     , --- guardian/seeker/mystic [eote]
@@ -824,25 +848,106 @@ allAssets =
       SomeAssetCard antiquary3
     , --- neutral [eote]
       SomeAssetCard inTheThickOfIt
+    , SomeAssetCard heavyFurs
     , SomeAssetCard sledDog
     , SomeAssetCard rodOfAnimalism1
     , -- The Scarlet Keys
-      --- guardian [tsk]
-      -- , SomeAssetCard runicAxe
-      SomeAssetCard guardDog2
+      --- signature
+      SomeAssetCard bonesaw
+    , SomeAssetCard woundedBystanderOnDeathsDoorstep
+    , SomeAssetCard grapplingHook
+    , SomeAssetCard darrellsKodak
+    , SomeAssetCard bonnieWalshLoyalAssistant
+    , --- guardian [tsk]
+      SomeAssetCard huntersArmor
+    , SomeAssetCard runicAxe
+    , SomeAssetCard obsidianBracelet
+    , SomeAssetCard bestowResolve2
+    , SomeAssetCard fieldAgent2
+    , SomeAssetCard guardDog2
     , SomeAssetCard handcuffs2
+    , SomeAssetCard martyrsVambraceRemnantOfTheUnknown3
+    , SomeAssetCard girishKadakiaIcpcPunjabDetective4
     , --- seeker [tsk]
-      SomeAssetCard empiricalHypothesis
+      SomeAssetCard alchemicalDistillation
+    , SomeAssetCard empiricalHypothesis
+    , SomeAssetCard dissectionTools
+    , SomeAssetCard grimMemoir
+    , SomeAssetCard researchNotes
+    , SomeAssetCard labCoat1
+    , SomeAssetCard orphicTheory1
+    , SomeAssetCard drWilliamTMaleson2
+    , SomeAssetCard pressPass2
+    , SomeAssetCard surgicalKit3
     , SomeAssetCard fingerprintKit4
+    , SomeAssetCard graysAnatomyTheDoctorsBible5
     , --- rogue [tsk]
-      SomeAssetCard chuckFergus2
+      SomeAssetCard damningTestimony
+    , SomeAssetCard disguise
+    , SomeAssetCard embezzeledTreasure
+    , SomeAssetCard thievesKit
+    , SomeAssetCard stylishCoat1
+    , SomeAssetCard chuckFergus2
+    , SomeAssetCard dirtyFighting2
+    , SomeAssetCard thievesKit3
+    , SomeAssetCard triggerMan3
+    , SomeAssetCard underworldMarket2
+    , --- mystic [tsk]
+      SomeAssetCard livingInk
+    , SomeAssetCard summonedServitor
+    , SomeAssetCard ceremonialSickle
+    , SomeAssetCard dowsingRod
+    , SomeAssetCard hallowedChalice
+    , SomeAssetCard onyxPentacle
+    , SomeAssetCard bindersJarInterdimensionalPrison1
+    , SomeAssetCard astralMirror2
+    , SomeAssetCard elleRubashPurifyingPurpose2
+    , SomeAssetCard sinEater3
+    , SomeAssetCard ceremonialSickle4
+    , SomeAssetCard dowsingRod4
+    , SomeAssetCard onyxPentacle4
+    , --- survivor [tsk]
+      SomeAssetCard pocketMultiTool
+    , SomeAssetCard idolOfXanatosWatcherBeyondTime
+    , SomeAssetCard improvisedShield
+    , SomeAssetCard baseballBat2
+    , SomeAssetCard katjaEastbankKeeperOfEsotericLore2
+    , SomeAssetCard oldKeyring3
     , --- neutral [tsk]
       SomeAssetCard hyperphysicalShotcasterTheoreticalDevice
+    , SomeAssetCard toolBelt
+    , SomeAssetCard flashlight3
+    , SomeAssetCard soulSanctification3
     , -- The Feast of Hemloch Vale
-      --- guardian [tsk]
-      SomeAssetCard blessedBlade4
-    , --- survivor [tsk]
-      SomeAssetCard marinersCompass2
+      --- signature [fhv]
+      SomeAssetCard fluxStabilizerInactive
+    , SomeAssetCard fluxStabilizerActive
+    , --- guardian [fhv]
+      SomeAssetCard cleaningKit
+    , SomeAssetCard wolfMaskTheMoonsSire
+    , SomeAssetCard cleaningKit3
+    , SomeAssetCard blessedBlade4
+    , --- seeker [fhv]
+      SomeAssetCard microscope
+    , SomeAssetCard mouseMaskTheMeekWatcher
+    , SomeAssetCard microscope4
+    , --- rogue [fhv]
+      SomeAssetCard biancaDieKatzSingingYourSong
+    , SomeAssetCard britishBullDog
+    , SomeAssetCard fakeCredentials
+    , SomeAssetCard foxMaskTheWiseTrickster
+    , SomeAssetCard britishBullDog2
+    , SomeAssetCard bewitching3
+    , SomeAssetCard fakeCredentials4
+    , --- mystic [fhv]
+      SomeAssetCard catMaskTheCapriciousMeddler
+    , --- survivor [fhv]
+      SomeAssetCard matchbox
+    , SomeAssetCard pitchfork
+    , SomeAssetCard sparrowMaskTheWanderersCompanion
+    , SomeAssetCard marinersCompass2
+    , --- neutral [fhv]
+      SomeAssetCard eldritchTongue
     , -- Return to Night of the Zealot
       --- guardian [rtnotz]
       SomeAssetCard physicalTraining2

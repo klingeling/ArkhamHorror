@@ -368,6 +368,17 @@ allEnemies =
     , -- Edge of the Earth
       -- signature
       SomeEnemyCard mobGoons
+    , -- The Scarlet Keys
+      -- signature
+      SomeEnemyCard agentFletcher
+    , -- basic weakness
+      SomeEnemyCard lurkerInTheDark
+    , SomeEnemyCard ectoplasmicHorror
+    , -- The Feast of Hemloch Vale
+      -- signature [fhv]
+      SomeEnemyCard zamacona
+    , -- rogue (bonded) [fhv]
+      SomeEnemyCard biancaDieKatz
     , -- Return to Night of the Zealot
       -- Return to the Gathering
       SomeEnemyCard corpseHungryGhoul

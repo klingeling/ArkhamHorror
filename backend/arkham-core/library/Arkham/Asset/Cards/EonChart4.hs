@@ -87,6 +87,7 @@ instance RunMessage EonChart4 where
               iid
               ab
               []
+              []
               [HandleTargetChoice iid (toSource attrs) (AbilityTarget iid $ decreaseCost ab), DoStep (n - 1) msg']
             | ab <- abilities
             ]
@@ -97,4 +98,4 @@ instance RunMessage EonChart4 where
         <> [Label "Evade" [DoStep 4 msg] | #evade `elem` actions]
         <> [Label "Investigate" [DoStep 5 msg] | #investigate `elem` actions]
       pure a
-    _ -> EonChart4 <$> lift (runMessage msg attrs)
+    _ -> EonChart4 <$> liftRunMessage msg attrs

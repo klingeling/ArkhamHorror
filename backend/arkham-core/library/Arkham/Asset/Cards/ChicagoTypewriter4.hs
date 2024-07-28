@@ -15,7 +15,10 @@ chicagoTypewriter4 = asset ChicagoTypewriter4 Cards.chicagoTypewriter4
 
 instance HasAbilities ChicagoTypewriter4 where
   getAbilities (ChicagoTypewriter4 a) =
-    [ restrictedAbility a 1 ControlsThis $ fightAction $ AdditionalActionsCost <> assetUseCost a Ammo 1
+    [ withAdditionalCost AdditionalActionsCost
+        $ restrictedAbility a 1 ControlsThis
+        $ fightAction
+        $ assetUseCost a Ammo 1
     ]
 
 getActionsSpent :: Payment -> Int
@@ -26,9 +29,10 @@ getActionsSpent _ = 0
 instance RunMessage ChicagoTypewriter4 where
   runMessage msg a@(ChicagoTypewriter4 attrs) = case msg of
     UseCardAbility iid (isSource attrs -> True) 1 _ (getActionsSpent -> actionsSpent) -> do
-      chooseFight <- toMessage <$> mkChooseFight iid (attrs.ability 1)
+      sid <- getRandom
+      chooseFight <- toMessage <$> mkChooseFight sid iid (attrs.ability 1)
       pushAll
-        [ skillTestModifiers attrs iid [DamageDealt 2, SkillModifier #combat (2 * actionsSpent)]
+        [ skillTestModifiers sid attrs iid [DamageDealt 2, SkillModifier #combat (2 * actionsSpent)]
         , chooseFight
         ]
       pure a

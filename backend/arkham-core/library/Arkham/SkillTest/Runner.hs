@@ -21,6 +21,7 @@ import Arkham.Matcher hiding (IgnoreChaosToken, RevealChaosToken)
 import Arkham.Message qualified as Msg
 import Arkham.Projection
 import Arkham.RequestedChaosTokenStrategy
+import Arkham.Skill.Cards qualified as Skills
 import Arkham.Skill.Types as Field
 import Arkham.SkillTest.Step
 import Arkham.SkillTestResult
@@ -48,7 +49,7 @@ totalModifiedSkillValue s = do
 
 calculateSkillTestResultsData :: HasGame m => SkillTest -> m SkillTestResultsData
 calculateSkillTestResultsData s = do
-  modifiers' <- getModifiers SkillTestTarget
+  modifiers' <- getModifiers (SkillTestTarget s.id)
   modifiedSkillTestDifficulty <- getModifiedSkillTestDifficulty s
   let cancelSkills = CancelSkills `elem` modifiers'
   iconCount <- if cancelSkills then pure 0 else skillIconCount s
@@ -120,7 +121,12 @@ getModifiedChaosTokenValue s t = do
 instance RunMessage SkillTest where
   runMessage msg s@SkillTest {..} = case msg of
     ReturnChaosTokens tokens -> do
-      pure $ s & (setAsideChaosTokensL %~ filter (`notElem` tokens))
+      pure
+        $ s
+        & (setAsideChaosTokensL %~ filter (`notElem` tokens))
+        & (revealedChaosTokensL %~ filter (`notElem` tokens))
+        & (resolvedChaosTokensL %~ filter (`notElem` tokens))
+        & (toResolveChaosTokensL %~ filter (`notElem` tokens))
     BeginSkillTestAfterFast -> do
       windowMsg <- checkWindows [mkWindow #when Window.FastPlayerWindow]
       pushAll [windowMsg, BeforeSkillTest s, EndSkillTestWindow]
@@ -155,19 +161,19 @@ instance RunMessage SkillTest where
       pure $ s {skillTestTarget = target}
     Discard _ _ target | target == skillTestTarget -> do
       pushAll
-        [ SkillTestEnds skillTestInvestigator skillTestSource
-        , Do (SkillTestEnds skillTestInvestigator skillTestSource)
+        [ SkillTestEnds skillTestId skillTestInvestigator skillTestSource
+        , Do (SkillTestEnds skillTestId skillTestInvestigator skillTestSource)
         ]
       pure s
     RemoveFromGame target | target == skillTestTarget -> do
       pushAll
-        [ SkillTestEnds skillTestInvestigator skillTestSource
-        , Do (SkillTestEnds skillTestInvestigator skillTestSource)
+        [ SkillTestEnds skillTestId skillTestInvestigator skillTestSource
+        , Do (SkillTestEnds skillTestId skillTestInvestigator skillTestSource)
         ]
       pure s
     TriggerSkillTest iid -> do
       modifiers' <- getModifiers iid
-      modifiers'' <- getModifiers SkillTestTarget
+      modifiers'' <- getModifiers (SkillTestTarget skillTestId)
       if DoNotDrawChaosTokensForSkillChecks `elem` modifiers'
         then do
           let
@@ -202,6 +208,38 @@ instance RunMessage SkillTest where
                 , RunSkillTest iid
                 ]
       pure s
+    After (RevealChaosToken _ _ _) -> do
+      analysis <-
+        filterM (\(_, iid) -> iid <=~> (InvestigatorAt Anywhere <> InvestigatorWithAnyClues))
+          =<< selectWithField SkillOwner (skillIs Skills.analysis)
+      when (notNull analysis) do
+        analysis' <- traverse (\(a, iid) -> (a,iid,) <$> getPlayer iid) analysis
+        push
+          $ AskMap
+          $ mapFromList
+          $ map
+            ( \(a, iid, p) ->
+                ( p
+                , ChooseOne
+                    [ Label
+                        "Place 1 clue on your location to use Analysis"
+                        [InvestigatorPlaceCluesOnLocation iid (SkillSource a) 1, WithSource (SkillSource a) msg]
+                    , Label "Do not use Analysis" []
+                    ]
+                )
+            )
+            analysis'
+      pure s
+    WithSource source@(SkillSource _) (After (RevealChaosToken _ _ token)) -> do
+      cancelChaosToken token
+      pushAll
+        [ CancelEachNext source [RunWindowMessage, DrawChaosTokenMessage, RevealChaosTokenMessage]
+        , ReturnChaosTokens [token]
+        , UnfocusChaosTokens
+        , DrawAnotherChaosToken skillTestInvestigator
+        , RerunSkillTest
+        ]
+      pure s
     DrawAnotherChaosToken iid -> do
       player <- getPlayer skillTestInvestigator
       withQueue_ $ filter $ \case
@@ -221,9 +259,12 @@ instance RunMessage SkillTest where
         , RunSkillTest iid
         ]
       pure s
-    RequestedChaosTokens SkillTestSource (Just iid) chaosTokenFaces -> do
-      skillTestModifiers' <- getModifiers SkillTestTarget
+    RequestedChaosTokens (SkillTestSource sid) (Just iid) chaosTokenFaces -> do
+      skillTestModifiers' <- getModifiers (SkillTestTarget sid)
       windowMsg <- checkWindows [mkWhen Window.FastPlayerWindow]
+      popMessageMatching_ $ \case
+        RevealSkillTestChaosTokens _ -> True
+        _ -> False
       push
         $ if RevealChaosTokensBeforeCommittingCards `elem` skillTestModifiers'
           then
@@ -233,7 +274,7 @@ instance RunMessage SkillTest where
           else RevealSkillTestChaosTokens iid
       for_ chaosTokenFaces $ \chaosTokenFace -> do
         let
-          revealMsg = RevealChaosToken SkillTestSource iid chaosTokenFace
+          revealMsg = RevealChaosToken (SkillTestSource sid) iid chaosTokenFace
         pushAll
           [ When revealMsg
           , CheckWindow [iid] [mkWindow Timing.AtIf (Window.RevealChaosToken iid chaosTokenFace)]
@@ -257,7 +298,8 @@ instance RunMessage SkillTest where
         \token -> do
           faces <- getModifiedChaosTokenFaces [token]
           pure [(token, face) | face <- faces]
-      pushAll $ afterRevealMsg
+      pushAll $ UnfocusChaosTokens
+        : afterRevealMsg
         : [ Will (ResolveChaosToken drawnChaosToken chaosTokenFace iid)
           | (drawnChaosToken, chaosTokenFace) <- revealedChaosTokenFaces
           ]
@@ -271,12 +313,12 @@ instance RunMessage SkillTest where
     PassSkillTest -> do
       modifiedSkillValue' <- totalModifiedSkillValue s
       player <- getPlayer skillTestInvestigator
-      pushAll
-        [ chooseOne player [SkillTestApplyResultsButton]
-        , SkillTestEnds skillTestInvestigator skillTestSource
-        , Do (SkillTestEnds skillTestInvestigator skillTestSource)
-        ]
+      push $ chooseOne player [SkillTestApplyResultsButton]
       pure $ s & resultL .~ SucceededBy Automatic modifiedSkillValue'
+    PassSkillTestBy n -> do
+      player <- getPlayer skillTestInvestigator
+      push $ chooseOne player [SkillTestApplyResultsButton]
+      pure $ s & resultL .~ SucceededBy NonAutomatic n
     FailSkillTest -> do
       resultsData <- autoFailSkillTestResultsData s
       difficulty <- getModifiedSkillTestDifficulty s
@@ -317,8 +359,8 @@ instance RunMessage SkillTest where
                         difficulty
                     )
                  , chooseOne player [SkillTestApplyResultsButton]
-                 , SkillTestEnds resolver skillTestSource
-                 , Do (SkillTestEnds resolver skillTestSource)
+                 , SkillTestEnds skillTestId resolver skillTestSource
+                 , Do (SkillTestEnds skillTestId resolver skillTestSource)
                  ]
 
       if needsChoice
@@ -404,7 +446,7 @@ instance RunMessage SkillTest where
     AddToVictory (SkillTarget sid) -> do
       card <- field Field.SkillCard sid
       pure $ s & committedCardsL . each %~ filter (/= card)
-    Do (SkillTestEnds _ _) -> do
+    Do (SkillTestEnds _ _ _) -> do
       -- Skill Cards are in the environment and will be discarded normally
       -- However, all other cards need to be discarded here.
       let
@@ -431,7 +473,7 @@ instance RunMessage SkillTest where
         : discardMessages
           <> skillTestEndsWindows
           <> [ AfterSkillTestEnds skillTestSource skillTestTarget skillTestResult
-             , Msg.SkillTestEnded
+             , Msg.SkillTestEnded skillTestId
              ]
       pure s
     ReturnToHand _ (CardIdTarget cardId) -> do
@@ -542,8 +584,8 @@ instance RunMessage SkillTest where
       -- If we haven't already decided to end the skill test we need to end it
       unless valid
         $ pushAll
-          [ SkillTestEnds skillTestInvestigator skillTestSource
-          , Do (SkillTestEnds skillTestInvestigator skillTestSource) -- -> ST.8 -- Skill test ends
+          [ SkillTestEnds skillTestId skillTestInvestigator skillTestSource
+          , Do (SkillTestEnds skillTestId skillTestInvestigator skillTestSource) -- -> ST.8 -- Skill test ends
           ]
       modifiers' <- getModifiers (toTarget s)
       let
@@ -717,7 +759,7 @@ instance RunMessage SkillTest where
                         resolver
                         skillTestAction
                         skillTestSource
-                        (SkillTestInitiatorTarget skillTestTarget)
+                        (Initiator skillTestTarget)
                         skillTestType
                         n
                     )
@@ -732,11 +774,11 @@ instance RunMessage SkillTest where
                         resolver
                         skillTestAction
                         skillTestSource
-                        (SkillTestInitiatorTarget skillTestTarget)
+                        (Initiator skillTestTarget)
                         skillTestType
                         n
                      ]
-                  <> [ chooseOneAtATime player [AbilityLabel resolver ab [] [] | ab <- hauntedAbilities]
+                  <> [ chooseOneAtATime player [AbilityLabel resolver ab [] [] [] | ab <- hauntedAbilities]
                      | notNull hauntedAbilities
                      ]
 
@@ -759,6 +801,7 @@ instance RunMessage SkillTest where
                 pushAll $ handleChoice skillTestResolveFailureInvestigator player
         Unrun -> pure ()
       pure s
+    AddSubscriber t -> pure $ s & subscribersL <>~ [t]
     RerunSkillTest -> case skillTestResult of
       FailedBy Automatic _ -> pure s
       _ -> do

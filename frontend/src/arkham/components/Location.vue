@@ -145,6 +145,13 @@ const enemies = computed(() => {
     .filter((e) => props.game.enemies[e].placement.tag === 'OtherPlacement' && props.game.enemies[e].asSelfLocation === null)
 })
 
+const treacheries = computed(() => {
+  const enemyIds = props.location.treacheries;
+
+  return enemyIds
+    .filter((e) => props.game.treacheries[e].placement.tag === 'OtherPlacement' && props.game.treacheries[e].asSelfLocation === null)
+})
+
 const blocked = computed(() => {
   const investigator = Object.values(props.game.investigators).find(i => i.playerId === props.playerId)
   const { modifiers } = investigator ?? { modifiers: [] }
@@ -245,11 +252,12 @@ const debug = useDebug()
       <template v-if="debug.active">
         <button v-if="!location.revealed" @click="debug.send(game.id, {tag: 'RevealLocation', contents: [null, id]})">{{$t('reveal')}}</button>
         <button v-if="clues && clues > 0" @click="debug.send(game.id, {tag: 'RemoveTokens', contents: [{ tag: 'TestSource', contents: []}, { tag: 'LocationTarget', contents: id }, 'Clue', clues]})">{{$t('removeClues')}}</button>
+        <button @click="debug.send(game.id, {tag: 'PlaceTokens', contents: [{ tag: 'TestSource', contents: []}, { tag: 'LocationTarget', contents: id }, 'Clue', 1]})">{{$t('placeClue')}}</button>
       </template>
     </div>
     <div class="attachments">
       <Treachery
-        v-for="treacheryId in location.treacheries"
+        v-for="treacheryId in treacheries"
         :key="treacheryId"
         :treachery="game.treacheries[treacheryId]"
         :game="game"
@@ -392,7 +400,6 @@ const debug = useDebug()
 
   div {
     transition: all 0.2s;
-    isolation: isolate;
   }
 
   div:not(:last-child) {

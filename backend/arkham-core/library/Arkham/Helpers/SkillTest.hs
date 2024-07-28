@@ -13,6 +13,7 @@ import Arkham.Classes.Query hiding (matches)
 import Arkham.CommitRestriction
 import Arkham.Enemy.Types (Field (..))
 import {-# SOURCE #-} Arkham.GameEnv
+import {-# SOURCE #-} Arkham.GameEnv as X (getSkillTest, getSkillTestId)
 import Arkham.Helpers.Calculation
 import Arkham.Helpers.Card
 import Arkham.Helpers.Cost
@@ -37,13 +38,28 @@ import Arkham.Target
 import Arkham.Treachery.Types (Field (..))
 import Arkham.Window (Window (..))
 import Arkham.Window qualified as Window
+import Data.Foldable (foldrM)
+
+getBaseValueDifferenceForSkillTest
+  :: HasGame m => InvestigatorId -> SkillTest -> m Int
+getBaseValueDifferenceForSkillTest iid st = do
+  base <- getBaseValueForSkillTest iid st
+  difficulty <- getModifiedSkillTestDifficulty st
+  pure $ difficulty - base
+
+getBaseValueForSkillTest
+  :: HasGame m => InvestigatorId -> SkillTest -> m Int
+getBaseValueForSkillTest iid st = getBaseValueForSkillTestType iid st.action st.kind
 
 getBaseValueForSkillTestType
   :: HasGame m => InvestigatorId -> Maybe Action -> SkillTestType -> m Int
 getBaseValueForSkillTestType iid mAction = \case
-  SkillSkillTest skillType -> baseSkillValueFor skillType mAction [] iid
-  AndSkillTest types -> sum <$> traverse (\skillType -> baseSkillValueFor skillType mAction [] iid) types
+  SkillSkillTest skillType -> baseSkillValueFor skillType mAction iid
+  AndSkillTest types -> sum <$> traverse (\skillType -> baseSkillValueFor skillType mAction iid) types
   ResourceSkillTest -> field InvestigatorResources iid
+
+inSkillTest :: HasGame m => m Bool
+inSkillTest = isJust <$> getSkillTest
 
 getSkillTestRevealedChaosTokens :: HasGame m => m [ChaosToken]
 getSkillTestRevealedChaosTokens = maybe [] skillTestRevealedChaosTokens <$> getSkillTest
@@ -54,8 +70,14 @@ getSkillTestResolvedChaosTokens = maybe [] skillTestResolvedChaosTokens <$> getS
 getSkillTestInvestigator :: HasGame m => m (Maybe InvestigatorId)
 getSkillTestInvestigator = fmap skillTestInvestigator <$> getSkillTest
 
+isSkillTestInvestigator :: HasGame m => InvestigatorId -> m Bool
+isSkillTestInvestigator iid = maybe False (== iid) <$> getSkillTestInvestigator
+
 getSkillTestSource :: HasGame m => m (Maybe Source)
 getSkillTestSource = getsSkillTest skillTestSource
+
+isSkillTestSource :: (HasGame m, Sourceable source) => source -> m Bool
+isSkillTestSource source = maybe False (isSource source) <$> getSkillTestSource
 
 getSkillTestBaseSkill :: HasGame m => InvestigatorId -> m (Maybe Int)
 getSkillTestBaseSkill iid = do
@@ -85,6 +107,9 @@ getSkillTestSkillTypes =
 getSkillTestMatchingSkillIcons :: HasGame m => m (Set SkillIcon)
 getSkillTestMatchingSkillIcons = maybe mempty keysSet <$> getsSkillTest skillTestIconValues
 
+isInvestigation :: HasGame m => m Bool
+isInvestigation = (== Just #investigate) <$> getSkillTestAction
+
 getIsBeingInvestigated :: HasGame m => LocationId -> m Bool
 getIsBeingInvestigated lid = do
   mTarget <- getSkillTestTarget
@@ -93,91 +118,98 @@ getIsBeingInvestigated lid = do
 
 revelationSkillTest
   :: Sourceable source
-  => InvestigatorId
+  => SkillTestId
+  -> InvestigatorId
   -> source
   -> SkillType
   -> GameCalculation
   -> Message
-revelationSkillTest iid (toSource -> source) sType calc = RevelationSkillTest iid source sType (SkillTestDifficulty calc)
+revelationSkillTest sid iid (toSource -> source) sType calc = RevelationSkillTest sid iid source sType (SkillTestDifficulty calc)
 
 beginSkillTest
   :: (Sourceable source, Targetable target)
-  => InvestigatorId
+  => SkillTestId
+  -> InvestigatorId
   -> source
   -> target
   -> SkillType
   -> GameCalculation
   -> Message
-beginSkillTest iid (toSource -> source) (toTarget -> target) sType n =
-  BeginSkillTest $ initSkillTest iid source target sType (SkillTestDifficulty n)
+beginSkillTest sid iid (toSource -> source) (toTarget -> target) sType n =
+  BeginSkillTest $ initSkillTest sid iid source target sType (SkillTestDifficulty n)
 
 parley
   :: (Sourceable source, Targetable target)
-  => InvestigatorId
+  => SkillTestId
+  -> InvestigatorId
   -> source
   -> target
   -> SkillType
   -> GameCalculation
   -> Message
-parley iid (toSource -> source) (toTarget -> target) sType n =
+parley sid iid (toSource -> source) (toTarget -> target) sType n =
   BeginSkillTest
-    $ (initSkillTest iid source target sType (SkillTestDifficulty n))
+    $ (initSkillTest sid iid source target sType (SkillTestDifficulty n))
       { skillTestAction = Just Parley
       }
 
 exploreTest
   :: (Sourceable source, Targetable target)
-  => InvestigatorId
+  => SkillTestId
+  -> InvestigatorId
   -> source
   -> target
   -> SkillType
   -> GameCalculation
   -> Message
-exploreTest iid (toSource -> source) (toTarget -> target) sType n =
+exploreTest sid iid (toSource -> source) (toTarget -> target) sType n =
   BeginSkillTest
-    $ (initSkillTest iid source target sType (SkillTestDifficulty n))
+    $ (initSkillTest sid iid source target sType (SkillTestDifficulty n))
       { skillTestAction = Just Arkham.Action.Explore
       }
 
 fight
   :: (Sourceable source, Targetable target)
-  => InvestigatorId
+  => SkillTestId
+  -> InvestigatorId
   -> source
   -> target
   -> SkillType
   -> GameCalculation
   -> Message
-fight iid (toSource -> source) (toTarget -> target) sType n =
+fight sid iid (toSource -> source) (toTarget -> target) sType n =
   BeginSkillTest
-    $ (initSkillTest iid source target sType (SkillTestDifficulty n))
+    $ (initSkillTest sid iid source target sType (SkillTestDifficulty n))
       { skillTestAction = Just Fight
       }
 
 evade
   :: (Sourceable source, Targetable target)
-  => InvestigatorId
+  => SkillTestId
+  -> InvestigatorId
   -> source
   -> target
   -> SkillType
   -> GameCalculation
   -> Message
-evade iid (toSource -> source) (toTarget -> target) sType n =
+evade sid iid (toSource -> source) (toTarget -> target) sType n =
   BeginSkillTest
-    $ (initSkillTest iid source target sType (SkillTestDifficulty n))
+    $ (initSkillTest sid iid source target sType (SkillTestDifficulty n))
       { skillTestAction = Just Evade
       }
 
 investigate
   :: (Sourceable source, Targetable target)
-  => InvestigatorId
+  => SkillTestId
+  -> InvestigatorId
   -> source
   -> target
   -> SkillType
   -> GameCalculation
   -> Message
-investigate iid (toSource -> source) (toTarget -> target) sType n =
+investigate sid iid (toSource -> source) (toTarget -> target) sType n =
   BeginSkillTest
-    $ (initSkillTest iid source target sType (SkillTestDifficulty n))
+    $ (initSkillTest sid iid source target sType (SkillTestDifficulty n))
       { skillTestAction = Just #investigate
       }
 
@@ -210,6 +242,12 @@ isInvestigating iid lid =
     , (== Just #investigate) <$> getSkillTestAction
     , (== Just iid) <$> getSkillTestInvestigator
     ]
+
+inAttackSkillTest :: HasGame m => m Bool
+inAttackSkillTest = (== Just #fight) <$> getSkillTestAction
+
+inEvasionSkillTest :: HasGame m => m Bool
+inEvasionSkillTest = (== Just #evade) <$> getSkillTestAction
 
 getIsPerilous :: HasGame m => SkillTest -> m Bool
 getIsPerilous skillTest = case skillTestSource skillTest of
@@ -266,15 +304,20 @@ getCurrentSkillValue st = do
 
 skillIconCount :: HasGame m => SkillTest -> m Int
 skillIconCount SkillTest {..} = do
-  mods <- getModifiers SkillTestTarget
+  mods <- getModifiers (SkillTestTarget skillTestId)
   let
-    addedIcons = filter matches $ flip concatMap mods \case
+    addedIcons = foldMap (Sum . toValue) . filter matches $ flip concatMap mods \case
       AddSkillIcons icons -> icons
       _ -> []
-  totalIcons <-
-    foldr ((+) . toValue) 0
-      . (<> addedIcons)
-      <$> concatMapM iconsForCard (concat $ toList skillTestCommittedCards)
+  cardIcons <- flip foldMapM (mapToList skillTestCommittedCards) \(iid, cards) -> do
+    flip foldMapM cards \card -> do
+      icons <- sort . map toValue . filter matches <$> iconsForCard card
+      imods <- getModifiers iid
+      let less = sum [n | FewerMatchingIconsPerCard n <- imods]
+      pure $ foldMap Sum $ drop less icons
+
+  let totalIcons = getSum (cardIcons <> addedIcons)
+
   case skillTestType of
     SkillSkillTest sType -> do
       investigatorModifiers <- getModifiers skillTestInvestigator
@@ -304,16 +347,19 @@ getAlternateSkill st sType = do
 
 getModifiedSkillTestDifficulty :: (HasCallStack, HasGame m) => SkillTest -> m Int
 getModifiedSkillTestDifficulty s = do
-  modifiers' <- getModifiers SkillTestTarget
+  modifiers' <- getModifiers (SkillTestTarget s.id)
   baseDifficulty <- getBaseSkillTestDifficulty s
   let
     preModifiedDifficulty =
       foldr applyPreModifier baseDifficulty modifiers'
-  pure $ foldr applyModifier preModifiedDifficulty modifiers'
+  foldrM applyModifier preModifiedDifficulty modifiers'
  where
-  applyModifier (Difficulty m) n = max 0 (n + m)
-  applyModifier DoubleDifficulty n = n * 2
-  applyModifier _ n = n
+  applyModifier (Difficulty m) n = pure $ max 0 (n + m)
+  applyModifier (CalculatedDifficulty calc) n = do
+    m <- calculate calc
+    pure $ max 0 (n + m)
+  applyModifier DoubleDifficulty n = pure $ n * 2
+  applyModifier _ n = pure n
   applyPreModifier (SetDifficulty m) _ = m
   applyPreModifier _ n = n
 
@@ -326,12 +372,13 @@ skillTestLabel
   :: (Sourceable source, Targetable target)
   => Text
   -> SkillType
+  -> SkillTestId
   -> InvestigatorId
   -> source
   -> target
   -> GameCalculation
   -> UI Message
-skillTestLabel lbl sType iid source target n = SkillLabelWithLabel lbl sType [beginSkillTest iid source target sType n]
+skillTestLabel lbl sType sid iid source target n = SkillLabelWithLabel lbl sType [beginSkillTest sid iid source target sType n]
 
 pushAfterSkillTest :: HasQueue Message m => Message -> m ()
 pushAfterSkillTest = pushAfter \case
@@ -390,10 +437,19 @@ getIsCommittable a c = do
                   committedCardTitles = map toTitle allCommittedCards
                   passesCommitRestriction = \case
                     CommittableTreachery -> error "unhandled"
+                    AnyCommitRestriction cs -> anyM passesCommitRestriction cs
+                    OnlyFightAgainst matcher -> case skillTestTarget skillTest of
+                      EnemyTarget eid -> andM [pure $ skillTestAction skillTest == Just #fight, eid <=~> matcher]
+                      _ -> pure False
+                    OnlyEvasionAgainst matcher -> case skillTestTarget skillTest of
+                      EnemyTarget eid -> andM [pure $ skillTestAction skillTest == Just #evade, eid <=~> matcher]
+                      _ -> pure False
                     MaxOnePerTest -> pure $ toTitle card `notElem` committedCardTitles
                     OnlyInvestigator matcher -> iid <=~> matcher
                     OnlyCardCommittedToTest -> pure $ null committedCardTitles
                     OnlyYourTest -> pure $ iid == a
+                    OnlyTestDuringYourTurn -> iid <=~> TurnInvestigator
+                    OnlyNotYourTest -> pure $ iid /= a
                     MustBeCommittedToYourTest -> pure $ iid == a
                     OnlyIfYourLocationHasClues -> maybe (pure False) (fieldMap LocationClues (> 0)) mlid
                     OnlyTestWithActions as -> pure $ maybe False (`elem` as) (skillTestAction skillTest)
@@ -467,11 +523,14 @@ getSkillTestDifficultyDifferenceFromBaseValue iid skillTest = do
   skillDifficulty <- getModifiedSkillTestDifficulty skillTest
   case skillTestType skillTest of
     SkillSkillTest skillType -> do
-      baseValue <- baseSkillValueFor skillType Nothing [] iid
+      baseValue <- baseSkillValueFor skillType Nothing iid
       pure $ skillDifficulty - baseValue
     AndSkillTest types -> do
-      baseValue <- sum <$> traverse (\skillType -> baseSkillValueFor skillType Nothing [] iid) types
+      baseValue <- sum <$> traverse (\skillType -> baseSkillValueFor skillType Nothing iid) types
       pure $ skillDifficulty - baseValue
     ResourceSkillTest -> do
       resources <- field InvestigatorResources iid
       pure $ skillDifficulty - resources
+
+withSkillTest :: HasGame m => (SkillTestId -> m ()) -> m ()
+withSkillTest = whenJustM getSkillTestId

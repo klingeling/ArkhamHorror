@@ -1,8 +1,4 @@
-module Arkham.Treachery.Cards.SirenCall (
-  sirenCall,
-  SirenCall (..),
-)
-where
+module Arkham.Treachery.Cards.SirenCall (sirenCall, SirenCall (..)) where
 
 import Arkham.Ability
 import Arkham.Card
@@ -11,21 +7,20 @@ import Arkham.Helpers.Modifiers
 import Arkham.Helpers.SkillTest
 import Arkham.Treachery.Cards qualified as Cards
 import Arkham.Treachery.Import.Lifted
-import Arkham.Treachery.Types (withTreacheryInvestigator)
 
 newtype SirenCall = SirenCall TreacheryAttrs
-  deriving anyclass (IsTreachery)
+  deriving anyclass IsTreachery
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
 
 sirenCall :: TreacheryCard SirenCall
 sirenCall = treachery SirenCall Cards.sirenCall
 
 instance HasModifiersFor SirenCall where
-  getModifiersFor (CardIdTarget cid) (SirenCall attrs) = do
-    withTreacheryInvestigator attrs $ \iid -> do
-      matchingIcons <- (#wild :) . toList <$> getSkillTestMatchingSkillIcons
-      n <- count (`elem` matchingIcons) . cdSkills . toCardDef <$> getCard cid
-      pure $ toModifiers attrs [AdditionalCostToCommit iid $ ResourceCost n]
+  getModifiersFor (CardIdTarget cid) (SirenCall attrs) = maybeModified attrs do
+    iid <- hoistMaybe attrs.inThreatAreaOf
+    matchingIcons <- lift $ (#wild :) . toList <$> getSkillTestMatchingSkillIcons
+    n <- lift $ count (`elem` matchingIcons) . cdSkills . toCardDef <$> getCard cid
+    pure [AdditionalCostToCommit iid $ ResourceCost n]
   getModifiersFor _ _ = pure []
 
 instance HasAbilities SirenCall where
@@ -34,9 +29,9 @@ instance HasAbilities SirenCall where
 instance RunMessage SirenCall where
   runMessage msg t@(SirenCall attrs) = runQueueT $ case msg of
     Revelation iid (isSource attrs -> True) -> do
-      attachTreachery attrs iid
+      placeInThreatArea attrs iid
       pure t
     UseThisAbility iid (isSource attrs -> True) 1 -> do
       toDiscardBy iid (attrs.ability 1) attrs
       pure t
-    _ -> SirenCall <$> lift (runMessage msg attrs)
+    _ -> SirenCall <$> liftRunMessage msg attrs

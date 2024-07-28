@@ -43,12 +43,13 @@ instance RunMessage SurprisingFind1 where
         [RemoveCardFromSearch iid (toCardId attrs), CreateSkill skillId (toCard attrs) iid (InPlayArea iid)]
       pure s
     UseThisAbility iid (isSource attrs -> True) 2 -> do
-      pushAll
-        [ skillTestModifier (toSource attrs) (toCardId attrs) MustBeCommitted
-        , RemoveSkill (toId attrs)
-        , SkillTestCommitCard iid (toCard attrs)
-        , createCardEffect Cards.surprisingFind1 Nothing (toSource attrs) iid
-        ]
+      withSkillTest \sid -> do
+        pushAll
+          [ skillTestModifier sid (toSource attrs) (toCardId attrs) MustBeCommitted
+          , RemoveSkill (toId attrs)
+          , SkillTestCommitCard iid (toCard attrs)
+          , createCardEffect Cards.surprisingFind1 Nothing (toSource attrs) iid
+          ]
       pure s
     _ -> SurprisingFind1 <$> runMessage msg attrs
 
@@ -62,7 +63,7 @@ surprisingFind1Effect = cardEffect SurprisingFind1Effect Cards.surprisingFind1
 instance RunMessage SurprisingFind1Effect where
   runMessage msg e@(SurprisingFind1Effect attrs) = case msg of
     PassedSkillTest iid _ _ _ _ _ -> do
-      drawing <- drawCards iid (effectSource attrs) 1
+      let drawing = drawCards iid (effectSource attrs) 1
       pushAll [disable attrs, drawing]
       pure e
     SkillTestEnds {} -> do

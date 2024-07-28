@@ -5,6 +5,7 @@ import Arkham.Card.CardDef
 import Arkham.Card.CardType
 import Arkham.ClassSymbol
 import Arkham.CommitRestriction
+import Arkham.Customization
 import Arkham.GameValue
 import Arkham.Id
 import Arkham.Keyword qualified as Keyword
@@ -31,10 +32,13 @@ allPlayerSkillCards =
       toCardCodePairs
       [ ableBodied
       , allIn5
+      , analysis
       , anythingYouCanDoBetter
       , arrogance
+      , asYouWish
       , beloved
       , bruteForce1
+      , calculatedRisk
       , copycat3
       , cunning
       , curiosity
@@ -59,9 +63,13 @@ allPlayerSkillCards =
       , fearless2
       , fey1
       , fightingLessons
+      , ghastlyPossession1
+      , grizzled
+      , gumption1
       , guts
       , guts2
       , hatchetMan
+      , helpingHand
       , inquiringMind
       , inspiringPresence
       , intrepid
@@ -69,6 +77,7 @@ allPlayerSkillCards =
       , lastChance
       , leadership
       , leadership2
+      , longShot
       , manualDexterity
       , manualDexterity2
       , momentum1
@@ -77,6 +86,7 @@ allPlayerSkillCards =
       , nimble
       , notWithoutAFight
       , occultTheory1
+      , onTheMend
       , opportunist
       , opportunist2
       , overpower
@@ -103,6 +113,7 @@ allPlayerSkillCards =
       , signumCrucis2
       , skeptic1
       , steadfast
+      , strengthInNumbers1
       , strokeOfLuck2
       , stunningBlow
       , surprisingFind1
@@ -488,6 +499,7 @@ essenceOfTheDream =
     { cdCardTraits = setFromList [Practiced, Expert]
     , cdKeywords = singleton (Keyword.Bonded 1 "06112")
     , cdLevel = Nothing
+    , cdWhenDiscarded = ToBonded
     }
 
 momentum1 :: CardDef
@@ -678,6 +690,14 @@ occultTheory1 =
     , cdCardInHandEffects = True
     }
 
+strengthInNumbers1 :: CardDef
+strengthInNumbers1 =
+  (skill "08077" "Strength in Numbers" [#wild] Survivor)
+    { cdCardTraits = setFromList [Innate, Synergy]
+    , cdLevel = Just 1
+    , cdCardInHandEffects = True
+    }
+
 dauntlessSpirit1 :: CardDef
 dauntlessSpirit1 =
   (skill "08078" "Dauntless Spirit" [] Survivor)
@@ -686,12 +706,92 @@ dauntlessSpirit1 =
     , cdCardInHandEffects = True
     }
 
+asYouWish :: CardDef
+asYouWish =
+  signature "09001"
+    $ (skill "09002" "\"As you wish\"" [#wild, #wild, #wild] Neutral)
+      { cdCardTraits = setFromList [Practiced, Expert]
+      , cdCommitRestrictions = [OnlyNotYourTest]
+      }
+
+onTheMend :: CardDef
+onTheMend =
+  signature "09004"
+    $ (skill "09006" "On the Mend" [#wild, #wild] Neutral)
+      { cdCardTraits = setFromList [Innate]
+      , cdCommitRestrictions = [OnlyYourTest]
+      , cdWhenDiscarded = ToSetAside
+      }
+
 fightingLessons :: CardDef
 fightingLessons =
   (skill "09030" "Fighting Lessons" [#combat, #agility, #wild] Guardian)
     { cdCardTraits = setFromList [Practiced]
     , cdCommitRestrictions = [OnlyTestWithActions [#fight, #evade]]
     , cdCardInHandEffects = True
+    }
+
+helpingHand :: CardDef
+helpingHand =
+  (skill "09031" "Helping Hand" [] Guardian)
+    { cdCardTraits = setFromList [Innate]
+    , cdCommitRestrictions = [MaxOnePerTest]
+    }
+
+analysis :: CardDef
+analysis =
+  (skill "09049" "Analysis" [#wild] Seeker)
+    { cdCardTraits = setFromList [Practiced]
+    }
+
+calculatedRisk :: CardDef
+calculatedRisk =
+  (skill "09070" "Calculated Risk" [] Rogue)
+    { cdCardTraits = setFromList [Gambit, Fated]
+    , cdCommitRestrictions = [OnlyYourTest, OnlyTestDuringYourTurn, MaxOnePerTest]
+    }
+
+ghastlyPossession1 :: CardDef
+ghastlyPossession1 =
+  (skill "09090" "Ghastly Possession" [#wild] Mystic)
+    { cdCardTraits = setFromList [Innate, Spell]
+    }
+
+grizzled :: CardDef
+grizzled =
+  (skill "09101" "Grizzled" [#wild] Survivor)
+    { cdCardTraits = setFromList [Innate, Developed]
+    , cdKeywords = setFromList [Keyword.Customizable]
+    , cdCardInHandEffects = True
+    , cdCardInDiscardEffects = True
+    , cdCustomizations =
+        mapFromList
+          [ (ChoicePlaceholder, 0)
+          , (Specialist, 1)
+          , (Specialist2, 2)
+          , (Nemesis, 3)
+          , (MythosHardened, 4)
+          , (AlwaysPrepared, 5)
+          ]
+    }
+
+gumption1 :: CardDef
+gumption1 =
+  (skill "09112" "Gumption" [] Survivor)
+    { cdCardTraits = setFromList [Innate]
+    , cdCommitRestrictions = [MaxOnePerTest]
+    }
+
+longShot :: CardDef
+longShot =
+  (skill "10116" "Long Shot" [] Survivor)
+    { cdCardTraits = setFromList [Practiced]
+    , cdCommitRestrictions =
+        [ AnyCommitRestriction
+            [ OnlyFightAgainst (EnemyAt $ oneOf [YourLocation, ConnectedLocation])
+            , OnlyEvasionAgainst (EnemyAt $ oneOf [YourLocation, ConnectedLocation])
+            ]
+        ]
     }
 
 riseToTheOccasion3 :: CardDef

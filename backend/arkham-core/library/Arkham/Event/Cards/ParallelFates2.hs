@@ -1,9 +1,4 @@
-module Arkham.Event.Cards.ParallelFates2 (
-  parallelFates2,
-  ParallelFates2 (..),
-) where
-
-import Arkham.Prelude
+module Arkham.Event.Cards.ParallelFates2 (parallelFates2, ParallelFates2 (..)) where
 
 import Arkham.Card
 import Arkham.Classes
@@ -12,6 +7,7 @@ import Arkham.Event.Cards qualified as Cards
 import Arkham.Event.Runner
 import Arkham.Helpers.Modifiers
 import Arkham.Matcher
+import Arkham.Prelude
 
 newtype Metadata = Metadata {drawnCards :: [EncounterCard]}
   deriving stock (Show, Eq, Generic)
@@ -28,23 +24,12 @@ parallelFates2 =
 instance RunMessage ParallelFates2 where
   runMessage msg e@(ParallelFates2 (attrs `With` meta)) = case msg of
     InvestigatorPlayEvent iid eid _ _ _ | eid == toId attrs -> do
-      targets <-
-        selectTargets
-          $ InvestigatorWithoutModifier CannotManipulateDeck
+      targets <- selectTargets $ InvestigatorWithoutModifier CannotManipulateDeck
       player <- getPlayer iid
       push
         $ chooseOne
           player
-          [ TargetLabel
-            target
-            [ lookAt
-                iid
-                (toSource attrs)
-                target
-                [fromTopOfDeck 6]
-                AnyCard
-                (DeferSearchedToTarget $ toTarget attrs)
-            ]
+          [ TargetLabel target [lookAt iid attrs target [fromTopOfDeck 6] #any (defer attrs IsNotDraw)]
           | target <- EncounterDeckTarget : targets
           ]
       pure e
@@ -59,13 +44,7 @@ instance RunMessage ParallelFates2 where
                 "Put back in any order"
                 [ chooseOneAtATime
                     player
-                    [ targetLabel
-                      (toCardId card)
-                      [ PutCardOnTopOfDeck
-                          iid
-                          Deck.EncounterDeck
-                          (EncounterCard card)
-                      ]
+                    [ targetLabel card [PutCardOnTopOfDeck iid Deck.EncounterDeck (EncounterCard card)]
                     | card <- mapMaybe (preview _EncounterCard) cards
                     ]
                 ]
@@ -74,7 +53,7 @@ instance RunMessage ParallelFates2 where
         ]
       pure e
     SearchFound iid (isTarget attrs -> True) deck@(Deck.InvestigatorDeck _) cards -> do
-      drawing <- drawCards iid attrs 1
+      let drawing = drawCards iid attrs 1
       player <- getPlayer iid
       pushAll
         [ FocusCards cards
@@ -85,13 +64,7 @@ instance RunMessage ParallelFates2 where
                 "Put back in any order"
                 [ chooseOneAtATime
                     player
-                    [ targetLabel
-                      (toCardId card)
-                      [ PutCardOnTopOfDeck
-                          iid
-                          deck
-                          (PlayerCard card)
-                      ]
+                    [ targetLabel card [PutCardOnTopOfDeck iid deck (PlayerCard card)]
                     | card <- mapMaybe (preview _PlayerCard) cards
                     ]
                 ]

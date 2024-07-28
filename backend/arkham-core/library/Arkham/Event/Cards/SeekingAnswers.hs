@@ -7,6 +7,7 @@ import Arkham.Event.Cards qualified as Cards
 import Arkham.Event.Runner
 import Arkham.Investigate
 import Arkham.Matcher
+import Arkham.Message qualified as Msg
 import Arkham.Prelude
 
 newtype SeekingAnswers = SeekingAnswers EventAttrs
@@ -19,7 +20,8 @@ seekingAnswers = event SeekingAnswers Cards.seekingAnswers
 instance RunMessage SeekingAnswers where
   runMessage msg e@(SeekingAnswers attrs@EventAttrs {..}) = case msg of
     PlayThisEvent iid eid | eid == eventId -> do
-      pushM $ mkInvestigate iid attrs <&> setTarget attrs
+      sid <- getRandom
+      pushM $ mkInvestigate sid iid attrs <&> setTarget attrs
       pure e
     Successful (Action.Investigate, _) iid _ (isTarget attrs -> True) _ -> do
       lids <- select $ ConnectedLocation <> LocationWithDiscoverableCluesBy (InvestigatorWithId iid)
@@ -27,7 +29,7 @@ instance RunMessage SeekingAnswers where
       pushIfAny lids
         $ chooseOne
           player
-          [ targetLabel lid' [toMessage $ viaInvestigate $ discover iid lid' attrs 1]
+          [ targetLabel lid' [Msg.DiscoverClues iid $ viaInvestigate $ discover lid' attrs 1]
           | lid' <- lids
           ]
       pure e

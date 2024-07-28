@@ -27,7 +27,7 @@ instance HasAbilities Basement where
   getAbilities (Basement attrs) =
     withRevealedAbilities
       attrs
-      [ restrictedAbility attrs 1 Here actionAbility
+      [ skillTestAbility $ restrictedAbility attrs 1 Here actionAbility
       , restrictedAbility
           attrs
           2
@@ -74,7 +74,7 @@ instance RunMessage Basement where
              in guard (amount > 0) $> (iid', amount)
       tomeOfRituals <- selectJust $ assetIs Assets.tomeOfRituals
       pushAll
-        $ [ MovedClues (toSource iid) (toTarget tomeOfRituals) n
+        $ [ MovedClues (attrs.ability 2) (toSource iid) (toTarget tomeOfRituals) n
           | (iid, n) <- iidsWithAmounts
           ]
       pure l

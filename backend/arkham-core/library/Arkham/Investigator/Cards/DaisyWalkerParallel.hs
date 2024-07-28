@@ -12,8 +12,9 @@ import Arkham.Investigator.Runner
 import Arkham.Matcher
 
 newtype DaisyWalkerParallel = DaisyWalkerParallel InvestigatorAttrs
-  deriving anyclass (IsInvestigator)
+  deriving anyclass IsInvestigator
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock Data
 
 daisyWalkerParallel :: InvestigatorCard DaisyWalkerParallel
 daisyWalkerParallel =
@@ -48,7 +49,7 @@ instance RunMessage DaisyWalkerParallel where
       allAbilities <- getAllAbilities
       let abilitiesForAsset aid = filter (isSource aid . abilitySource) allAbilities
       let pairs' = filter (notNull . snd) $ map (toSnd abilitiesForAsset) tomeAssets
-      let toLabel a = AbilityLabel iid a windows' []
+      let toLabel a = AbilityLabel iid a windows' [] []
       player <- getPlayer iid
       pushIfAny pairs'
         $ chooseOneAtATime player
@@ -59,7 +60,9 @@ instance RunMessage DaisyWalkerParallel where
       push
         $ chooseOne
           player
-          [ targetLabel iid [search iid attrs attrs [fromDiscard] (#asset <> withTrait Tome) $ DrawFound iid 1]
+          [ targetLabel
+              iid
+              [search iid attrs attrs [fromDiscard] (basic $ #asset <> withTrait Tome) $ DrawFound iid 1]
           , Label "Do not use Daisy's ability" []
           ]
       pure i

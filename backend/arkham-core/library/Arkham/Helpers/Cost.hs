@@ -12,7 +12,10 @@ import Arkham.Cost
 import Arkham.Cost.FieldCost
 import Arkham.Event.Types (Field (..))
 import {-# SOURCE #-} Arkham.GameEnv
+import {-# SOURCE #-} Arkham.Helpers.Calculation
+import Arkham.Helpers.Card (extendedCardMatch)
 import Arkham.Helpers.ChaosBag
+import Arkham.Helpers.Customization
 import Arkham.Helpers.GameValue
 import Arkham.Helpers.Investigator (additionalActionCovers)
 import Arkham.Helpers.Matchers
@@ -51,14 +54,19 @@ getCanAffordCost
   -> m Bool
 getCanAffordCost iid (toSource -> source) actions windows' = \case
   UnpayableCost -> pure False
+  ChooseEnemyCost mtcr -> selectAny mtcr
+  ChosenEnemyCost eid -> selectAny (Matcher.EnemyWithId eid)
   Free -> pure True
   UpTo {} -> pure True
   OptionalCost {} -> pure True
   AddCurseTokensEqualToShroudCost -> do
     mloc <- field InvestigatorLocation iid
-    shroud <- maybe (pure 0) (field LocationShroud) mloc
-    x <- getRemainingCurseTokens
-    pure $ x >= shroud
+    mShroud <- maybe (pure Nothing) (field LocationShroud) mloc
+    case mShroud of
+      Nothing -> pure False
+      Just shroud -> do
+        x <- getRemainingCurseTokens
+        pure $ x >= shroud
   AddCurseTokensEqualToSkillTestDifficulty -> do
     getSkillTestDifficulty >>= \case
       Nothing -> pure False
@@ -78,6 +86,18 @@ getCanAffordCost iid (toSource -> source) actions windows' = \case
       _ -> error "Unhandled shuffle attached card into deck cost"
   EnemyAttackCost eid -> selectAny $ Matcher.EnemyWithId eid <> Matcher.EnemyCanAttack (Matcher.InvestigatorWithId iid)
   DrawEncounterCardsCost _n -> can.target.encounterDeck iid
+  CostWhenEnemy mtchr c -> do
+    hasEnemy <- selectAny mtchr
+    if hasEnemy then getCanAffordCost iid source actions windows' c else pure True
+  CostIfEnemy mtchr c1 c2 -> do
+    hasEnemy <- selectAny mtchr
+    getCanAffordCost iid source actions windows' $ if hasEnemy then c1 else c2
+  CostIfCustomization customization c1 c2 -> do
+    case source of
+      (CardSource (PlayerCard pc)) ->
+        getCanAffordCost iid source actions windows'
+          $ if pc `hasCustomization` customization then c1 else c2
+      _ -> error "Not implemented"
   ArchiveOfConduitsUnidentifiedCost -> do
     n <- selectCount Matcher.Anywhere
     pure $ n >= 4
@@ -109,6 +129,12 @@ getCanAffordCost iid (toSource -> source) actions windows' = \case
   DiscardHandCost {} -> pure True
   DiscardTopOfDeckCost {} -> pure True
   AdditionalActionsCost {} -> pure True
+  AdditionalActionsCostThatReducesResourceCostBy n cost -> do
+    spendableActions <- field InvestigatorRemainingActions iid
+    let totalActions = totalActionCost cost
+    let reduction = max 0 ((spendableActions - totalActions) * n)
+    withModifiers iid (toModifiers source [ExtraResources reduction]) do
+      getCanAffordCost iid source actions windows' cost
   RevealCost {} -> pure True
   Costs xs ->
     and <$> traverse (getCanAffordCost iid source actions windows') xs
@@ -131,15 +157,23 @@ getCanAffordCost iid (toSource -> source) actions windows' = \case
     uses <- flip evalStateT assets $ do
       sum <$> for assets \asset -> do
         mods <- lift $ getModifiers asset
-        let otherSources = [s | ProvidesUses uType' (AssetSource s) <- mods, uType' == uType]
         alreadyCounted <- get
         fromOtherSources <-
-          sum <$> for otherSources \otherSource -> do
-            if otherSource `elem` alreadyCounted
-              then pure 0
-              else do
-                put $ otherSource : alreadyCounted
-                lift $ fieldMap AssetUses (findWithDefault 0 uType) otherSource
+          sum <$> for mods \case
+            ProvidesUses uType' (AssetSource s) | uType' == uType -> do
+              if s `elem` alreadyCounted
+                then pure 0
+                else do
+                  put $ s : alreadyCounted
+                  lift $ fieldMap AssetUses (findWithDefault 0 uType) s
+            ProvidesProxyUses pType uType' (AssetSource s) | uType' == uType -> do
+              if s `elem` alreadyCounted
+                then pure 0
+                else do
+                  put $ s : alreadyCounted
+                  lift $ fieldMap AssetUses (findWithDefault 0 pType) s
+            _ -> pure 0
+
         lift $ fieldMap AssetUses ((+ fromOtherSources) . findWithDefault 0 uType) asset
     pure $ uses >= n
   EventUseCost eventMatcher uType n -> do
@@ -174,6 +208,7 @@ getCanAffordCost iid (toSource -> source) actions windows' = \case
         additionalActionCount <- countM (additionalActionCovers source actions) additionalActions
         actionCount <- field InvestigatorRemainingActions iid
         pure $ (actionCount + additionalActionCount) >= modifiedActionCost
+  AdditionalActionCost -> getCanAffordCost iid source actions windows' (ActionCost 1)
   AssetClueCost _ aMatcher gv -> do
     totalClueCost <- getPlayerCountValue gv
     clues <- getSum <$> selectAgg Sum AssetClues aMatcher
@@ -214,8 +249,12 @@ getCanAffordCost iid (toSource -> source) actions windows' = \case
     -- filter
     let
       getCards = \case
-        FromHandOf whoMatcher ->
-          fmap (filter (`cardMatch` cardMatcher) . concat)
+        FromHandOf whoMatcher -> do
+          let
+            excludeCards = case source of
+              CardSource c -> [c]
+              _ -> mempty
+          fmap (filter (`cardMatch` cardMatcher) . filter (`notElem` excludeCards) . concat)
             . traverse (field InvestigatorHand)
             =<< select whoMatcher
         FromPlayAreaOf whoMatcher -> do
@@ -223,6 +262,9 @@ getCanAffordCost iid (toSource -> source) actions windows' = \case
           traverse (field AssetCard) assets
         CostZones zs -> concatMapM getCards zs
     (>= n) . length <$> getCards zone
+  DiscardUnderneathCardCost assetId cardMatcher -> do
+    cards <- field AssetCardsUnderneath assetId
+    anyM (<=~> cardMatcher) cards
   DiscardCost _ _ -> pure True -- TODO: Make better
   DiscardCardCost _ -> pure True -- TODO: Make better
   DiscardRandomCardCost -> iid <=~> Matcher.InvestigatorWithDiscardableCard
@@ -265,13 +307,23 @@ getCanAffordCost iid (toSource -> source) actions windows' = \case
         (filter (`cardMatch` cardMatcher))
         iid
     pure $ length discards >= n
-  HandDiscardCost n cardMatcher -> do
-    cards <- mapMaybe (preview _PlayerCard) <$> field InvestigatorHand iid
-    pure $ count (`cardMatch` cardMatcher) cards >= n
-  HandDiscardAnyNumberCost cardMatcher -> do
-    cards <- mapMaybe (preview _PlayerCard) <$> field InvestigatorHand iid
-    pure $ count (`cardMatch` cardMatcher) cards > 0
-  ReturnMatchingAssetToHandCost assetMatcher -> selectAny assetMatcher
+  HandDiscardCost n extendedCardMatcher -> do
+    let
+      excludeCards = case source of
+        CardSource c -> [c]
+        _ -> mempty
+    cards <-
+      mapMaybe (preview _PlayerCard) . filter (`notElem` excludeCards) <$> field InvestigatorHand iid
+    (>= n) <$> countM (`extendedCardMatch` extendedCardMatcher) cards
+  HandDiscardAnyNumberCost extendedCardMatcher -> do
+    let
+      excludeCards = case source of
+        CardSource c -> [c]
+        _ -> mempty
+    cards <-
+      mapMaybe (preview _PlayerCard) . filter (`notElem` excludeCards) <$> field InvestigatorHand iid
+    (> 0) <$> countM (`extendedCardMatch` extendedCardMatcher) cards
+  ReturnMatchingAssetToHandCost assetMatcher -> selectAny $ Matcher.AssetCanLeavePlayByNormalMeans <> assetMatcher
   ReturnAssetToHandCost assetId -> selectAny $ Matcher.AssetWithId assetId
   SealCost tokenMatcher -> do
     tokens <- scenarioFieldMap ScenarioChaosBag chaosBagChaosTokens
@@ -306,6 +358,10 @@ getCanAffordCost iid (toSource -> source) actions windows' = \case
     ns <- catMaybes <$> selectFields fld mtchr
     resources <- getSpendableResources iid
     pure $ any (resources >=) ns
+  CalculatedResourceCost calc -> do
+    n <- calculate (Matcher.replaceYouMatcher iid calc)
+    resources <- getSpendableResources iid
+    pure $ resources >= n
   SupplyCost locationMatcher supply ->
     iid
       <=~> ( Matcher.InvestigatorWithSupply supply
@@ -336,6 +392,7 @@ getModifiedCardCost iid c@(PlayerCard _) = do
   getStartingCost = case cdCost pcDef of
     Just (StaticCost n) -> pure n
     Just DynamicCost -> pure 0
+    Just (MaxDynamicCost _) -> pure 0
     Just DiscardAmountCost -> fieldMap InvestigatorDiscard (count ((== toCardCode c) . toCardCode)) iid
     Nothing -> pure 0
   -- A card like The Painted World which has no cost, but can be "played", should not have it's cost modified

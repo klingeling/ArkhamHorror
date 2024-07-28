@@ -31,12 +31,12 @@ import Arkham.Source as X
 import Arkham.Target as X
 
 import Arkham.Action qualified as Action
-import Arkham.Asset.Uses qualified as Uses
 import Arkham.Capability
 import Arkham.Card
 import Arkham.Classes.HasGame
 import Arkham.Constants
 import Arkham.Direction
+import Arkham.Discover
 import Arkham.Enemy.Types (Field (..))
 import Arkham.Exception
 import Arkham.Id
@@ -55,7 +55,8 @@ import Arkham.Matcher (
   investigatorAt,
   noModifier,
  )
-import Arkham.Message (Message (DiscoverClues, MoveAction, RevealLocation))
+import Arkham.Message (Message (MoveAction, RevealLocation))
+import Arkham.Message qualified as Msg
 import Arkham.Projection
 import Arkham.Timing qualified as Timing
 import Arkham.Token
@@ -84,10 +85,6 @@ instance RunMessage LocationAttrs where
     UpdateLocation lid upd | lid == locationId -> do
       -- TODO: we may want life cycles around this, generally this might just be a bad idea
       pure $ updateLocation [upd] a
-    MovedClues _ (isTarget a -> True) n -> do
-      pure $ a & tokensL %~ addTokens #clue n
-    MovedClues (isSource a -> True) _ n -> do
-      pure $ a & tokensL %~ subtractTokens #clue n
     FlipClues target n | isTarget a target -> do
       let clueCount = max 0 $ subtract n $ locationClues a
       pure $ a & tokensL %~ flipClues n & withoutCluesL .~ (clueCount == 0)
@@ -101,11 +98,12 @@ instance RunMessage LocationAttrs where
         let target = maybe (toTarget a) (ProxyTarget (toTarget a)) investigation.target
         push
           $ investigate
+            investigation.skillTest
             iid
             investigation.source
             target
             investigation.skillType
-            (LocationFieldCalculation a.id LocationShroud)
+            (LocationMaybeFieldCalculation a.id LocationShroud)
       pure a
     PassedSkillTest iid (Just Action.Investigate) source (Initiator target) _ n | isTarget a target -> do
       let clues = locationClues a
@@ -130,7 +128,7 @@ instance RunMessage LocationAttrs where
       let alternateSuccessfullInvestigation = mapMaybe (preview _AlternateSuccessfullInvestigation) modifiers'
       when (null alternateSuccessfullInvestigation)
         $ pushAll
-          [before, InvestigatorDiscoverClues iid lid (toSource a) 1 (Just #investigate), after]
+          [before, Msg.DiscoverClues iid $ viaInvestigate $ discover lid (toSource a) 1, after]
 
       for_ alternateSuccessfullInvestigation $ \target' ->
         push $ Successful (Action.Investigate, toTarget lid) iid source target' n
@@ -182,42 +180,6 @@ instance RunMessage LocationAttrs where
         $ a
         & (revealedConnectedMatchersL <>~ [LocationWithId toLid])
         & (connectedMatchersL <>~ [LocationWithId toLid])
-    DiscoverCluesAtLocation iid lid source n isInvestigate maction | lid == locationId -> do
-      mods <- getModifiers iid
-
-      canDiscover <-
-        and <$> for mods \case
-          CannotDiscoverCluesAt matcher -> not <$> (lid <=~> matcher)
-          CannotDiscoverCluesExceptAsResultOfInvestigation matcher | isInvestigate == NotInvestigate -> not <$> (lid <=~> matcher)
-          _ -> pure True
-
-      when canDiscover $ do
-        let discoveredClues = min n $ locationClues a
-        push $ DiscoverClues iid lid source discoveredClues isInvestigate maction
-
-      pure a
-    Do (DiscoverClues iid lid source n isInvestigate _) | lid == locationId -> do
-      mods <- getModifiers iid
-
-      canDiscover <-
-        and <$> for mods \case
-          CannotDiscoverCluesAt matcher -> not <$> (lid <=~> matcher)
-          CannotDiscoverCluesExceptAsResultOfInvestigation matcher | isInvestigate == NotInvestigate -> not <$> (lid <=~> matcher)
-          _ -> pure True
-
-      if canDiscover
-        then do
-          let lastClue = locationClues a - n <= 0 && locationClues a /= 0
-          let clueCount = max 0 $ subtract n $ locationClues a
-          push
-            =<< checkWindows
-              ( mkWindow Timing.After (Window.DiscoverClues iid lid source n)
-                  : [ mkWindow Timing.After (Window.DiscoveringLastClue iid lid)
-                    | lastClue
-                    ]
-              )
-          pure $ a & tokensL %~ setTokens Clue clueCount & withoutCluesL .~ (clueCount == 0)
-        else pure a
     EnterLocation iid lid | lid == locationId -> do
       unless locationRevealed $ push (RevealLocation (Just iid) lid)
       pure a
@@ -265,48 +227,47 @@ instance RunMessage LocationAttrs where
     MoveAllCluesTo source target | not (isTarget a target) -> do
       when (locationClues a > 0) (push $ PlaceClues source (toTarget a) (locationClues a))
       pure $ a & tokensL %~ removeAllTokens Clue & withoutCluesL .~ True
-    PlaceClues source target n | isTarget a target -> do
-      modifiers' <- getModifiers a
-      windows' <- windows [Window.PlacedClues source (toTarget a) n]
-      if CannotPlaceClues `elem` modifiers'
-        then pure a
-        else do
-          let clueCount = locationClues a + n
-          pushAll windows'
-          pure $ a & tokensL %~ setTokens Clue clueCount & withoutCluesL .~ (clueCount == 0)
     PlaceCluesUpToClueValue lid source n | lid == locationId -> do
       clueValue <- getPlayerCountValue locationRevealClues
       let n' = min n (clueValue - locationClues a)
       a <$ push (PlaceClues source (toTarget a) n')
-    PlaceDoom _ target n | isTarget a target -> pure $ a & tokensL %~ addTokens Doom n
-    RemoveDoom _ target n | isTarget a target -> do
-      pure $ a & tokensL %~ subtractTokens Doom n
-    PlaceResources source target n | isTarget a target -> do
-      windows' <- windows [Window.PlacedResources source (toTarget a) n]
-      pushAll windows'
-      pure $ a & tokensL %~ addTokens Resource n
-    RemoveResources _ target n | isTarget a target -> do
-      pure $ a & tokensL %~ subtractTokens Resource n
-    PlaceHorror _ target n | isTarget a target -> pure $ a & tokensL %~ addTokens Horror n
-    PlaceDamage source target n | isTarget a target -> do
-      windows' <- windows [Window.PlacedDamage source (toTarget a) n]
-      pushAll windows'
-      pure $ a & tokensL %~ addTokens #damage n
-    RemoveDamage _source target n | isTarget a target -> do
-      pure $ a & tokensL %~ subtractTokens #damage n
-    RemoveClues _ (LocationTarget lid) n | lid == locationId -> do
-      let clueCount = max 0 $ subtract n $ locationClues a
-      pure $ a & tokensL %~ setTokens Clue clueCount & withoutCluesL .~ (clueCount == 0)
     RemoveAllClues _ target | isTarget a target -> do
       pure $ a & tokensL %~ removeAllTokens Clue & withoutCluesL .~ True
     RemoveAllDoom _ target | isTarget a target -> pure $ a & tokensL %~ removeAllTokens Doom
     RemoveAllTokens _ target | isTarget a target -> pure $ a & tokensL %~ mempty
-    PlaceTokens _ target tType n | isTarget a target -> pure $ a & tokensL %~ addTokens tType n
-    MoveTokens source _ tType n | isSource a source -> pure $ a & tokensL %~ subtractTokens tType n
-    MoveTokens _ target tType n | isTarget a target -> pure $ a & tokensL %~ addTokens tType n
-    MoveUses _ target Uses.Leyline n | isTarget a target -> pure $ a & tokensL %~ addTokens Leyline n
-    RemoveTokens _ target tType n | isTarget a target -> pure $ a & tokensL %~ subtractTokens tType n
+    PlaceTokens source target tType n | isTarget a target -> do
+      if tType == Clue
+        then do
+          modifiers' <- getModifiers a
+          placedCluesWindows <- windows [Window.PlacedClues source (toTarget a) n]
+          placedTokensWindows <- windows [Window.PlacedToken source (toTarget a) tType n]
+          if CannotPlaceClues `elem` modifiers'
+            then pure a
+            else do
+              let clueCount = locationClues a + n
+              pushAll $ placedCluesWindows <> placedTokensWindows
+              pure $ a & tokensL %~ setTokens Clue clueCount & withoutCluesL .~ (clueCount == 0)
+        else do
+          pushM $ checkAfter $ Window.PlacedToken source target tType n
+          when (tType == Doom && a.doom == 0) do
+            pushM $ checkAfter $ Window.PlacedDoomCounterOnTargetWithNoDoom source target n
+          when (tType == Damage) do
+            windows' <- windows [Window.PlacedDamage source (toTarget a) n]
+            pushAll windows'
+          when (tType == Resource) do
+            windows' <- windows [Window.PlacedResources source (toTarget a) n]
+            pushAll windows'
+          pure $ a & tokensL %~ addTokens tType n
+    MoveTokens s source _ tType n | isSource a source -> runMessage (RemoveTokens s (toTarget a) tType n) a
+    MoveTokens s _ target tType n | isTarget a target -> runMessage (PlaceTokens s target tType n) a
+    RemoveTokens _ target tType n | isTarget a target -> do
+      if tType == Clue
+        then do
+          let clueCount = max 0 $ subtract n $ locationClues a
+          pure $ a & tokensL %~ setTokens Clue clueCount & withoutCluesL .~ (clueCount == 0)
+        else pure $ a & tokensL %~ subtractTokens tType n
     PlacedLocation _ _ lid | lid == locationId -> do
+      pushM $ checkAfter $ Window.LocationEntersPlay lid
       if locationRevealed
         then do
           modifiers' <- getModifiers (toTarget a)
@@ -317,9 +278,9 @@ instance RunMessage LocationAttrs where
           let currentClues = countTokens Clue locationTokens
 
           pushAll
-            [ PlaceClues (toSource a) (toTarget a) locationClueCount
-            | locationClueCount > 0
-            ]
+            $ [ PlaceClues (toSource a) (toTarget a) locationClueCount
+              | locationClueCount > 0
+              ]
           pure $ a & withoutCluesL .~ (locationClueCount + currentClues == 0)
         else pure a
     RevealLocation miid lid | lid == locationId -> do
@@ -400,7 +361,8 @@ instance RunMessage LocationAttrs where
         triggerSource = case source of
           ProxySource _ s -> s
           _ -> InvestigatorSource iid
-      pushM $ mkInvestigateLocation iid triggerSource (toId a)
+      sid <- getRandom
+      pushM $ mkInvestigateLocation sid iid triggerSource (toId a)
       pure a
     UseCardAbility iid source 102 _ _ | isSource a source -> do
       -- free because already paid for by ability
@@ -422,10 +384,14 @@ locationInvestigatorsWithClues :: HasGame m => LocationAttrs -> m [InvestigatorI
 locationInvestigatorsWithClues attrs =
   filterM (fieldMap InvestigatorClues (> 0)) =<< select (investigatorAt $ toId attrs)
 
-getModifiedShroudValueFor :: HasGame m => LocationAttrs -> m Int
+getModifiedShroudValueFor :: (HasCallStack, HasGame m) => LocationAttrs -> m Int
 getModifiedShroudValueFor attrs = do
   modifiers' <- getModifiers (toTarget attrs)
-  pure $ foldr applyPostModifier (foldr applyModifier (locationShroud attrs) modifiers') modifiers'
+  pure
+    $ foldr
+      applyPostModifier
+      (foldr applyModifier (fromJustNote "Missing shroud" $ locationShroud attrs) modifiers')
+      modifiers'
  where
   applyModifier (ShroudModifier m) n = max 0 (n + m)
   applyModifier _ n = n
@@ -435,7 +401,7 @@ getModifiedShroudValueFor attrs = do
 getInvestigateAllowed :: HasGame m => InvestigatorId -> LocationAttrs -> m Bool
 getInvestigateAllowed _iid attrs = do
   modifiers' <- getModifiers (toTarget attrs)
-  pure $ none isCannotInvestigate modifiers'
+  pure $ none isCannotInvestigate modifiers' && isJust (locationShroud attrs)
  where
   isCannotInvestigate CannotInvestigate {} = True
   isCannotInvestigate (CannotInvestigateLocation lid) = lid == toId attrs

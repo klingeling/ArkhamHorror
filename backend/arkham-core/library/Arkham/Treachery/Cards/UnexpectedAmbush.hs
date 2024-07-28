@@ -19,12 +19,13 @@ instance RunMessage UnexpectedAmbush where
   runMessage msg t@(UnexpectedAmbush attrs) = runQueueT $ case msg of
     Revelation iid (isSource attrs -> True) -> do
       enemies <- select AnyEnemy
+      sid <- getRandom
       if null enemies
         then push $ Msg.assignDamageAndHorror iid attrs 1 1
         else
           chooseOne
             iid
-            [SkillLabel s [Msg.revelationSkillTest iid attrs s (Fixed 4)] | s <- [#intellect, #agility]]
+            [SkillLabel s [Msg.revelationSkillTest sid iid attrs s (Fixed 4)] | s <- [#intellect, #agility]]
       pure t
     FailedThisSkillTestBy iid (isSource attrs -> True) n -> do
       nearestEnemies <- select $ NearestEnemyTo iid AnyEnemy
@@ -39,4 +40,4 @@ instance RunMessage UnexpectedAmbush where
           | enemy <- nearestEnemies
           ]
       pure t
-    _ -> UnexpectedAmbush <$> lift (runMessage msg attrs)
+    _ -> UnexpectedAmbush <$> liftRunMessage msg attrs

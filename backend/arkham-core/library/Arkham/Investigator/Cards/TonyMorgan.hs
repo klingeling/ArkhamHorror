@@ -15,12 +15,13 @@ import Control.Lens (over)
 import Data.Data.Lens (biplate)
 
 newtype Meta = Meta {active :: Bool}
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Eq, Generic, Data)
   deriving anyclass (ToJSON, FromJSON)
 
 newtype TonyMorgan = TonyMorgan (InvestigatorAttrs `With` Meta)
-  deriving anyclass (IsInvestigator)
+  deriving anyclass IsInvestigator
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock Data
 
 tonyMorgan :: InvestigatorCard TonyMorgan
 tonyMorgan =
@@ -77,7 +78,7 @@ instance RunMessage TonyMorgan where
           | canPlay
           , c <- playableCards
           ]
-        <> map ((\f -> f windows' []) . AbilityLabel iid) actions
+        <> map ((\f -> f windows' [] []) . AbilityLabel iid) actions
       pure
         $ TonyMorgan
         . (`with` Meta True)
@@ -101,6 +102,6 @@ instance RunMessage TonyMorgan where
       pure $ TonyMorgan $ attrs `with` Meta False
     ResolveChaosToken _ ElderSign iid | attrs `is` iid -> do
       bountyContracts <- selectJust $ assetIs Assets.bountyContracts
-      push $ AddUses bountyContracts Bounty 1
+      push $ AddUses #elderSign bountyContracts Bounty 1
       pure i
     _ -> TonyMorgan . (`with` meta) <$> runMessage msg attrs

@@ -53,7 +53,7 @@ const investigatorAction = computed(() => {
   return activateAbilityAction.value
 })
 
-const choices = computed(() => ArkhamGame.choices(props.game, props.investigator.id))
+const choices = computed(() => ArkhamGame.choices(props.game, props.playerId))
 
 function isAbility(v: Message): v is AbilityLabel {
   if (v.tag !== MessageType.ABILITY_LABEL) {
@@ -167,6 +167,10 @@ function calculateSkill(base: number, skillType: string, modifiers: Modifier[]) 
     if (modifier.type.tag === "BaseSkillOf" && modifier.type.skillType === skillType) {
       modified = modifier.type.value
     }
+
+    if (modifier.type.tag === "BaseSkill" && props.game.skillTest && props.game.skillTest.skills.includes(skillType)) {
+      modified = modifier.type.contents
+    }
   })
 
   modifiers.forEach((modifier) => {
@@ -189,6 +193,7 @@ function calculateSkill(base: number, skillType: string, modifiers: Modifier[]) 
 }
 
 function useEffectAction(action: { contents: string[] }) {
+  console.log(action, choices.value)
   const choice = choices.value.findIndex((c) => c.tag === 'EffectActionButton' && c.effectId == action.contents[1])
   if (choice !== -1) {
     emit('choose', choice)
@@ -208,7 +213,7 @@ const combat = computed(() => calculateSkill(props.investigator.combat, "SkillCo
 const agility = computed(() => calculateSkill(props.investigator.agility, "SkillAgility", modifiers.value ?? []))
 
 
-// const doom = computed(() => props.player.tokens[TokenType.Doom])
+const doom = computed(() => props.investigator.tokens[TokenType.Doom])
 const clues = computed(() => props.investigator.tokens[TokenType.Clue] || 0)
 const resources = computed(() => props.investigator.tokens[TokenType.Resource] || 0)
 const horror = computed(() => (props.investigator.tokens[TokenType.Horror] || 0) + props.investigator.assignedSanityDamage)
@@ -330,6 +335,8 @@ const leylines = computed(() => props.investigator.tokens[TokenType.Leyline] || 
       <template v-if="debug.active">
         <button class="plus-button" @click="debug.send(game.id, {tag: 'InvestigatorDirectDamage', contents: [id, {tag: 'TestSource', contents: []}, 0, 1]})">+</button>
       </template>
+
+      <PoolItem v-if="doom > 0" type="doom" :amount="doom" />
 
       <PoolItem
         v-if="alarmLevel > 0"

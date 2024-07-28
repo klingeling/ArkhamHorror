@@ -13,6 +13,7 @@ import Arkham.Matcher
 newtype MarkHarrigan = MarkHarrigan InvestigatorAttrs
   deriving anyclass (IsInvestigator, HasModifiersFor)
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock (Data)
 
 markHarrigan :: InvestigatorCard MarkHarrigan
 markHarrigan =
@@ -39,6 +40,6 @@ instance HasChaosTokenValue MarkHarrigan where
 instance RunMessage MarkHarrigan where
   runMessage msg i@(MarkHarrigan attrs) = case msg of
     UseThisAbility iid (isSource attrs -> True) 1 -> do
-      pushM $ drawCards iid (toAbilitySource attrs 1) 1
+      push $ drawCards iid (attrs.ability 1) 1
       pure i
     _ -> MarkHarrigan <$> runMessage msg attrs

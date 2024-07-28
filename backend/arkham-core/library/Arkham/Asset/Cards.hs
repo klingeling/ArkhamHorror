@@ -2,8 +2,9 @@ module Arkham.Asset.Cards where
 
 import Arkham.Prelude
 
-import Arkham.Asset.Uses hiding (Key)
+import Arkham.Asset.Uses hiding (Key, Lead)
 import Arkham.Asset.Uses qualified as Uses
+import Arkham.Calculation
 import Arkham.CampaignLogKey
 import Arkham.Card.CardCode
 import Arkham.Card.CardDef
@@ -73,8 +74,8 @@ storyWeakness cardCode name encounterSet =
     , cdLevel = Nothing
     }
 
-uses :: UseType -> Int -> Uses GameValue
-uses uType = Uses uType . Static
+uses :: UseType -> Int -> Uses GameCalculation
+uses uType = Uses uType . Fixed
 
 seal :: IsSealing s => s -> Keyword
 seal (toSealing -> s) = Keyword.Seal s
@@ -121,6 +122,7 @@ allPlayerAssetCards =
       , aceOfSwords1
       , adaptable1
       , agencyBackup5
+      , alchemicalDistillation
       , alchemicalTransmutation
       , alchemicalTransmutation2
       , alejandroVela
@@ -161,6 +163,8 @@ allPlayerAssetCards =
       , armageddon4
       , armorOfArdennes5
       , artStudent
+      , astralMirror2
+      , astronomicalAtlas3
       , augur
       , augustLindquist
       , azureFlame
@@ -174,11 +178,16 @@ allPlayerAssetCards =
       , bangleOfJinxes1
       , baronSamedi
       , baseballBat
+      , baseballBat2
       , bauta
       , beatCop
       , beatCop2
       , becky
       , berettaM19184
+      , bestowResolve2
+      , bewitching3
+      , biancaDieKatzSingingYourSong
+      , bindersJarInterdimensionalPrison1
       , blackjack
       , blackjack2
       , blasphemousCovenant2
@@ -188,6 +197,10 @@ allPlayerAssetCards =
       , bloodPact
       , bloodPact3
       , bloodstainedDagger
+      , blur1
+      , blur4
+      , bonesaw
+      , bonnieWalshLoyalAssistant
       , bookOfPsalms
       , bookOfShadows1
       , bookOfShadows3
@@ -197,6 +210,8 @@ allPlayerAssetCards =
       , boxingGloves3
       , brandOfCthugha1
       , brandOfCthugha4
+      , britishBullDog
+      , britishBullDog2
       , brotherXavier1
       , bruiser3
       , bulletproofVest3
@@ -205,7 +220,10 @@ allPlayerAssetCards =
       , butterflySwords2
       , butterflySwords5
       , catBurglar1
+      , catMaskTheCapriciousMeddler
       , celaenoFragments
+      , ceremonialSickle
+      , ceremonialSickle4
       , chainsaw4
       , charisma3
       , charlesRossEsq
@@ -221,6 +239,8 @@ allPlayerAssetCards =
       , clairvoyance3
       , clairvoyance5
       , claspOfBlackOnyx
+      , cleaningKit
+      , cleaningKit3
       , closeTheCircle1
       , coltVestPocket
       , coltVestPocket2
@@ -236,11 +256,14 @@ allPlayerAssetCards =
       , crystallineElderSign3
       , crystallizerOfDreams
       , curseOfAeons3
+      , cyclopeanHammer5
       , daisysToteBag
       , daisysToteBagAdvanced
+      , damningTestimony
       , darioElAmin
       , darkHorse
       , darkRitual
+      , darrellsKodak
       , davidRenfield
       , dayanaEsperence3
       , deathXiii1
@@ -254,6 +277,7 @@ allPlayerAssetCards =
       , digDeep
       , digDeep2
       , digDeep4
+      , dirtyFighting2
       , discOfItzamna
       , discOfItzamna2
       , disciplineAlignmentOfSpirit
@@ -264,14 +288,21 @@ allPlayerAssetCards =
       , disciplinePrescienceOfFateBroken
       , disciplineQuiescenceOfThought
       , disciplineQuiescenceOfThoughtBroken
+      , disguise
+      , dissectionTools
+      , divination1
+      , divination4
       , doubleDouble4
       , downTheRabbitHole
+      , dowsingRod
+      , dowsingRod4
       , drElliHorowitz
       , drFrancisMorgan
       , drHenryArmitage
       , drMilanChristopher
       , drShivaniMaheswaran
       , drWilliamTMaleson
+      , drWilliamTMaleson2
       , dragonPole
       , drawingThin
       , dreamEnhancingSerum
@@ -281,10 +312,15 @@ allPlayerAssetCards =
       , dreamDiaryDreamsOfAnExplorer3
       , duke
       , earlSawyer
+      , earthlySerenity1
+      , earthlySerenity4
       , eighteenDerringer
       , eighteenDerringer2
       , elderSignAmulet3
       , eldritchSophist
+      , eldritchTongue
+      , elleRubashPurifyingPurpose2
+      , embezzeledTreasure
       , empiricalHypothesis
       , empowerSelfAcuity2
       , empowerSelfAlacrity2
@@ -294,6 +330,7 @@ allPlayerAssetCards =
       , enchantedBlade
       , enchantedBladeGuardian3
       , enchantedBladeMystic3
+      , enchantedBow2
       , encyclopedia
       , encyclopedia2
       , eonChart1
@@ -305,6 +342,8 @@ allPlayerAssetCards =
       , eyeOfChaos
       , eyeOfChaos4
       , eyeOfTheDjinnVesselOfGoodAndEvil2
+      , fakeCredentials
+      , fakeCredentials4
       , falseCovenant2
       , familiarSpirit
       , familyInheritance
@@ -314,6 +353,7 @@ allPlayerAssetCards =
       , feedTheMind
       , feedTheMind3
       , fence1
+      , fieldAgent2
       , fieldwork
       , fineClothes
       , fingerprintKit
@@ -321,13 +361,17 @@ allPlayerAssetCards =
       , finnsTrustyThirtyEight
       , fireAxe
       , fireExtinguisher1
+      , fireExtinguisher3
       , firstAid
       , firstAid3
       , fiveOfPentacles1
       , flamethrower5
       , flashlight
+      , flashlight3
       , fleshWard
       , fluteOfTheOuterGods4
+      , fluxStabilizerActive
+      , fluxStabilizerInactive
       , foolishnessFoolishCatOfUlthar
       , forbiddenKnowledge
       , forbiddenTome
@@ -342,6 +386,7 @@ allPlayerAssetCards =
       , fortyOneDerringer
       , fortyOneDerringer2
       , fourOfCups1
+      , foxMaskTheWiseTrickster
       , garroteWire2
       , gateBox
       , gavriellaMizrah
@@ -349,14 +394,18 @@ allPlayerAssetCards =
       , geas2
       , geneBeauregard3
       , gildedVolto
+      , girishKadakiaIcpcPunjabDetective4
       , grannyOrne
       , grannyOrne3
+      , grapplingHook
       , gravediggersShovel
       , gravediggersShovel2
+      , graysAnatomyTheDoctorsBible5
       , greenManMedallionHourOfTheHuntress
       , gregoryGry
       , greteWagner
       , greteWagner3
+      , grimMemoir
       , grimmsFairyTales
       , grislyTotem
       , grislyTotemSeeker3
@@ -370,6 +419,7 @@ allPlayerAssetCards =
       , guardianAngel
       , guidedByTheUnseen3
       , guidingSpirit1
+      , hallowedChalice
       , hallowedMirror
       , hallowedMirror3
       , handcuffs
@@ -381,6 +431,8 @@ allPlayerAssetCards =
       , haste2
       , hawkEyeFoldingCamera
       , healingWords
+      , healingWords3
+      , heavyFurs
       , heirloomOfHyperborea
       , hemisphericMap3
       , henryDeveau
@@ -394,13 +446,18 @@ allPlayerAssetCards =
       , holyRosary2
       , holySpear5
       , hope
+      , huntersArmor
       , hyperawareness
       , hyperawareness2
       , hyperawareness4
       , hyperphysicalShotcasterTheoreticalDevice
       , hypnoticTherapy
+      , icePick1
+      , icePick3
       , ichtacaTheForgottenGuardian
+      , idolOfXanatosWatcherBeyondTime
       , ikiaqTheCouncilsChosen3
+      , improvisedShield
       , inTheKnow1
       , inTheThickOfIt
       , ineffableTruth
@@ -418,6 +475,7 @@ allPlayerAssetCards =
       , jimsTrumpet
       , joeyTheRatVigil
       , joeyTheRatVigil3
+      , katjaEastbankKeeperOfEsotericLore2
       , keenEye
       , keenEye3
       , kerosene1
@@ -427,6 +485,7 @@ allPlayerAssetCards =
       , knightOfSwords3
       , knuckleduster
       , kukri
+      , labCoat1
       , laboratoryAssistant
       , ladyEsprit
       , lantern
@@ -441,6 +500,7 @@ allPlayerAssetCards =
       , liquidCourage
       , liquidCourage1
       , litaChantler
+      , livingInk
       , livreDeibon
       , lockpicks
       , lockpicks1
@@ -461,11 +521,13 @@ allPlayerAssetCards =
       , mariaDeSilva
       , marinersCompass
       , marinersCompass2
+      , martyrsVambraceRemnantOfTheUnknown3
       , maskedCarnevaleGoer_17
       , maskedCarnevaleGoer_18
       , maskedCarnevaleGoer_19
       , maskedCarnevaleGoer_20
       , maskedCarnevaleGoer_21
+      , matchbox
       , mauserC96
       , mauserC962
       , meatCleaver
@@ -475,6 +537,8 @@ allPlayerAssetCards =
       , medicalTexts2
       , medicoDellaPeste
       , michaelLeigh5
+      , microscope
+      , microscope4
       , mindsEye2
       , miskatonicArchaeologyFunding4
       , missDoyle1
@@ -487,6 +551,7 @@ allPlayerAssetCards =
       , monstrousTransformation
       , moonPendant2
       , moonstone
+      , mouseMaskTheMeekWatcher
       , moxie1
       , moxie3
       , mrRook
@@ -496,8 +561,10 @@ allPlayerAssetCards =
       , newspaper2
       , nightmareBauble3
       , nineOfRods3
+      , nkosiMabatiEnigmaticWarlock3
       , obfuscation
       , observed4
+      , obsidianBracelet
       , occultLexicon
       , occultLexicon3
       , occultScraps
@@ -505,10 +572,15 @@ allPlayerAssetCards =
       , oldBookOfLore3
       , oldHuntingRifle3
       , oldKeyring
+      , oldKeyring3
+      , oldShotgun2
       , oliveMcBride
       , onYourOwn3
       , onYourOwn3_Exceptional
+      , onyxPentacle
+      , onyxPentacle4
       , ornateBow3
+      , orphicTheory1
       , otherworldCodex2
       , otherworldlyCompass2
       , painkillers
@@ -525,23 +597,30 @@ allPlayerAssetCards =
       , physicalTraining4
       , pickpocketing
       , pickpocketing2
+      , pitchfork
       , plucky1
       , plucky3
       , pnakoticManuscripts5
+      , pocketMultiTool
       , pocketTelescope
       , policeBadge2
       , powderOfIbnGhazi
       , preciousMementoFromAFormerLife4
       , preciousMementoFromAFutureLife4
+      , pressPass2
       , priestOfTwoFaiths1
       , professorWarrenRice
+      , professorWilliamWebbFinderOfHiddenConnections
+      , professorWilliamWebbFinderOfHiddenConnections2
       , prophesiaeProfanaAtlasOfTheUnknowable5
       , prophetic3
+      , protectiveGear2
       , protectiveIncantation1
       , purifyingCorruption4
       , puzzleBox
       , quickLearner4
       , quickStudy2
+      , quickdrawHolster4
       , rabbitsFoot
       , rabbitsFoot3
       , randallCho
@@ -555,6 +634,7 @@ allPlayerAssetCards =
       , relicOfAgesRepossessThePast
       , relicOfAgesUnleashTheTimestream
       , researchLibrarian
+      , researchNotes
       , riotWhistle
       , riteOfSanctification
       , riteOfSeeking
@@ -565,6 +645,7 @@ allPlayerAssetCards =
       , robesOfEndlessNight2
       , rodOfAnimalism1
       , rolands38Special
+      , runicAxe
       , ruthWestmacottDarkRevelations
       , sacredCovenant2
       , safeguard
@@ -605,6 +686,7 @@ allPlayerAssetCards =
       , signMagick
       , signMagick3
       , silassNet
+      , sinEater3
       , sixthSense
       , sixthSense4
       , sledDog
@@ -616,6 +698,8 @@ allPlayerAssetCards =
       , somethingWorthFightingFor
       , sophieInLovingMemory
       , sophieItWasAllMyFault
+      , soulSanctification3
+      , sparrowMaskTheWanderersCompanion
       , spectralWeb
       , spiritAthame1
       , stealth
@@ -637,9 +721,12 @@ allPlayerAssetCards =
       , strangeSolutionFreezingVariant4
       , strangeSolutionRestorativeConcoction4
       , strayCat
+      , stylishCoat1
       , suggestion1
       , suggestion4
       , summonedHound1
+      , summonedServitor
+      , surgicalKit3
       , survivalKnife
       , survivalKnife2
       , switchblade
@@ -680,19 +767,24 @@ allPlayerAssetCards =
       , theTowerXVI
       , theWorldXxi3
       , thermos
+      , thievesKit
+      , thievesKit3
       , thirtyFiveWinchester
       , thirtyTwoColt
       , thirtyTwoColt2
       , timewornBrand5
       , tokenOfFaith
       , tonys38LongColt
+      , toolBelt
       , toothOfEztli
       , trackShoes
       , treasureHunter1
       , trenchCoat
       , trenchKnife
+      , triggerMan3
       , tristanBotleyFixerForHire2
       , trueGrit
+      , trueMagickReworkingReality5
       , trustyBullwhip
       , tryAndTryAgain1
       , tryAndTryAgain3
@@ -700,6 +792,7 @@ allPlayerAssetCards =
       , twentyFiveAutomatic2
       , twilaKatherinePrice3
       , twilightBlade
+      , underworldMarket2
       , underworldSupport
       , unscrupulousLoan3
       , untilTheEndOfTime
@@ -717,6 +810,8 @@ allPlayerAssetCards =
       , wishEater
       , wither
       , wither4
+      , wolfMaskTheMoonsSire
+      , woundedBystanderOnDeathsDoorstep
       , yaotl1
       , zeal
       , zebulonWhateley
@@ -2763,7 +2858,7 @@ ancientStoneKnowledgeOfTheElders4 =
     { cdCardTraits = setFromList [Item, Relic]
     , cdSkills = [#intellect, #intellect]
     , cdSlots = [#hand]
-    , cdUses = uses Secret 0
+    , cdUses = Uses Secret (RecordedCount YouHaveIdentifiedTheStone)
     , cdKeywords = setFromList [Keyword.Researched YouHaveIdentifiedTheStone]
     , cdLevel = Just 4
     }
@@ -2774,7 +2869,7 @@ ancientStoneMindsInHarmony4 =
     { cdCardTraits = setFromList [Item, Relic]
     , cdSkills = [#willpower, #willpower]
     , cdSlots = [#hand]
-    , cdUses = uses Secret 0
+    , cdUses = Uses Secret (RecordedCount YouHaveIdentifiedTheStone)
     , cdKeywords = setFromList [Keyword.Researched YouHaveIdentifiedTheStone]
     , cdLevel = Just 4
     }
@@ -3351,7 +3446,7 @@ theCouncilsCoffer2 =
     { cdSkills = [#wild]
     , cdCardTraits = setFromList [Item, Relic]
     , cdLevel = Just 2
-    , cdUses = Uses Lock (PerPlayer 1)
+    , cdUses = Uses Lock (GameValueCalculation $ PerPlayer 1)
     , cdUnique = True
     }
 
@@ -3385,7 +3480,7 @@ investments =
   (asset "05233" "Investments" 1 Rogue)
     { cdSkills = [#intellect]
     , cdCardTraits = singleton Connection
-    , cdUses = UsesWithLimit Supply (Static 0) (Static 10)
+    , cdUses = UsesWithLimit Supply (Fixed 0) (Fixed 10)
     }
 
 deVermisMysteriis2 :: CardDef
@@ -4815,7 +4910,7 @@ butterflySwords2 =
 
 combatTraining3 :: CardDef
 combatTraining3 =
-  (asset "08027" "Combat Training" 1 Guardian)
+  (asset "08027" "Combat Training" 0 Guardian)
     { cdSkills = [#combat, #combat, #agility, #agility]
     , cdCardTraits = setFromList [Talent, Composure]
     , cdLimits = [LimitPerTrait Composure 1]
@@ -4842,7 +4937,7 @@ forcedLearning =
 
 jeremiahKirbyArcticArchaeologist :: CardDef
 jeremiahKirbyArcticArchaeologist =
-  (asset "08032" ("Jeremiah Kirby" <:> "Artic Archaeologist") 4 Seeker)
+  (asset "08032" ("Jeremiah Kirby" <:> "Arctic Archaeologist") 4 Seeker)
     { cdCardTraits = setFromList [Ally, Miskatonic, Wayfarer]
     , cdSkills = [#intellect]
     , cdSlots = [#ally]
@@ -4865,6 +4960,7 @@ hikingBoots1 =
     { cdCardTraits = setFromList [Item, Clothing, Footwear]
     , cdSkills = [#agility]
     , cdLimits = [LimitPerTrait Footwear 1]
+    , cdLevel = Just 1
     }
 
 medicalTexts2 :: CardDef
@@ -4913,7 +5009,7 @@ archiveOfConduitsGatewayToAldebaran4 :: CardDef
 archiveOfConduitsGatewayToAldebaran4 =
   (asset "08043" ("Archive of Conduits" <:> "Gateway to Aldebaran") 4 Seeker)
     { cdCardTraits = setFromList [Ritual]
-    , cdSkills = [#intellect, #intellect, #wild]
+    , cdSkills = [#agility, #agility, #wild]
     , cdSlots = [#arcane]
     , cdDeckRestrictions = [PerDeckLimit 1]
     , cdLevel = Just 4
@@ -4925,7 +5021,7 @@ archiveOfConduitsGatewayToParadise4 :: CardDef
 archiveOfConduitsGatewayToParadise4 =
   (asset "08044" ("Archive of Conduits" <:> "Gateway to Paradise") 4 Seeker)
     { cdCardTraits = setFromList [Ritual]
-    , cdSkills = [#intellect, #intellect, #wild]
+    , cdSkills = [#willpower, #willpower, #wild]
     , cdSlots = [#arcane]
     , cdDeckRestrictions = [PerDeckLimit 1]
     , cdLevel = Just 4
@@ -4940,6 +5036,7 @@ prophesiaeProfanaAtlasOfTheUnknowable5 =
     , cdCardTraits = setFromList [Item, Relic, Tome]
     , cdSlots = [#hand]
     , cdLevel = Just 5
+    , cdUnique = True
     }
 
 underworldSupport :: CardDef
@@ -5012,12 +5109,31 @@ dragonPole =
 
 closeTheCircle1 :: CardDef
 closeTheCircle1 =
-  (asset "08062" "Close the Circle" 3 Mystic)
+  (asset "08062" "Close the Circle" 2 Mystic)
     { cdCardTraits = setFromList [Ritual, Synergy]
     , cdSkills = [#combat, #agility]
     , cdSlots = [#arcane]
     , cdLevel = Just 1
-    , cdUses = uses Charge 0
+    , cdUses = Uses Charge (DifferentClassAmong $ oneOf [InPlayAreaOf You, IsThisCard])
+    }
+
+astronomicalAtlas3 :: CardDef
+astronomicalAtlas3 =
+  (asset "08067" "Astronomical Atlas" 3 Mystic)
+    { cdSkills = [#willpower, #intellect, #intellect]
+    , cdCardTraits = setFromList [Item, Tome]
+    , cdSlots = [#hand]
+    , cdLevel = Just 3
+    }
+
+healingWords3 :: CardDef
+healingWords3 =
+  (asset "08068" "Healing Words" 2 Mystic)
+    { cdSkills = [#willpower, #willpower]
+    , cdCardTraits = singleton Spell
+    , cdUses = uses Charge 4
+    , cdSlots = [#arcane]
+    , cdLevel = Just 3
     }
 
 grounded3 :: CardDef
@@ -5027,6 +5143,17 @@ grounded3 =
     , cdCardTraits = setFromList [Talent, Composure]
     , cdLimits = [LimitPerTrait Composure 1]
     , cdLevel = Just 3
+    }
+
+trueMagickReworkingReality5 :: CardDef
+trueMagickReworkingReality5 =
+  (asset "08070" ("True Magick" <:> "Reworking Reality") 4 Mystic)
+    { cdSkills = [#willpower, #willpower, #wild]
+    , cdCardTraits = setFromList [Item, Relic, Tome]
+    , cdUses = uses Charge 1
+    , cdLevel = Just 5
+    , cdSlots = [#hand, #arcane]
+    , cdUnique = True
     }
 
 shortSupply :: CardDef
@@ -5063,6 +5190,15 @@ bangleOfJinxes1 =
     , cdLevel = Just 1
     }
 
+fireExtinguisher3 :: CardDef
+fireExtinguisher3 =
+  (asset "08080" "Fire Extinguisher" 2 Survivor)
+    { cdCardTraits = setFromList [Item, Tool, Melee]
+    , cdSkills = [#agility, #agility]
+    , cdLevel = Just 3
+    , cdSlots = [#hand]
+    }
+
 plucky3 :: CardDef
 plucky3 =
   (asset "08081" "Plucky" 0 Survivor)
@@ -5091,6 +5227,25 @@ michaelLeigh5 =
     , cdLevel = Just 5
     }
 
+oldShotgun2 :: CardDef
+oldShotgun2 =
+  (multiClassAsset "08088" "Old Shotgun" 0 [Guardian, Rogue])
+    { cdSkills = [#combat]
+    , cdCardTraits = setFromList [Item, Weapon, Firearm]
+    , cdSlots = [#hand, #hand]
+    , cdUses = Uses Ammo (DuringEventCalculation (Fixed 2) (Fixed 0))
+    , cdLevel = Just 2
+    }
+
+quickdrawHolster4 :: CardDef
+quickdrawHolster4 =
+  (multiClassAsset "08089" "Quickdraw Holster" 4 [Guardian, Rogue])
+    { cdSkills = [#combat, #agility, #agility]
+    , cdCardTraits = setFromList [Item, Tool, Illicit]
+    , cdSlots = [#body]
+    , cdLevel = Just 4
+    }
+
 brandOfCthugha1 :: CardDef
 brandOfCthugha1 =
   (multiClassAsset "08090" "Brand of Cthugha" 2 [Guardian, Mystic])
@@ -5101,14 +5256,33 @@ brandOfCthugha1 =
     , cdSlots = [#arcane]
     }
 
+nkosiMabatiEnigmaticWarlock3 :: CardDef
+nkosiMabatiEnigmaticWarlock3 =
+  (multiClassAsset "08091" ("Nkosi Mabati" <:> "Enigmatic Warlock") 4 [Guardian, Mystic])
+    { cdSkills = [#willpower, #willpower]
+    , cdCardTraits = setFromList [Ally, Sorcerer]
+    , cdLevel = Just 3
+    , cdSlots = [#ally]
+    , cdUnique = True
+    }
+
 brandOfCthugha4 :: CardDef
 brandOfCthugha4 =
   (multiClassAsset "08092" "Brand of Cthugha" 2 [Guardian, Mystic])
-    { cdSkills = [#combat, #willpower]
+    { cdSkills = [#willpower, #combat]
     , cdCardTraits = setFromList [Spell]
     , cdLevel = Just 4
     , cdUses = uses Charge 9
     , cdSlots = [#arcane]
+    }
+
+cyclopeanHammer5 :: CardDef
+cyclopeanHammer5 =
+  (multiClassAsset "08093" "Cyclopean Hammer" 5 [Guardian, Mystic])
+    { cdSkills = [#willpower, #willpower, #combat, #combat]
+    , cdCardTraits = setFromList [Item, Weapon, Relic, Melee]
+    , cdLevel = Just 5
+    , cdSlots = [#hand, #hand]
     }
 
 sledgehammer :: CardDef
@@ -5119,12 +5293,22 @@ sledgehammer =
     , cdSlots = [#hand, #hand]
     }
 
+protectiveGear2 :: CardDef
+protectiveGear2 =
+  (multiClassAsset "08095" "Protective Gear" 4 [Guardian, Survivor])
+    { cdSkills = [#willpower, #agility]
+    , cdCardTraits = setFromList [Item, Armor]
+    , cdSlots = [#body]
+    , cdLevel = Just 2
+    }
+
 sledgehammer4 :: CardDef
 sledgehammer4 =
   (multiClassAsset "08096" "Sledgehammer" 3 [Guardian, Survivor])
     { cdSkills = [#combat, #combat, #combat]
     , cdCardTraits = setFromList [Item, Tool, Weapon, Melee]
     , cdSlots = [#hand, #hand]
+    , cdLevel = Just 4
     }
 
 pocketTelescope :: CardDef
@@ -5165,10 +5349,101 @@ eonChart4 =
     , cdSlots = [#accessory]
     }
 
+divination1 :: CardDef
+divination1 =
+  (multiClassAsset "08101" "Divination" 3 [Seeker, Mystic])
+    { cdCardTraits = setFromList [Spell, Augury]
+    , cdSkills = [#intellect]
+    , cdUses = uses Charge 4
+    , cdLevel = Just 1
+    , cdSlots = [#arcane]
+    }
+
+divination4 :: CardDef
+divination4 =
+  (multiClassAsset "08103" "Divination" 3 [Seeker, Mystic])
+    { cdCardTraits = setFromList [Spell, Augury]
+    , cdSkills = [#willpower, #intellect]
+    , cdUses = uses Charge 6
+    , cdLevel = Just 4
+    , cdSlots = [#arcane]
+    }
+
+professorWilliamWebbFinderOfHiddenConnections :: CardDef
+professorWilliamWebbFinderOfHiddenConnections =
+  ( multiClassAsset
+      "08104"
+      ("Professor William Webb" <:> "Finder of Hidden Connections")
+      3
+      [Seeker, Survivor]
+  )
+    { cdCardTraits = setFromList [Ally, Miskatonic]
+    , cdSkills = [#intellect]
+    , cdUses = uses Secret 3
+    , cdSlots = [#ally]
+    , cdUnique = True
+    }
+
+icePick1 :: CardDef
+icePick1 =
+  fast
+    (multiClassAsset "08105" "Ice Pick" 1 [Seeker, Survivor])
+      { cdCardTraits = setFromList [Item, Melee, Tool]
+      , cdSkills = [#combat]
+      , cdSlots = [#hand]
+      , cdLevel = Just 1
+      }
+
+professorWilliamWebbFinderOfHiddenConnections2 :: CardDef
+professorWilliamWebbFinderOfHiddenConnections2 =
+  ( multiClassAsset
+      "08106"
+      ("Professor William Webb" <:> "Finder of Hidden Connections")
+      3
+      [Seeker, Survivor]
+  )
+    { cdCardTraits = setFromList [Ally, Miskatonic]
+    , cdSkills = [#intellect, #wild]
+    , cdUses = uses Secret 3
+    , cdLevel = Just 2
+    , cdSlots = [#ally]
+    , cdUnique = True
+    }
+
+icePick3 :: CardDef
+icePick3 =
+  fast
+    (multiClassAsset "08107" "Ice Pick" 1 [Seeker, Survivor])
+      { cdCardTraits = setFromList [Item, Melee, Tool]
+      , cdSkills = [#intellect, #combat]
+      , cdSlots = [#hand]
+      , cdLevel = Just 3
+      }
+
+blur1 :: CardDef
+blur1 =
+  (multiClassAsset "08109" "Blur" 2 [Rogue, Mystic])
+    { cdCardTraits = setFromList [Spell]
+    , cdSkills = [#agility]
+    , cdSlots = [#arcane]
+    , cdUses = uses Charge 3
+    , cdLevel = Just 1
+    }
+
+blur4 :: CardDef
+blur4 =
+  (multiClassAsset "08111" "Blur" 2 [Rogue, Mystic])
+    { cdCardTraits = setFromList [Spell]
+    , cdSkills = [#willpower, #agility]
+    , cdSlots = [#arcane]
+    , cdUses = uses Charge 3
+    , cdLevel = Just 4
+    }
+
 unscrupulousLoan3 :: CardDef
 unscrupulousLoan3 =
   (multiClassAsset "08113" "Unscrupulous Loan" 0 [Rogue, Survivor])
-    { cdCardTraits = setFromList [Item, Charm, Blessed]
+    { cdCardTraits = setFromList [Pact]
     , cdLimits = [LimitPerInvestigator 1]
     , cdLevel = Just 3
     }
@@ -5201,6 +5476,36 @@ talismanOfProtection =
       , cdSkills = [#willpower]
       , cdSlots = [#arcane]
       }
+
+earthlySerenity1 :: CardDef
+earthlySerenity1 =
+  (multiClassAsset "08117" "Earthly Serenity" 2 [Mystic, Survivor])
+    { cdCardTraits = setFromList [Spell]
+    , cdSkills = [#willpower]
+    , cdSlots = [#arcane]
+    , cdUses = uses Charge 4
+    , cdLevel = Just 1
+    }
+
+enchantedBow2 :: CardDef
+enchantedBow2 =
+  (multiClassAsset "08118" "Enchanted Bow" 3 [Mystic, Survivor])
+    { cdCardTraits = setFromList [Spell, Blessed, Weapon, Ranged]
+    , cdSkills = [#willpower, #agility]
+    , cdSlots = [#hand, #hand, #arcane]
+    , cdUses = uses Charge 3
+    , cdLevel = Just 2
+    }
+
+earthlySerenity4 :: CardDef
+earthlySerenity4 =
+  (multiClassAsset "08119" "Earthly Serenity" 2 [Mystic, Survivor])
+    { cdCardTraits = setFromList [Spell]
+    , cdSkills = [#willpower, #willpower]
+    , cdSlots = [#arcane]
+    , cdUses = uses Charge 6
+    , cdLevel = Just 4
+    }
 
 prophetic3 :: CardDef
 prophetic3 =
@@ -5240,7 +5545,7 @@ crafty3 =
 
 antiquary3 :: CardDef
 antiquary3 =
-  (multiClassAsset "08124" "Crafty" 3 [Seeker, Rogue, Mystic])
+  (multiClassAsset "08124" "Antiquary" 3 [Seeker, Rogue, Mystic])
     { cdSkills = [#wild]
     , cdCardTraits = setFromList [Talent]
     , cdLevel = Just 3
@@ -5254,6 +5559,14 @@ inTheThickOfIt =
       { cdCardTraits = singleton Curse
       , cdPurchaseTrauma = PurchaseAnyTrauma 2
       }
+
+heavyFurs :: CardDef
+heavyFurs =
+  (asset "08126" "Heavy Furs" 2 Neutral)
+    { cdSkills = [#combat]
+    , cdCardTraits = setFromList [Item, Armor]
+    , cdSlots = [#body]
+    }
 
 sledDog :: CardDef
 sledDog =
@@ -5274,12 +5587,114 @@ rodOfAnimalism1 =
     , cdUnique = True
     }
 
+bonesaw :: CardDef
+bonesaw =
+  signature "09004"
+    $ (asset "09005" "Bonesaw" 3 Neutral)
+      { cdCardTraits = setFromList [Item, Tool, Melee]
+      , cdSkills = [#intellect, #combat, #wild]
+      , cdSlots = [#hand]
+      }
+
+woundedBystanderOnDeathsDoorstep :: CardDef
+woundedBystanderOnDeathsDoorstep =
+  (weakness "09007" ("Wounded Bystander" <:> "On Death's Doorstep"))
+    { cdCardTraits = setFromList [Ally, Bystander]
+    }
+
+grapplingHook :: CardDef
+grapplingHook =
+  signature "09008"
+    $ (asset "09009" "Grappling Hook" 3 Neutral)
+      { cdCardTraits = setFromList [Item, Tool]
+      , cdSkills = [#intellect, #agility, #wild]
+      , cdSlots = [#hand]
+      }
+
+darrellsKodak :: CardDef
+darrellsKodak =
+  signature "09015"
+    $ (asset "09016" ("Darrell's Kodak" <:> "Proof in the Pudding") 2 Neutral)
+      { cdCardTraits = setFromList [Item, Tool]
+      , cdSkills = [#intellect, #agility, #wild]
+      }
+
+bonnieWalshLoyalAssistant :: CardDef
+bonnieWalshLoyalAssistant =
+  signature "09018"
+    $ (asset "09019" ("Bonnie Walsh" <:> "Loyal Assistant") 3 Neutral)
+      { cdCardTraits = setFromList [Ally, Civic, Assistant]
+      , cdSkills = [#wild, #wild]
+      , cdUnique = True
+      }
+
+huntersArmor :: CardDef
+huntersArmor =
+  (asset "09021" "Hunter's Armor" 4 Guardian)
+    { cdCardTraits = setFromList [Item, Armor]
+    , cdSkills = [#willpower]
+    , cdSlots = [#body]
+    , cdKeywords = setFromList [Keyword.Customizable]
+    , cdCardInHandEffects = True
+    , cdCustomizations =
+        mapFromList
+          [ (Enchanted, 1)
+          , (ProtectiveRunes, 2)
+          , (Durable, 2)
+          , (Hallowed, 2)
+          , (Lightweight, 2)
+          , (Hexdrinker, 3)
+          , (ArmorOfThorns, 3)
+          ]
+    }
+
 runicAxe :: CardDef
 runicAxe =
-  (asset "09022" "Runix Axe" 4 Guardian)
+  (asset "09022" "Runic Axe" 4 Guardian)
     { cdCardTraits = setFromList [Item, Weapon, Melee]
     , cdSkills = [#combat]
     , cdSlots = [#hand, #hand]
+    , cdUses = uses Charge 4
+    , cdUnique = True
+    , cdKeywords = setFromList [Keyword.Customizable]
+    , cdCustomizations =
+        mapFromList
+          [ (Heirloom, 1)
+          , (InscriptionOfGlory, 1)
+          , (InscriptionOfTheElders, 1)
+          , (InscriptionOfTheHunt, 1)
+          , (InscriptionOfFury, 1)
+          , (AncientPower, 3)
+          , (Saga, 3)
+          , (Scriptweaver, 4)
+          ]
+    }
+
+obsidianBracelet :: CardDef
+obsidianBracelet =
+  (asset "09024" "Obsidian Bracelet" 3 Guardian)
+    { cdSkills = [#willpower]
+    , cdCardTraits = setFromList [Item, Charm]
+    , cdSlots = [#hand]
+    }
+
+bestowResolve2 :: CardDef
+bestowResolve2 =
+  (asset "09032" "Bestow Resolve" 2 Guardian)
+    { cdSkills = [#willpower]
+    , cdCardTraits = setFromList [Ritual]
+    , cdSlots = [#arcane]
+    , cdUses = uses Charge 4
+    , cdLevel = Just 2
+    }
+
+fieldAgent2 :: CardDef
+fieldAgent2 =
+  (asset "09033" "Field Agent" 4 Guardian)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Ally, Agency]
+    , cdSlots = [#ally]
+    , cdLevel = Just 2
     }
 
 guardDog2 :: CardDef
@@ -5299,6 +5714,44 @@ handcuffs2 =
       , cdSkills = [#combat, #agility]
       , cdLevel = Just 2
       }
+
+martyrsVambraceRemnantOfTheUnknown3 :: CardDef
+martyrsVambraceRemnantOfTheUnknown3 =
+  (asset "09037" ("Martyr's Vambrace" <:> "Remnant of the Unknown") 2 Guardian)
+    { cdSkills = [#willpower, #wild]
+    , cdCardTraits = setFromList [Item, Charm, Armor]
+    , cdSlots = [#accessory]
+    , cdLevel = Just 3
+    }
+
+girishKadakiaIcpcPunjabDetective4 :: CardDef
+girishKadakiaIcpcPunjabDetective4 =
+  (asset "09038" ("Girish Kadakia" <:> "ICPC Punjab Detective") 4 Guardian)
+    { cdSkills = [#willpower, #wild]
+    , cdCardTraits = setFromList [Ally, Police]
+    , cdSlots = [#ally]
+    , cdLevel = Just 4
+    }
+
+alchemicalDistillation :: CardDef
+alchemicalDistillation =
+  (asset "09040" "Alchemical Distillation" 2 Seeker)
+    { cdCardTraits = setFromList [Item, Science]
+    , cdSkills = [#willpower]
+    , cdSlots = [#hand]
+    , cdUses = uses Supply 3
+    , cdKeywords = setFromList [Keyword.Customizable]
+    , cdCustomizations =
+        mapFromList
+          [ (MendingDistillate, 1)
+          , (CalmingDistillate, 1)
+          , (EnlighteningDistillate, 1)
+          , (QuickeningDistillate, 1)
+          , (Refined, 2)
+          , (Empowered, 4)
+          , (Perfected, 5)
+          ]
+    }
 
 empiricalHypothesis :: CardDef
 empiricalHypothesis =
@@ -5321,6 +5774,78 @@ empiricalHypothesis =
           ]
     }
 
+dissectionTools :: CardDef
+dissectionTools =
+  (asset "09043" "Dissection Tools" 2 Seeker)
+    { cdSkills = [#agility]
+    , cdCardTraits = setFromList [Item, Tool, Science]
+    , cdSlots = [#hand]
+    }
+
+grimMemoir :: CardDef
+grimMemoir =
+  (asset "09044" "Grim Memoir" 3 Seeker)
+    { cdSkills = [#intellect]
+    , cdCardTraits = setFromList [Item, Tome]
+    , cdSlots = [#hand]
+    , cdUses = uses Secret 4
+    }
+
+researchNotes :: CardDef
+researchNotes =
+  (asset "09045" "Research Notes" 1 Seeker)
+    { cdSkills = [#intellect]
+    , cdCardTraits = setFromList [Item, Tome, Science]
+    , cdSlots = [#hand]
+    }
+
+labCoat1 :: CardDef
+labCoat1 =
+  (asset "09050" "Lab Coat" 2 Seeker)
+    { cdCardTraits = setFromList [Item, Clothing, Science]
+    , cdSkills = [#willpower]
+    , cdSlots = [#body]
+    , cdLevel = Just 1
+    }
+
+orphicTheory1 :: CardDef
+orphicTheory1 =
+  (asset "09051" "Orphic Theory" 2 Seeker)
+    { cdCardTraits = setFromList [Spell]
+    , cdSkills = [#intellect]
+    , cdSlots = [#arcane]
+    , cdLevel = Just 1
+    , cdUses = uses Secret 4
+    }
+
+drWilliamTMaleson2 :: CardDef
+drWilliamTMaleson2 =
+  (asset "09054" ("Dr. William T. Maleson" <:> "Working on Something Big") 1 Seeker)
+    { cdSkills = [#willpower, #intellect]
+    , cdCardTraits = setFromList [Ally, Miskatonic]
+    , cdUnique = True
+    , cdSlots = [#ally]
+    , cdLevel = Just 2
+    }
+
+pressPass2 :: CardDef
+pressPass2 =
+  (asset "09055" "Press Pass" 4 Seeker)
+    { cdSkills = [#willpower, #agility]
+    , cdCardTraits = setFromList [Item, Charm]
+    , cdSlots = [#accessory]
+    , cdLevel = Just 2
+    }
+
+surgicalKit3 :: CardDef
+surgicalKit3 =
+  (asset "09056" "Surgical Kit" 2 Seeker)
+    { cdSkills = [#intellect, #intellect]
+    , cdCardTraits = setFromList [Item, Tool, Science]
+    , cdUses = uses Supply 4
+    , cdLevel = Just 2
+    }
+
 fingerprintKit4 :: CardDef
 fingerprintKit4 =
   (asset "09057" "Fingerprint Kit" 5 Seeker)
@@ -5329,6 +5854,67 @@ fingerprintKit4 =
     , cdSlots = [#hand]
     , cdUses = uses Supply 3
     , cdLevel = Just 4
+    }
+
+graysAnatomyTheDoctorsBible5 :: CardDef
+graysAnatomyTheDoctorsBible5 =
+  (asset "09058" ("Gray's Anatomy" <:> "The Doctor's Bible") 3 Seeker)
+    { cdCardTraits = setFromList [Item, Tome]
+    , cdSkills = [#willpower, #intellect, #wild]
+    , cdSlots = [#hand]
+    , cdLevel = Just 5
+    }
+
+damningTestimony :: CardDef
+damningTestimony =
+  (asset "09059" "Damning Testimony" 4 Rogue)
+    { cdCardTraits = setFromList [Item, Illicit]
+    , cdSkills = [#intellect]
+    , cdKeywords = setFromList [Keyword.Customizable]
+    , cdUses = uses Evidence 3
+    , cdSlots = [#hand]
+    , cdCustomizations =
+        mapFromList
+          [ (SearchWarrant, 1)
+          , (FabricatedEvidence, 2)
+          , (Blackmail, 2)
+          , (Extort, 3)
+          , (Surveil, 3)
+          , (Expose, 4)
+          ]
+    }
+
+disguise :: CardDef
+disguise =
+  (asset "09062" "Disguise" 3 Rogue)
+    { cdSkills = [#agility]
+    , cdCardTraits = setFromList [Talent, Trick, Illicit]
+    , cdUses = uses Supply 4
+    }
+
+embezzeledTreasure :: CardDef
+embezzeledTreasure =
+  (asset "09063" "Embezzeled Treasure" 0 Rogue)
+    { cdSkills = [#intellect]
+    , cdCardTraits = setFromList [Item, Illicit]
+    }
+
+thievesKit :: CardDef
+thievesKit =
+  (asset "09064" "Thieves' Kit" 3 Rogue)
+    { cdSkills = [#intellect]
+    , cdCardTraits = setFromList [Item, Tool, Illicit]
+    , cdUses = uses Supply 6
+    , cdSlots = [#hand]
+    }
+
+stylishCoat1 :: CardDef
+stylishCoat1 =
+  (asset "09071" "Stylish Coat" 2 Rogue)
+    { cdCardTraits = setFromList [Item, Clothing, Science]
+    , cdSkills = [#agility]
+    , cdSlots = [#body]
+    , cdLevel = Just 1
     }
 
 chuckFergus2 :: CardDef
@@ -5341,6 +5927,255 @@ chuckFergus2 =
     , cdUnique = True
     }
 
+dirtyFighting2 :: CardDef
+dirtyFighting2 =
+  (asset "09073" "Dirty Fighting" 3 Rogue)
+    { cdCardTraits = setFromList [Talent, Trick, Illicit]
+    , cdSkills = [#combat]
+    , cdLevel = Just 2
+    , cdLimits = [LimitPerInvestigator 1]
+    }
+
+thievesKit3 :: CardDef
+thievesKit3 =
+  (asset "09075" "Thieves' Kit" 3 Rogue)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Item, Tool, Illicit]
+    , cdUses = uses Supply 6
+    , cdSlots = [#hand]
+    , cdLevel = Just 3
+    }
+
+triggerMan3 :: CardDef
+triggerMan3 =
+  (asset "09076" "Trigger Man" 4 Rogue)
+    { cdCardTraits = setFromList [Ally, Criminal]
+    , cdSkills = [#combat]
+    , cdLevel = Just 3
+    , cdSlots = [#ally]
+    }
+
+underworldMarket2 :: CardDef
+underworldMarket2 =
+  permanent
+    $ (asset "09077" "Underworld Market" 0 Rogue)
+      { cdCardTraits = setFromList [Connection, Illicit]
+      , cdExceptional = True
+      , cdLevel = Just 2
+      }
+
+livingInk :: CardDef
+livingInk =
+  (asset "09079" "Living Ink" 0 Mystic)
+    { cdCardTraits = setFromList [Ritual]
+    , cdKeywords = setFromList [Keyword.Customizable]
+    , cdUses = uses Charge 3
+    , cdSlots = [#body]
+    , cdCustomizations =
+        mapFromList
+          [ (ChoicePlaceholder, 0)
+          , (ShiftingInk, 1)
+          , (SubtleDepiction, 1)
+          , (ImbuedInk, 2)
+          , (EldritchInk, 2)
+          , (EldritchInk2, 3)
+          , (MacabreDepiction, 3)
+          , (Vibrancy, 3)
+          ]
+    }
+
+summonedServitor :: CardDef
+summonedServitor =
+  (asset "09080" "Summoned Servitor" 2 Mystic)
+    { cdCardTraits = setFromList [Ritual]
+    , cdSkills = [#willpower]
+    , cdKeywords = setFromList [Keyword.Customizable]
+    , cdSlots = [#ally, #arcane]
+    , cdUnique = True
+    , cdCardInHandEffects = True
+    , cdAdditionalCost =
+        Just
+          $ CostIfCustomization
+            DreamingCall
+            ( OrCost
+                [ReturnMatchingAssetToHandCost $ AssetControlledBy You, DiscardAssetCost $ AssetControlledBy You]
+            )
+            (DiscardAssetCost $ AssetControlledBy You)
+    , cdCustomizations =
+        mapFromList
+          [ (ArmoredCarapace, 1)
+          , (ClawsThatCatch, 1)
+          , (JawsThatSnatch, 1)
+          , (EyesOfFlame, 1)
+          , (WingsOfNight, 1)
+          , (Dominance, 2)
+          , (DreamingCall, 3)
+          , (DæmonicInfluence, 5)
+          ]
+    }
+
+ceremonialSickle :: CardDef
+ceremonialSickle =
+  (asset "09082" "Ceremonial Sickle" 3 Mystic)
+    { cdSkills = [#combat]
+    , cdCardTraits = setFromList [Item, Charm, Weapon, Melee]
+    , cdSlots = [#hand]
+    }
+
+dowsingRod :: CardDef
+dowsingRod =
+  (asset "09083" "Dowsing Rod" 4 Mystic)
+    { cdSkills = [#intellect]
+    , cdCardTraits = setFromList [Item, Charm]
+    , cdSlots = [#hand]
+    }
+
+hallowedChalice :: CardDef
+hallowedChalice =
+  (asset "09084" "Hallowed Chalice" 3 Mystic)
+    { cdSkills = [#willpower]
+    , cdCardTraits = setFromList [Item, Charm]
+    , cdSlots = [#hand]
+    }
+
+onyxPentacle :: CardDef
+onyxPentacle =
+  (asset "09085" "Onyx Pentacle" 3 Mystic)
+    { cdSkills = [#agility]
+    , cdCardTraits = setFromList [Item, Charm]
+    , cdSlots = [#hand]
+    }
+
+bindersJarInterdimensionalPrison1 :: CardDef
+bindersJarInterdimensionalPrison1 =
+  (asset "09089" ("Binders Jar" <:> "Interdimensional Prison") 2 Mystic)
+    { cdSkills = [#willpower]
+    , cdCardTraits = setFromList [Item, Relic]
+    , cdSlots = [#accessory]
+    , cdUnique = True
+    , cdLevel = Just 1
+    }
+
+astralMirror2 :: CardDef
+astralMirror2 =
+  (asset "09091" "Astral Mirror" 3 Mystic)
+    { cdSkills = [#combat]
+    , cdCardTraits = setFromList [Ritual]
+    , cdSlots = [#body]
+    , cdLevel = Just 2
+    }
+
+elleRubashPurifyingPurpose2 :: CardDef
+elleRubashPurifyingPurpose2 =
+  (asset "09092" ("Elle Rubash" <:> "Purifying Purpose") 3 Mystic)
+    { cdSkills = [#willpower, #agility]
+    , cdCardTraits = setFromList [Ally, Witch]
+    , cdSlots = [#ally]
+    , cdLevel = Just 2
+    , cdUnique = True
+    }
+
+sinEater3 :: CardDef
+sinEater3 =
+  permanent
+    $ (asset "09094" "Sin-Eater" 0 Mystic)
+      { cdCardTraits = setFromList [Ritual]
+      , cdLevel = Just 3
+      , cdExceptional = True
+      }
+
+ceremonialSickle4 :: CardDef
+ceremonialSickle4 =
+  (asset "09096" "Ceremonial Sickle" 3 Mystic)
+    { cdSkills = [#combat, #combat]
+    , cdCardTraits = setFromList [Item, Charm, Weapon, Melee]
+    , cdSlots = [#hand]
+    , cdLevel = Just 4
+    }
+
+dowsingRod4 :: CardDef
+dowsingRod4 =
+  (asset "09097" "Dowsing Rod" 4 Mystic)
+    { cdSkills = [#intellect, #intellect]
+    , cdCardTraits = setFromList [Item, Charm]
+    , cdSlots = [#hand]
+    , cdLevel = Just 4
+    }
+
+onyxPentacle4 :: CardDef
+onyxPentacle4 =
+  (asset "09098" "Onyx Pentacle" 3 Mystic)
+    { cdSkills = [#agility, #agility]
+    , cdCardTraits = setFromList [Item, Charm]
+    , cdSlots = [#hand]
+    , cdLevel = Just 4
+    }
+
+pocketMultiTool :: CardDef
+pocketMultiTool =
+  (asset "09099" "Pocket Multi Tool" 3 Survivor)
+    { cdCardTraits = setFromList [Item, Tool]
+    , cdSkills = [#wild]
+    , cdKeywords = setFromList [Keyword.Customizable]
+    , cdSlots = [#hand]
+    , cdLimits = [LimitPerInvestigator 1]
+    , cdCustomizations =
+        mapFromList
+          [ (Detachable, 1)
+          , (PryBar, 1)
+          , (SharpenedKnife, 2)
+          , (SignalMirror, 2)
+          , (MagnifyingLens, 2)
+          , (LuckyCharm, 3)
+          , (SpringLoaded, 4)
+          ]
+    }
+
+idolOfXanatosWatcherBeyondTime :: CardDef
+idolOfXanatosWatcherBeyondTime =
+  (asset "09102" ("Idol of Xanatos" <:> "Watcher Beyond Time") 3 Survivor)
+    { cdSkills = [#willpower]
+    , cdCardTraits = setFromList [Item, Relic]
+    , cdSlots = [#accessory]
+    }
+
+improvisedShield :: CardDef
+improvisedShield =
+  (asset "09103" "Improvised Shield" 1 Survivor)
+    { cdCardTraits = setFromList [Item, Armor, Improvised]
+    , cdSlots = [#hand]
+    , cdCriteria = Just Criteria.InYourDiscard
+    , cdPlayableFromDiscard = True
+    }
+
+baseballBat2 :: CardDef
+baseballBat2 =
+  (asset "09113" "Baseball Bat" 2 Survivor)
+    { cdSkills = [#combat, #combat]
+    , cdCardTraits = setFromList [Item, Weapon, Melee]
+    , cdSlots = [#hand, #hand]
+    }
+
+katjaEastbankKeeperOfEsotericLore2 :: CardDef
+katjaEastbankKeeperOfEsotericLore2 =
+  (asset "09114" ("Katja Eastbank" <:> "Keeper of Esoteric Lore") 3 Survivor)
+    { cdSkills = [#willpower, #intellect]
+    , cdCardTraits = setFromList [Ally, Scholar]
+    , cdSlots = [#ally]
+    , cdLevel = Just 2
+    , cdUnique = True
+    }
+
+oldKeyring3 :: CardDef
+oldKeyring3 =
+  (asset "09117" "Old Keyring" 1 Survivor)
+    { cdSkills = [#intellect, #intellect]
+    , cdCardTraits = setFromList [Item, Tool]
+    , cdUses = uses Uses.Key 3
+    , cdSlots = [#hand]
+    , cdLevel = Just 3
+    }
+
 hyperphysicalShotcasterTheoreticalDevice :: CardDef
 hyperphysicalShotcasterTheoreticalDevice =
   (asset "09119" ("Hyperphysical Shotcaster" <:> "Theoretical Device") 4 Neutral)
@@ -5348,6 +6183,7 @@ hyperphysicalShotcasterTheoreticalDevice =
     , cdSkills = [#wild]
     , cdKeywords = setFromList [Keyword.Customizable]
     , cdUses = uses Aether 4
+    , cdUnique = True
     , cdCustomizations =
         mapFromList
           [ (Railshooter, 2)
@@ -5360,6 +6196,81 @@ hyperphysicalShotcasterTheoreticalDevice =
           ]
     }
 
+toolBelt :: CardDef
+toolBelt =
+  (asset "09120" "Tool Belt" 2 Neutral)
+    { cdCardTraits = setFromList [Item, Clothing]
+    , cdSlots = [#body]
+    }
+
+flashlight3 :: CardDef
+flashlight3 =
+  (asset "09122" "Flashlight" 2 Neutral)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Item, Tool]
+    , cdUses = uses Supply 4
+    , cdSlots = [#hand]
+    , cdLevel = Just 3
+    }
+
+soulSanctification3 :: CardDef
+soulSanctification3 =
+  permanent
+    (asset "09123" "Soul Sanctification" 0 Neutral)
+      { cdCardTraits = setFromList [Ritual]
+      , cdLevel = Just 3
+      }
+
+fluxStabilizerInactive :: CardDef
+fluxStabilizerInactive =
+  signature "10004"
+    $ permanent
+    $ (asset "10005" ("Flux Stablizer" <:> "Inactive") 0 Guardian)
+      { cdCardTraits = setFromList [Item, Tool, Science]
+      , cdUnique = True
+      , cdBondedWith = [(1, "10006"), (1, "10007")]
+      , cdOtherSide = Just "10005b"
+      }
+
+fluxStabilizerActive :: CardDef
+fluxStabilizerActive =
+  signature "10004"
+    $ permanent
+    $ (asset "10005b" ("Flux Stablizer" <:> "Active") 0 Guardian)
+      { cdCardTraits = setFromList [Item, Tool, Science]
+      , cdUnique = True
+      , cdBondedWith = [(1, "10006"), (1, "10007")]
+      , cdOtherSide = Just "10005"
+      }
+
+cleaningKit :: CardDef
+cleaningKit =
+  (asset "10020" "Cleaning Kit" 3 Guardian)
+    { cdSkills = [#intellect]
+    , cdCardTraits = setFromList [Item, Tool]
+    , cdSlots = [#accessory]
+    , cdUses = uses Supply 3
+    }
+
+wolfMaskTheMoonsSire :: CardDef
+wolfMaskTheMoonsSire =
+  (asset "10023" ("Wolf Mask" <:> "The Moon's Sire") 1 Guardian)
+    { cdSkills = [#combat, #agility]
+    , cdCardTraits = setFromList [Item, Charm, Mask]
+    , cdUses = uses Offering 2
+    , cdLimits = [LimitPerTrait Mask 1]
+    }
+
+cleaningKit3 :: CardDef
+cleaningKit3 =
+  (asset "10033" "Cleaning Kit" 3 Guardian)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Item, Tool]
+    , cdSlots = [#accessory]
+    , cdUses = uses Supply 4
+    , cdLevel = Just 3
+    }
+
 blessedBlade4 :: CardDef
 blessedBlade4 =
   (asset "10034" "Blessed Blade" 3 Guardian)
@@ -5369,6 +6280,133 @@ blessedBlade4 =
     , cdLevel = Just 4
     }
 
+microscope :: CardDef
+microscope =
+  (asset "10042" "Microscope" 2 Seeker)
+    { cdSkills = [#intellect]
+    , cdCardTraits = setFromList [Item, Tool, Science]
+    , cdSlots = [#hand]
+    }
+
+mouseMaskTheMeekWatcher :: CardDef
+mouseMaskTheMeekWatcher =
+  (asset "10043" ("Mouse Mask" <:> "The Meek Watcher") 1 Seeker)
+    { cdSkills = [#willpower, #intellect]
+    , cdCardTraits = setFromList [Item, Charm, Mask]
+    , cdUses = uses Offering 2
+    , cdLimits = [LimitPerTrait Mask 1]
+    }
+
+microscope4 :: CardDef
+microscope4 =
+  (asset "10058" "Microscope" 2 Seeker)
+    { cdSkills = [#intellect, #intellect]
+    , cdCardTraits = setFromList [Item, Tool, Science]
+    , cdSlots = [#hand]
+    , cdLevel = Just 4
+    }
+
+biancaDieKatzSingingYourSong :: CardDef
+biancaDieKatzSingingYourSong =
+  (asset "10062" ("Bianca \"Die Katz\"" <:> "Singing Your Song") 2 Rogue)
+    { cdSkills = [#agility]
+    , cdCardTraits = setFromList [Ally, Criminal, Socialite]
+    , cdDeckRestrictions = [PerDeckLimit 1]
+    , cdUses = uses Resource 10
+    , cdSlots = [#ally]
+    , cdBondedWith = [(1, "10063")]
+    }
+
+britishBullDog :: CardDef
+britishBullDog =
+  (asset "10065" "British Bull Dog" 3 Rogue)
+    { cdSkills = [#combat, #agility]
+    , cdCardTraits = setFromList [Item, Weapon, Firearm, Illicit]
+    , cdSlots = [#hand]
+    , cdUses = uses Ammo 3
+    , cdCardInHandEffects = True
+    }
+
+fakeCredentials :: CardDef
+fakeCredentials =
+  (asset "10066" "Fake Credentials" 3 Rogue)
+    { cdSkills = [#intellect]
+    , cdCardTraits = setFromList [Item, Illicit]
+    , cdSlots = [#hand]
+    }
+
+foxMaskTheWiseTrickster :: CardDef
+foxMaskTheWiseTrickster =
+  (asset "10067" ("Fox Mask" <:> "The Wise Trickster") 1 Rogue)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Item, Charm, Mask]
+    , cdUses = uses Offering 2
+    , cdLimits = [LimitPerTrait Mask 1]
+    }
+
+britishBullDog2 :: CardDef
+britishBullDog2 =
+  (asset "10077" "British Bull Dog" 3 Rogue)
+    { cdSkills = [#combat, #agility]
+    , cdCardTraits = setFromList [Item, Weapon, Firearm, Illicit]
+    , cdSlots = [#hand]
+    , cdUses = uses Ammo 3
+    , cdCardInHandEffects = True
+    , cdLevel = Just 2
+    }
+
+bewitching3 :: CardDef
+bewitching3 =
+  permanent
+    (asset "10079" "Bewitching" 0 Rogue)
+      { cdCardTraits = setFromList [Talent, Trick]
+      , cdExceptional = True
+      , cdLevel = Just 3
+      }
+
+fakeCredentials4 :: CardDef
+fakeCredentials4 =
+  (asset "10082" "Fake Credentials" 2 Rogue)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Item, Illicit]
+    , cdSlots = [#hand]
+    , cdLevel = Just 4
+    }
+
+catMaskTheCapriciousMeddler :: CardDef
+catMaskTheCapriciousMeddler =
+  (asset "10084" ("Cat Mask" <:> "The Capricious Meddler") 1 Mystic)
+    { cdSkills = [#willpower, #combat]
+    , cdCardTraits = setFromList [Item, Charm, Mask]
+    , cdUses = uses Offering 2
+    , cdLimits = [LimitPerTrait Mask 1]
+    }
+
+matchbox :: CardDef
+matchbox =
+  (asset "10108" "Matchbox" 1 Survivor)
+    { cdCardTraits = setFromList [Item, Tool]
+    , cdSkills = [#intellect]
+    , cdUses = uses Supply 3
+    }
+
+pitchfork :: CardDef
+pitchfork =
+  (asset "10110" "Pitchfork" 3 Survivor)
+    { cdCardTraits = setFromList [Item, Tool, Weapon, Melee]
+    , cdSkills = [#combat, #agility]
+    , cdSlots = [#hand, #hand]
+    }
+
+sparrowMaskTheWanderersCompanion :: CardDef
+sparrowMaskTheWanderersCompanion =
+  (asset "10111" ("Sparrow Mask" <:> "The Wanderer's Companion") 1 Seeker)
+    { cdSkills = [#willpower, #agility]
+    , cdCardTraits = setFromList [Item, Charm, Mask]
+    , cdUses = uses Offering 2
+    , cdLimits = [LimitPerTrait Mask 1]
+    }
+
 marinersCompass2 :: CardDef
 marinersCompass2 =
   (asset "10122" "Mariner's Compass" 2 Survivor)
@@ -5376,6 +6414,15 @@ marinersCompass2 =
     , cdSkills = [#intellect, #intellect]
     , cdSlots = [#hand]
     , cdLevel = Just 2
+    }
+
+eldritchTongue :: CardDef
+eldritchTongue =
+  (asset "10128" "Eldritch Tongue" 2 Neutral)
+    { cdSkills = [#willpower]
+    , cdCardTraits = setFromList [Ritual]
+    , cdSlots = [#arcane]
+    , cdUses = uses Charge 4
     }
 
 physicalTraining2 :: CardDef
@@ -5558,7 +6605,7 @@ ancientStoneTransientThoughts4 =
     { cdCardTraits = setFromList [Item, Relic]
     , cdSkills = [#agility, #agility]
     , cdSlots = [#hand]
-    , cdUses = uses Secret 0
+    , cdUses = Uses Secret (RecordedCount YouHaveIdentifiedTheStone)
     , cdKeywords = setFromList [Keyword.Researched YouHaveIdentifiedTheStone]
     , cdLevel = Just 4
     }

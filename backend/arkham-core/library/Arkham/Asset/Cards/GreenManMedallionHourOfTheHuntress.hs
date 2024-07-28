@@ -26,7 +26,7 @@ instance HasAbilities GreenManMedallionHourOfTheHuntress where
       attrs
       1
       (youExist can.spend.resources)
-      (FastAbility $ exhaust attrs <> UpTo 3 (ResourceCost 1))
+      (FastAbility $ exhaust attrs <> UpTo (Fixed 3) (ResourceCost 1))
       : [ restrictedAbility attrs 2 ControlsThis $ ReactionAbility (eliminationWindow controller) Free
         | controller <- toList (assetController attrs)
         ]
@@ -46,4 +46,4 @@ instance RunMessage GreenManMedallionHourOfTheHuntress where
       let x = n `div` 6
       push $ AddDeckBuildingAdjustment iid (ReduceXpCostOfNextCardYouPurchaseBy x)
       pure a
-    _ -> GreenManMedallionHourOfTheHuntress <$> lift (runMessage msg attrs)
+    _ -> GreenManMedallionHourOfTheHuntress <$> liftRunMessage msg attrs

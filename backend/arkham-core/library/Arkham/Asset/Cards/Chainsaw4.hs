@@ -20,9 +20,10 @@ instance HasAbilities Chainsaw4 where
 instance RunMessage Chainsaw4 where
   runMessage msg a@(Chainsaw4 attrs) = case msg of
     UseThisAbility iid (isSource attrs -> True) 1 -> do
-      chooseFight <- toMessage <$> mkChooseFight iid (attrs.ability 1)
+      sid <- getRandom
+      chooseFight <- toMessage <$> mkChooseFight sid iid (attrs.ability 1)
       pushAll
-        [ skillTestModifiers attrs iid [SkillModifier #combat 2, DamageDealt 2]
+        [ skillTestModifiers sid attrs iid [SkillModifier #combat 2, DamageDealt 2]
         , chooseFight
         ]
       pure a
@@ -33,7 +34,7 @@ instance RunMessage Chainsaw4 where
           push
             $ chooseOne
               player
-              [ Label "Place 1 supply on Chainsaw" [AddUses (toId attrs) Supply 1]
+              [ Label "Place 1 supply on Chainsaw" [AddUses (attrs.ability 1) (toId attrs) Supply 1]
               , Label "Deal 1 damage to the attacked enemy" [EnemyDamage eid $ nonAttack (attrs.ability 1) 1]
               ]
         _ -> error "invalid call"

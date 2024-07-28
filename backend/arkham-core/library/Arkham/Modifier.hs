@@ -15,6 +15,7 @@ import Arkham.ChaosToken
 import Arkham.ClassSymbol
 import {-# SOURCE #-} Arkham.Cost
 import Arkham.Criteria.Override
+import Arkham.Damage
 import {-# SOURCE #-} Arkham.Enemy.Types
 import Arkham.Field
 import Arkham.Id
@@ -38,16 +39,21 @@ data ModifierType
   = ForEach GameCalculation [ModifierType]
   | AbilityModifier Target Int ModifierType
   | ActionCostModifier Int
+  | IgnoreActionCost
   | AdditionalActionCostOf ActionTarget Int
   | ActionCostOf ActionTarget Int -- TODO: Don't use this for anything than decreasing
   | ActionCostSetToModifier Int
   | ActionDoesNotCauseAttacksOfOpportunity Action
   | ActionSkillModifier {action :: Action, skillType :: SkillType, value :: Int}
   | ActionsAreFree
+  | IsPointOfDamage
+  | IsPointOfHorror
   | AddKeyword Keyword
   | AddSkillIcons [SkillIcon]
+  | ReplaceAllSkillIconsWithWild
   | AddSkillToOtherSkill SkillType SkillType
   | AddSkillValue SkillType
+  | SetSkillValue SkillType Int
   | AddSkillValueOf SkillType InvestigatorId
   | AddTrait Trait
   | AdditionalActions Text Source Int
@@ -63,7 +69,7 @@ data ModifierType
   | AlternateEvadeField (SomeField Enemy)
   | AlternateFightField (SomeField Enemy)
   | AlternateResourceCost CardMatcher Cost
-  | AlternateSuccessfullEvasion
+  | AlternateSuccess Target
   | AlternateSuccessfullInvestigation Target
   | AlternateUpkeepDraw Target
   | AlternativeReady Source
@@ -77,7 +83,8 @@ data ModifierType
   | PlayUnderControlOf InvestigatorId
   | AttacksCannotBeCancelled
   | BaseSkillOf {skillType :: SkillType, value :: Int}
-  | BecomesFast
+  | BaseSkill Int
+  | BecomesFast WindowMatcher
   | Blank
   | BlankExceptForcedAbilities
   | Blocked
@@ -98,6 +105,7 @@ data ModifierType
   | CanModify ModifierType
   | CanMoveWith InvestigatorMatcher
   | CanOnlyBeAttackedByAbilityOn (Set CardCode)
+  | CannotBeAttackedByPlayerSourcesExcept SourceMatcher
   | CanOnlyBeDefeatedBy SourceMatcher
   | CanOnlyBeDefeatedByDamage
   | CanOnlyUseCardsInRole ClassSymbol
@@ -110,6 +118,7 @@ data ModifierType
   | CanSpendResourcesOnCardFromInvestigator InvestigatorMatcher CardMatcher
   | CanSpendUsesAsResourceOnCardFromInvestigator AssetId UseType InvestigatorMatcher CardMatcher
   | ProvidesUses UseType Source
+  | ProvidesProxyUses UseType UseType Source
   | CancelAttacksByEnemies Card EnemyMatcher
   | CancelSkills
   | CannotAffectOtherPlayersWithPlayerEffectsExceptDamage
@@ -120,6 +129,7 @@ data ModifierType
   | CannotBeDamaged
   | CannotBeDamagedByPlayerSources SourceMatcher
   | CannotBeDamagedByPlayerSourcesExcept SourceMatcher
+  | CannotBeDamagedBySourcesExcept SourceMatcher
   | CannotBeDefeated
   | CannotBeEngaged
   | CannotBeEngagedBy EnemyMatcher
@@ -130,6 +140,7 @@ data ModifierType
   | CannotBeMoved
   | CannotBeRevealed
   | CannotCancelHorror
+  | MustChooseEnemy EnemyMatcher
   | CannotCancelOrIgnoreChaosToken ChaosTokenFace
   | ReturnBlessedToChaosBag
   | ReturnCursedToChaosBag
@@ -151,6 +162,7 @@ data ModifierType
   | CannotGainResources
   | CannotGainResourcesFromPlayerCardEffects
   | CannotRevealCards
+  | CanHealAtFull DamageType
   | CannotHealHorror
   | CannotHealHorrorOnOtherCards Target
   | CannotInvestigate
@@ -189,16 +201,21 @@ data ModifierType
   | HorrorDealt Int
   | DamageDealtToInvestigator Int
   | DamageTaken Int
+  | HealingTaken Int
   | Difficulty Int
+  | CalculatedDifficulty GameCalculation
   | DiscoveredClues Int
+  | DiscoveredCluesAt LocationId Int
   | DoNotDisengageEvaded
   | DoNotDrawChaosTokensForSkillChecks
   | DoNotExhaustEvaded
   | DoNotRemoveDoom
   | DoNotTakeUpSlot SlotType
+  | TakeUpFewerSlots SlotType Int
   | DoesNotDamageOtherInvestigator
   | DoesNotReadyDuringUpkeep
   | DoomSubtracts
+  | IgnoreDoomOnThis Int
   | DoomThresholdModifier Int
   | DoubleBaseSkillValue
   | DoubleDifficulty
@@ -215,7 +232,10 @@ data ModifierType
   | EnemyFightActionCriteria CriteriaOverride
   | EnemyFightWithMin Int (Min Int)
   | EnemyEngageActionCriteria CriteriaOverride
+  | InvestigateActionCriteria CriteriaOverride
+  | EntersPlayWithDoom Int
   | ExtraResources Int
+  | AdditionalResources Int
   | FailTies
   | FewerActions Int
   | FewerSlots SlotType Int
@@ -223,6 +243,7 @@ data ModifierType
   | ForcePrey PreyMatcher
   | ForceSpawnLocation LocationMatcher
   | ForceSpawn SpawnAt
+  | Foresight Text
   | ChangeSpawnLocation LocationMatcher LocationMatcher
   | ForcedChaosTokenChange ChaosTokenFace [ChaosTokenFace]
   | GainVictory Int
@@ -237,6 +258,7 @@ data ModifierType
   | HunterConnectedTo LocationId
   | IgnoreAllCosts
   | IgnoreAloof
+  | IgnoreAlert
   | IgnoreChaosToken
   | IgnoreChaosTokenEffects
   | IgnoreHandSizeReduction
@@ -269,6 +291,7 @@ data ModifierType
   | NoSurge
   | NonDirectHorrorMustBeAssignToThisFirst
   | NonDirectDamageMustBeAssignToThisFirst
+  | NonDirectDamageMustBeAssignToThisN Int
   | Omnipotent
   | OnlyFirstCopyCardCountsTowardMaximumHandSize
   | PlaceOnBottomOfDeckInsteadOfDiscard
@@ -277,6 +300,7 @@ data ModifierType
   | RemoveFromGameInsteadOfDiscard
   | RemoveKeyword Keyword
   | RemoveSkillIcons [SkillIcon]
+  | FewerMatchingIconsPerCard Int
   | RemoveTrait Trait
   | ResolvesFailedEffects
   | ReturnToHandAfterTest
@@ -308,6 +332,7 @@ data ModifierType
   | UpkeepResources Int
   | TopCardOfDeckIsRevealed
   | TraitRestrictedModifier Trait ModifierType
+  | NonTraitRestrictedModifier Trait ModifierType
   | TreatAllDamageAsDirect
   | TreatRevealedChaosTokenAs ChaosTokenFace
   | UseEncounterDeck ScenarioEncounterDeckKey -- The Wages of Sin
@@ -406,13 +431,29 @@ data ActionTarget
   | IsAction Action
   | EnemyAction Action EnemyMatcher
   | IsAnyAction
+  | AnyActionTarget [ActionTarget]
   deriving stock (Show, Eq, Ord, Data)
+
+instance IsLabel "parley" ActionTarget where
+  fromLabel = IsAction #parley
+
+instance IsLabel "play" ActionTarget where
+  fromLabel = IsAction #play
+
+instance IsLabel "engage" ActionTarget where
+  fromLabel = IsAction #engage
+
+instance IsLabel "resource" ActionTarget where
+  fromLabel = IsAction #resource
 
 instance IsLabel "draw" ActionTarget where
   fromLabel = IsAction #draw
 
 instance IsLabel "move" ActionTarget where
   fromLabel = IsAction #move
+
+instance IsLabel "evade" ActionTarget where
+  fromLabel = IsAction #evade
 
 instance IsLabel "investigate" ActionTarget where
   fromLabel = IsAction #investigate

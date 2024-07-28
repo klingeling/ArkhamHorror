@@ -33,18 +33,18 @@ instance RunMessage TheRedClockBrokenButReliable5 where
           iid
           [ Label
               "Take all charges here as resources"
-              [MoveUses (toSource attrs) (ResourceTarget iid) Charge charges]
+              [MoveTokens (attrs.ability 1) (toSource attrs) (ResourceTarget iid) Charge charges]
           , Label "Leave charges" []
           ]
 
       -- Other messages needs to consider the charge we just added
       let
         otherMessages
-          | charges == 0 = [Msg.skillTestModifier (attrs.ability 1) iid (AnySkillValue 4)]
+          | charges == 0 = [Msg.nextSkillTestModifier (attrs.ability 1) iid (AnySkillValue 4)]
           | charges == 1 = [DoStep 3 msg]
           | charges == 2 = [GainActions iid (attrs.ability 1) 2]
           | otherwise = []
-      pushAll $ AddUses attrs.id Charge 1 : otherMessages
+      pushAll $ AddUses (attrs.ability 1) attrs.id Charge 1 : otherMessages
       pure a
     DoStep n msg'@(UseThisAbility iid (isSource attrs -> True) 1) | n > 0 -> do
       locations <- getCanMoveToLocations iid (attrs.ability 1)
@@ -56,4 +56,4 @@ instance RunMessage TheRedClockBrokenButReliable5 where
             | location <- locations
             ]
       pure a
-    _ -> TheRedClockBrokenButReliable5 <$> lift (runMessage msg attrs)
+    _ -> TheRedClockBrokenButReliable5 <$> liftRunMessage msg attrs

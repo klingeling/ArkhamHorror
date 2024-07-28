@@ -64,6 +64,11 @@ allPlayerEnemyCards =
       , shadowAgents
       , accursedFollower
       , mobGoons
+      , agentFletcher
+      , lurkerInTheDark
+      , ectoplasmicHorror
+      , zamacona
+      , biancaDieKatz
       , tommyMalloy
       , sacrificialBeast
       , vengefulHound
@@ -1985,6 +1990,44 @@ mobGoons =
   (weakness "08003" "Mob Goons")
     { cdCardTraits = setFromList [Humanoid, Criminal]
     , cdKeywords = singleton Keyword.Hunter
+    }
+
+agentFletcher :: CardDef
+agentFletcher =
+  (weakness "09010" "Agent Fletcher")
+    { cdCardTraits = setFromList [Humanoid, Coterie, Detective]
+    , cdKeywords = setFromList [Keyword.Alert, Keyword.Hunter]
+    }
+
+lurkerInTheDark :: CardDef
+lurkerInTheDark =
+  (basicWeakness "09124" "Lurker in the Dark")
+    { cdCardTraits = setFromList [Monster, Shoggoth]
+    , cdKeywords = setFromList [Keyword.Hunter]
+    , cdDeckRestrictions = [OnlyClass Guardian]
+    }
+
+ectoplasmicHorror :: CardDef
+ectoplasmicHorror =
+  (basicWeakness "09127" "Ectoplasmic Horror")
+    { cdCardTraits = setFromList [Monster, Geist]
+    , cdKeywords = setFromList [Keyword.Hunter]
+    , cdDeckRestrictions = [OnlyClass Mystic]
+    }
+
+zamacona :: CardDef
+zamacona =
+  (weakness "10011" "Zamacona")
+    { cdCardTraits = setFromList [Humanoid, Criminal]
+    , cdKeywords = setFromList [Keyword.Elusive]
+    }
+
+biancaDieKatz :: CardDef
+biancaDieKatz =
+  (weakness "10063" "Bianca \"Die Katz\"")
+    { cdCardTraits = setFromList [Humanoid, Criminal, Socialite]
+    , cdKeywords = setFromList [Keyword.Bonded 1 "10062", Keyword.Hunter]
+    , cdVictoryPoints = Just 0
     }
 
 corpseHungryGhoul :: CardDef

@@ -59,6 +59,7 @@ instance Query ScenarioMatcher
 instance Query SkillMatcher
 instance Query StoryMatcher
 instance Query ChaosTokenMatcher
+instance Query TargetMatcher
 instance Query TreacheryMatcher
 
 instance Projection Act
@@ -74,6 +75,7 @@ instance Projection (OutOfPlayEntity Enemy)
 instance Projection Event
 instance Projection (InHandEntity Event)
 instance Projection (InHandEntity Skill)
+instance Projection (InDiscardEntity Skill)
 instance Projection Investigator
 instance Projection Location
 instance Projection Scenario

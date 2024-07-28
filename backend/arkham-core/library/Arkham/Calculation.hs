@@ -14,12 +14,13 @@ import {-# SOURCE #-} Arkham.Location.Types (Location)
 import Arkham.Matcher
 import Arkham.Prelude
 import Arkham.ScenarioLogKey
+import Arkham.SlotType
 import Arkham.Token
 import Data.Aeson.TH
 
 data GameCalculation
   = Fixed Int
-  | MaxCalculation Int GameCalculation
+  | MaxCalculation GameCalculation GameCalculation
   | DividedByCalculation GameCalculation Int
   | SumCalculation [GameCalculation]
   | SubtractCalculation GameCalculation GameCalculation
@@ -43,19 +44,26 @@ data GameCalculation
   | EnemyFieldCalculation EnemyId (Field Enemy Int)
   | VictoryDisplayCountCalculation CardMatcher
   | LocationFieldCalculation LocationId (Field Location Int)
+  | LocationMaybeFieldCalculation LocationId (Field Location (Maybe Int))
   | InvestigatorLocationFieldCalculation InvestigatorId (Field Location Int)
+  | InvestigatorLocationMaybeFieldCalculation InvestigatorId (Field Location (Maybe Int))
   | CardCostCalculation InvestigatorId CardId
   | ScenarioInDiscardCountCalculation CardMatcher
   | DoomCountCalculation
   | DistanceFromCalculation InvestigatorId LocationMatcher
   | InvestigatorTokenCountCalculation InvestigatorId Token
+  | AssetTokenCountCalculation AssetId Token
   | MaxAlarmLevelCalculation -- getMaxAlarmLevel
   | VengeanceCalculation -- getVengeanceInVictoryDisplay
   | DifferentClassAmong ExtendedCardMatcher
   | EnemyTargetFieldCalculation (Field Enemy Int)
   | CountChaosTokens ChaosTokenMatcher
+  | GameValueCalculation GameValue
+  | DuringEventCalculation GameCalculation GameCalculation
+  | EmptySlotsCalculation InvestigatorMatcher SlotType
+  | AmountYouOweToBiancaDieKatz InvestigatorMatcher
   deriving stock (Show, Ord, Eq, Data, Generic)
-  deriving (FromJSON) via MaybeFixed
+  deriving FromJSON via MaybeFixed
 
 newtype MaybeFixed = MaybeFixed GameCalculation
 

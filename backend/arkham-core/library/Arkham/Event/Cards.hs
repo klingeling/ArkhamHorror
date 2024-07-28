@@ -2,7 +2,6 @@ module Arkham.Event.Cards where
 
 import Arkham.Prelude
 
-import Arkham.Action qualified as Action
 import Arkham.Agenda.AdvancementReason
 import Arkham.Asset.Uses qualified as Uses
 import Arkham.Calculation
@@ -13,10 +12,10 @@ import Arkham.Card.CardType
 import Arkham.Card.Cost
 import Arkham.ClassSymbol
 import Arkham.Cost
-import Arkham.Criteria (Criterion, exists, notExists, youExist)
+import Arkham.Criteria (CostReduction (..), Criterion, exists, notExists, youExist)
 import Arkham.Criteria qualified as Criteria
+import Arkham.Customization
 import Arkham.Damage
-import Arkham.GameValue
 import Arkham.History.Types
 import Arkham.Id
 import Arkham.Keyword qualified as Keyword
@@ -53,6 +52,9 @@ allPlayerEventCards =
       toCardCodePairs
       [ aChanceEncounter
       , aChanceEncounter2
+      , aethericCurrentYoth
+      , aethericCurrentYuggoth
+      , adHoc
       , aGlimmerOfHope
       , aTestOfWill
       , aTestOfWill1
@@ -61,37 +63,48 @@ allPlayerEventCards =
       , aceInTheHole3
       , actOfDesperation
       , againstAllOdds2
+      , alterFate1
+      , alterFate3
       , ambush1
       , anatomicalDiagrams
       , astoundingRevelation
       , astralTravel
-      , alterFate1
-      , alterFate3
+      , atACrossroads1
       , backstab
       , backstab3
       , banish1
       , baitAndSwitch
       , baitAndSwitch3
+      , bankJob
       , barricade
       , barricade3
+      , beguile
       , bellyOfTheBeast
       , bindMonster2
+      , bizarreDiagnosis
       , blackMarket2
       , blindingLight
       , blindingLight2
       , bloodEclipse1
       , bloodEclipse3
       , bloodRite
+      , bloodWillHaveBlood2
+      , bolas
+      , breachTheDoor
       , breakingAndEntering
       , breakingAndEntering2
+      , burnAfterReading1
       , burningTheMidnightOil
       , buryThemDeep
       , butterflyEffect1
+      , callForBackup2
       , callingInFavors
+      , captivatingDiscovery
       , cheapShot
       , cheapShot2
       , cheatDeath5
       , cheatTheSystem1
+      , cleanSneak4
       , cleanThemOut
       , closeCall2
       , connectTheDots
@@ -108,6 +121,7 @@ allPlayerEventCards =
       , crypticWritings2
       , cunningDistraction
       , customAmmunition3
+      , customModifications
       , daringManeuver
       , daringManeuver2
       , darkInsight
@@ -135,6 +149,7 @@ allPlayerEventCards =
       , eatLead2
       , eavesdrop
       , eideticMemory3
+      , eldritchInitiation
       , eldritchInspiration
       , eldritchInspiration1
       , elusive
@@ -143,28 +158,39 @@ allPlayerEventCards =
       , emergencyCache2
       , emergencyCache3
       , enchantWeapon3
+      , endOfTheRoad
       , etherealForm
       , etherealSlip
       , etherealSlip2
       , eucatastrophe3
       , everVigilant1
+      , everVigilant4
       , evidence
       , evidence1
+      , existentialRiddle1
+      , exploitWeakness
+      , explosiveWard
       , exposeWeakness1
       , exposeWeakness3
       , extensiveResearch
       , extensiveResearch1
       , extraAmmunition1
+      , falseSurrender
       , fangOfTyrthrha4
       , faustianBargain
+      , fendOff3
+      , fickleFortune3
       , fightOrFlight
+      , fineTuning1
       , firstWatch
       , flare1
       , followed
       , foolMeOnce1
+      , foresight1
       , forewarned1
       , fortuitousDiscovery
       , fortuneOrFate2
+      , friendsInLowPlaces
       , galvanize1
       , gangUp1
       , gazeOfOuraxsh2
@@ -175,20 +201,29 @@ allPlayerEventCards =
       , glimpseTheUnthinkable1
       , glimpseTheUnthinkable5
       , glory
+      , grievousWound
+      , grift
       , gritYourTeeth
       , guidance
+      , guidance1
       , hallow3
       , handOfFate
       , harmonyRestored2
+      , heedTheDream2
       , heroicRescue
       , heroicRescue2
+      , hiddenPocket
       , hidingSpot
+      , hitAndRun
+      , hitMe
+      , honedInstinct
       , hotStreak2
       , hotStreak4
       , hypnoticGaze
       , hypnoticGaze2
       , ifItBleeds
       , illSeeYouInHell
+      , illTakeThat
       , imDoneRunnin
       , imOuttaHere
       , impromptuBarrier
@@ -203,12 +238,15 @@ allPlayerEventCards =
       , iveHadWorse2
       , iveHadWorse4
       , joinTheCaravan1
+      , juryRig
       , keepFaith
       , keepFaith2
+      , kickingTheHornetsNest
       , knowledgeIsPower
       , lessonLearned2
       , letGodSortThemOut
       , letMeHandleThis
+      , lifeline1
       , liveAndLearn
       , lodgeDebts
       , logicalReasoning
@@ -221,9 +259,12 @@ allPlayerEventCards =
       , lucky3
       , lure1
       , lure2
+      , makeshiftTrap
+      , makingPreparations
       , manipulateDestiny2
       , manoAMano1
       , manoAMano2
+      , mapTheArea
       , marksmanship1
       , meditativeTrance
       , mindOverMatter
@@ -236,45 +277,61 @@ allPlayerEventCards =
       , monsterSlayer
       , monsterSlayer5
       , moonlightRitual
+      , moonlightRitual2
+      , motivationalSpeech
       , mysteriesRemain
       , mystifyingSong
       , narrowEscape
+      , natureOfTheBeast1
       , noStoneUnturned
       , noStoneUnturned5
       , nothingLeftToLose3
       , obscureStudies
       , occultEvidence
       , occultInvocation
+      , oneInTheChamber
       , oneTwoPunch
       , oneTwoPunch5
       , onTheHunt
       , onTheHunt3
       , onTheLam
+      , onTheTrail1
+      , onTheTrail3
       , oops
       , oops2
       , openGate
       , parallelFates
       , parallelFates2
       , payDay1
+      , payYourDue
       , perseverance
       , persuasion
       , pilfer
       , pilfer3
+      , powerWord
       , practiceMakesPerfect
+      , predatorOrPrey
       , premonition
       , preparedForTheWorst
+      , preparedForTheWorst2
       , preposterousSketches
       , preposterousSketches2
+      , protectingTheAnirniq2
+      , pushedToTheLimit
       , quantumFlux
+      , quantumParadox
+      , quickGetaway
       , radiantSmite1
       , readTheSigns
       , recharge2
       , recharge4
+      , refine
       , reliable1
       , riastrad1
       , righteousHunt1
       , riteOfEquilibrium5
       , sacrifice1
+      , salvage2
       , sceneOfTheCrime
       , scoutAhead
       , scroungeForSupplies
@@ -282,6 +339,7 @@ allPlayerEventCards =
       , secondWind
       , seekingAnswers
       , seekingAnswers2
+      , shedALight
       , shortcut
       , shortcut2
       , shrineOfTheMoirai3
@@ -294,6 +352,8 @@ allPlayerEventCards =
       , sneakAttack
       , sneakAttack2
       , sneakBy
+      , snipe1
+      , snitch2
       , soothingMelody
       , spectralRazor
       , standTogether
@@ -302,6 +362,7 @@ allPlayerEventCards =
       , stirringUpTrouble1
       , stormOfSpirits
       , stormOfSpirits3
+      , stringOfCurses
       , sureGamble3
       , sweepingKick1
       , swiftReflexes
@@ -313,6 +374,7 @@ allPlayerEventCards =
       , telescopicSight3
       , temptFate
       , thePaintedWorld
+      , theRavenQuill
       , theStygianEye3
       , theTruthBeckons
       , thinkOnYourFeet
@@ -320,6 +382,7 @@ allPlayerEventCards =
       , thirdTimesACharm2
       , tidesOfFate
       , timeWarp2
+      , tinker
       , toeToToe
       , trialByFire
       , trialByFire3
@@ -329,11 +392,15 @@ allPlayerEventCards =
       , truthFromFiction2
       , twentyOneOrBust
       , uncageTheSoul
+      , uncageTheSoul3
       , underSurveillance1
+      , underprepared
       , unearthTheAncients
       , unearthTheAncients2
       , untimelyTransaction1
       , unsolvedCase
+      , vamp
+      , vamp3
       , vantagePoint
       , voiceOfRa
       , wardOfProtection
@@ -348,6 +415,8 @@ allPlayerEventCards =
       , windsOfPower1
       , wingingIt
       , wordOfCommand2
+      , wordOfWeal
+      , wordOfWoe
       , workingAHunch
       , writtenInTheStars
       , youHandleThisOne
@@ -500,7 +569,9 @@ sneakAttack =
     { cdSkills = [#intellect, #combat]
     , cdCardTraits = setFromList [Tactic]
     , cdCriteria =
-        Just $ exists (EnemyAt YourLocation <> ExhaustedEnemy) <> Criteria.CanDealDamage
+        Just
+          $ exists (EnemyAt YourLocation <> ExhaustedEnemy <> EnemyCanBeDamagedBySource ThisCard)
+          <> Criteria.CanDealDamage
     , cdAlternateCardCodes = ["01552"]
     }
 
@@ -779,7 +850,9 @@ oops =
     { cdSkills = [#combat, #combat]
     , cdCardTraits = singleton Fortune
     , cdCriteria =
-        Just $ exists (EnemyAt YourLocation <> NotEnemy AttackedEnemy) <> Criteria.CanDealDamage
+        Just
+          $ exists (EnemyAt YourLocation <> NotEnemy AttackedEnemy <> EnemyCanBeDamagedBySource ThisCard)
+          <> Criteria.CanDealDamage
     , cdFastWindow =
         Just
           $ SkillTestResult #after You (WhileAttackingAnEnemy EnemyEngagedWithYou)
@@ -850,6 +923,7 @@ preparedForTheWorst =
   (event "02184" "Prepared for the Worst" 1 Guardian)
     { cdSkills = [#intellect, #combat]
     , cdCardTraits = singleton Tactic
+    , cdCriteria = can.search.deck You
     }
 
 preposterousSketches :: CardDef
@@ -1013,7 +1087,7 @@ everVigilant1 =
     { cdSkills = [#intellect, #intellect]
     , cdCardTraits = singleton Tactic
     , cdLevel = Just 1
-    , cdCriteria = Just $ Criteria.PlayableCardExistsWithCostReduction 1 $ #asset <> InHandOf You
+    , cdCriteria = Just $ Criteria.PlayableCardExistsWithCostReduction (Reduce 1) $ #asset <> InHandOf You
     }
 
 noStoneUnturned :: CardDef
@@ -1050,7 +1124,7 @@ uncageTheSoul =
     , cdCardTraits = singleton Spirit
     , cdCriteria =
         Just
-          $ Criteria.PlayableCardExistsWithCostReduction 3
+          $ Criteria.PlayableCardExistsWithCostReduction (Reduce 3)
           $ InHandOf You
           <> basic (oneOf [CardWithTrait Spell, CardWithTrait Ritual])
     }
@@ -1544,9 +1618,9 @@ persuasion =
     , cdCardTraits = setFromList [Insight, Trick]
     , cdCriteria =
         Just
-          $ exists (NonWeaknessEnemy <> EnemyWithTrait Humanoid <> EnemyAt YourLocation)
+          $ exists (NonWeaknessEnemy <> EnemyWithTrait Humanoid <> EnemyAt YourLocation <> CanParleyEnemy You)
           <> exists (You <> can.target.encounterDeck)
-    , cdActions = [Action.Parley]
+    , cdActions = [#parley]
     }
 
 counterspell2 :: CardDef
@@ -1604,7 +1678,7 @@ customAmmunition3 =
         Just
           $ exists
           $ AssetControlledBy (affectsOthers $ InvestigatorAt YourLocation)
-          <> AssetWithTrait Firearm
+          <> #firearm
           <> NotAsset (AssetWithAttachedEvent $ EventCardMatch $ cardIs customAmmunition3)
     , cdFastWindow = Just $ DuringTurn You
     , cdLevel = Just 3
@@ -1677,7 +1751,7 @@ bloodEclipse3 =
     { cdSkills = [#willpower, #combat]
     , cdCardTraits = setFromList [Spell, Spirit]
     , cdActions = [#fight]
-    , cdAdditionalCost = Just $ UpTo 3 $ InvestigatorDamageCost ThisCard You DamageAny 1
+    , cdAdditionalCost = Just $ UpTo (Fixed 3) $ InvestigatorDamageCost ThisCard You DamageAny 1
     , cdLevel = Just 3
     }
 
@@ -1796,8 +1870,8 @@ interrogate =
   (event "05020" "Interrogate" 2 Guardian)
     { cdSkills = [#combat, #intellect]
     , cdCardTraits = setFromList [Tactic, Insight]
-    , cdCriteria = Just $ exists $ EnemyWithTrait Humanoid <> EnemyAt YourLocation
-    , cdActions = [Action.Parley]
+    , cdCriteria = Just $ exists $ EnemyWithTrait Humanoid <> EnemyAt YourLocation <> CanParleyEnemy You
+    , cdActions = [#parley]
     }
 
 delayTheInevitable :: CardDef
@@ -1836,10 +1910,10 @@ denyExistence =
     , cdFastWindow =
         Just
           $ OrWindowMatcher
-            [ Discarded #when You source (basic AnyCard)
+            [ Discarded #when (Just You) source (basic AnyCard)
             , LostResources #when You source
             , LostActions #when You source
-            , InvestigatorWouldTakeDamage #when You source
+            , InvestigatorWouldTakeDamage #when You source AnyDamageType
             , InvestigatorWouldTakeHorror #when You source
             ]
     }
@@ -1865,6 +1939,7 @@ actOfDesperation =
   (event "05037" "Act of Desperation" 0 Survivor)
     { cdSkills = [#combat, #combat]
     , cdCardTraits = setFromList [Tactic, Gambit]
+    , cdActions = [#fight]
     , cdAdditionalCost =
         Just $ DiscardFromCost 1 (FromHandOf You <> FromPlayAreaOf You) (#item <> CardFillsSlot HandSlot)
     }
@@ -2049,10 +2124,10 @@ denyExistence5 =
     , cdFastWindow =
         Just
           $ OrWindowMatcher
-            [ Discarded #when You source (basic AnyCard)
+            [ Discarded #when (Just You) source (basic AnyCard)
             , LostResources #when You source
             , LostActions #when You source
-            , InvestigatorWouldTakeDamage #when You source
+            , InvestigatorWouldTakeDamage #when You source AnyDamageType
             , InvestigatorWouldTakeHorror #when You source
             ]
     , cdLevel = Just 5
@@ -2697,7 +2772,7 @@ shrineOfTheMoirai3 =
     , cdCriteria = Just $ exists (LocationWithInvestigator You)
     , cdLevel = Just 3
     , cdUnique = True
-    , cdUses = Uses.Uses Uses.Offering (Static 3)
+    , cdUses = Uses.Uses Uses.Offering (Fixed 3)
     }
 
 toeToToe :: CardDef
@@ -2723,6 +2798,7 @@ gangUp1 =
     { cdSkills = [#willpower, #combat]
     , cdCardTraits = setFromList [Spirit, Synergy]
     , cdActions = [#fight]
+    , cdLevel = Just 1
     }
 
 sweepingKick1 :: CardDef
@@ -2760,10 +2836,10 @@ onTheHunt3 =
 
 fangOfTyrthrha4 :: CardDef
 fangOfTyrthrha4 =
-  (event "08029" "Fang of Thr'thrha" 3 Guardian)
+  (event "08029" "Fang of Tyr'thrha" 3 Guardian)
     { cdCardTraits = singleton Spell
     , cdActions = [#fight]
-    , cdSkills = [#willpower, #intellect, #combat]
+    , cdSkills = [#combat, #combat, #agility, #agility]
     , cdLevel = Just 4
     , cdCriteria =
         Just
@@ -2786,7 +2862,7 @@ writtenInTheStars =
 
 joinTheCaravan1 :: CardDef
 joinTheCaravan1 =
-  (event "08036" "Join the Caravan" 10 Seeker)
+  (event "08036" "Join the Caravan" 5 Seeker)
     { cdSkills = [#intellect, #agility]
     , cdCardTraits = setFromList [Insight, Synergy]
     , cdFastWindow = Just $ DuringTurn You
@@ -2829,6 +2905,7 @@ counterespionage1 =
     , cdCriteria = Just $ oneOf [Criteria.EventWindowInvestigatorIs You, Criteria.CanAffordCostIncrease 2] -- WindowInvestigatorIs only handles draw card right now
     , cdFastWindow = Just $ DrawCard #when Anyone (basic NonWeaknessTreachery) AnyDeck
     , cdCardInHandEffects = True
+    , cdLevel = Just 1
     }
 
 cheatTheSystem1 :: CardDef
@@ -2872,8 +2949,7 @@ moneyTalks2 =
 blackMarket2 :: CardDef
 blackMarket2 =
   (event "08055" "Black Market" 1 Rogue)
-    { cdSkills = [#wild]
-    , cdCardTraits = setFromList [Favor]
+    { cdCardTraits = setFromList [Favor]
     , cdCriteria = Just $ exists (affectsOthers can.manipulate.deck) <> youExist can.reveal.cards
     , cdFastWindow = Just $ PhaseBegins #after #investigation
     , cdLevel = Just 2
@@ -2901,6 +2977,20 @@ windsOfPower1 =
     , cdLevel = Just 1
     }
 
+foresight1 :: CardDef
+foresight1 =
+  (event "08064" "Foresight" 0 Mystic)
+    { cdSkills = [#intellect, #intellect]
+    , cdCardTraits = setFromList [Augury]
+    , cdFastWindow =
+        Just
+          $ WouldDrawCard
+            #when
+            (affectsOthers $ InvestigatorAt YourLocation)
+            (DeckOneOf [EncounterDeck, DeckOf ThatInvestigator])
+    , cdLevel = Just 1
+    }
+
 parallelFates2 :: CardDef
 parallelFates2 =
   (event "08066" "Parallel Fates" 0 Mystic)
@@ -2909,6 +2999,103 @@ parallelFates2 =
     , cdLevel = Just 2
     , cdCriteria =
         Just $ exists $ oneOf [affectsOthers can.manipulate.deck, You <> can.target.encounterDeck]
+    }
+
+juryRig :: CardDef
+juryRig =
+  (event "08074" "Jury-Rig" 0 Survivor)
+    { cdSkills = [#intellect, #combat]
+    , cdCardTraits = singleton Upgrade
+    , cdUses = Uses.Uses Uses.Durability (Fixed 3)
+    , cdCriteria = Just $ exists $ #item <> AssetControlledBy (affectsOthers AtYourLocation)
+    }
+
+burnAfterReading1 :: CardDef
+burnAfterReading1 =
+  (event "08076" "Burn After Reading" 1 Survivor)
+    { cdSkills = [#wild]
+    , cdCardTraits = singleton Insight
+    , cdCriteria =
+        Just
+          $ oneOf
+            [ exists $ InHandOf You <> basic (CardWithMaxLevel 5)
+            , canDiscoverCluesAtYourLocation
+            ]
+    , cdLevel = Just 1
+    }
+
+bloodWillHaveBlood2 :: CardDef
+bloodWillHaveBlood2 =
+  (event "08079" "Blood Will Have Blood" 1 Survivor)
+    { cdSkills = [#willpower, #combat]
+    , cdCardTraits = setFromList [Pact, Cursed]
+    , cdFastWindow =
+        Just
+          $ EnemyAttacks #after You (not_ (AttackDamagedAsset #ally) <> AttackDealtDamageOrHorror) AnyEnemy
+    , cdLimits = [MaxPerAttack 1]
+    , cdCriteria = can.draw.cards
+    , cdLevel = Just 2
+    }
+
+fendOff3 :: CardDef
+fendOff3 =
+  (event "08082" "Fend Off" 2 Survivor)
+    { cdSkills = [#agility, #agility]
+    , cdCardTraits = setFromList [Gambit, Trick]
+    , cdFastWindow = Just $ EnemySpawns #when YourLocation NonEliteEnemy
+    , cdLevel = Just 3
+    }
+
+onTheTrail1 :: CardDef
+onTheTrail1 =
+  (multiClassEvent "08084" "On the Trail" 1 [Guardian, Seeker])
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Insight, Tactic]
+    , cdLevel = Just 1
+    , cdCriteria =
+        Just
+          $ exists
+          $ oneOf
+            [ CanMoveCloserToLocation ThisCard You (LocationWithEnemy AnyEnemy)
+            , LocationBetween
+                YourLocation
+                (LocationWithEnemy AnyEnemy)
+                (EmptyLocation <> LocationWithDiscoverableCluesBy You)
+            ]
+    }
+
+onTheTrail3 :: CardDef
+onTheTrail3 =
+  (multiClassEvent "08085" "On the Trail" 1 [Guardian, Seeker])
+    { cdSkills = [#intellect, #intellect, #combat, #agility]
+    , cdCardTraits = setFromList [Insight, Tactic]
+    , cdLevel = Just 3
+    , cdCriteria =
+        Just $ exists (CanMoveCloserToLocation ThisCard You (LocationWithEnemy AnyEnemy))
+    }
+
+snipe1 :: CardDef
+snipe1 =
+  (multiClassEvent "08087" "Snipe" 0 [Guardian, Rogue])
+    { cdSkills = [#combat, #agility]
+    , cdCardTraits = setFromList [Tactic]
+    , cdLevel = Just 1
+    , cdAttackOfOpportunityModifiers = [DoesNotProvokeAttacksOfOpportunity]
+    }
+
+protectingTheAnirniq2 :: CardDef
+protectingTheAnirniq2 =
+  (multiClassEvent "08102" "Protecting the Anirniq" 1 [Seeker, Mystic])
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Ritual]
+    , cdLevel = Just 2
+    , cdFastWindow =
+        let validOwner = oneOf [can.draw.cards, can.have.cards.leaveDiscard]
+         in Just
+              $ oneOf
+                [ Discarded #after Nothing SourceIsCardEffect $ basic (#asset <> #ally) <> OwnedBy validOwner
+                , AssetDefeated #after ByAny (#ally <> AssetOwnedBy validOwner)
+                ]
     }
 
 etherealSlip :: CardDef
@@ -2938,6 +3125,335 @@ etherealSlip2 =
     , cdLevel = Just 2
     }
 
+hitMe :: CardDef
+hitMe =
+  (multiClassEvent "08112" "\"Hit me!\"" 1 [Rogue, Survivor])
+    { cdSkills = [#agility]
+    , cdCardTraits = setFromList [Fortune, Gambit]
+    , cdFastWindow = Just $ RevealChaosToken #after You #any
+    , cdCriteria = Just Criteria.DuringAnySkillTest
+    }
+
+callForBackup2 :: CardDef
+callForBackup2 =
+  (event "08129" "Call for Backup" 1 Neutral)
+    { cdSkills = [#wild]
+    , cdCardTraits = setFromList [Favor, Synergy]
+    , cdLevel = Just 2
+    , cdCriteria =
+        let control k = exists (ControlledBy You <> basic (CardWithClass k))
+            healableCardExists d =
+              oneOf
+                [ exists (HealableAsset ThisCard d AnyAsset)
+                , exists (HealableInvestigator ThisCard d Anyone)
+                ]
+         in Just
+              $ oneOf
+                [ control Rogue <> exists AccessibleLocation <> youExist can.move
+                , control Guardian
+                    <> Criteria.CanDealDamage
+                    <> exists (EnemyAt YourLocation <> EnemyCanBeDamagedBySource ThisCard)
+                , control Seeker <> canDiscoverCluesAtYourLocation
+                , control Mystic <> healableCardExists #horror
+                , control Survivor <> healableCardExists #damage
+                ]
+    }
+
+wordOfWoe :: CardDef
+wordOfWoe =
+  signature "09011"
+    $ (event "09012" "Word of Woe" 2 Neutral)
+      { cdCardTraits = setFromList [Pact]
+      , cdFastWindow = Just $ DuringTurn You
+      , cdCriteria =
+          Just
+            $ exists
+              (AssetControlledBy You <> AssetWithPerformableAbility AbilityIsActionAbility [IgnoreAllCosts])
+      }
+
+wordOfWeal :: CardDef
+wordOfWeal =
+  signature "09011"
+    $ (event "09013" "Word of Weal" 0 Neutral)
+      { cdCardTraits = setFromList [Pact]
+      , cdFastWindow = Just $ InitiatedSkillTest #when You #any #any $ SkillTestOnAsset AssetWithAnyDoom
+      }
+
+customModifications :: CardDef
+customModifications =
+  (event "09023" "Custom Modifications" 3 Guardian)
+    { cdSkills = [#combat, #agility]
+    , cdCardTraits = setFromList [Upgrade, Supply]
+    , cdCriteria =
+        Just $ exists $ AssetControlledBy You <> #firearm <> not_ (AssetWithAttachedEvent $ EventIs "09023")
+    , cdCardInHandEffects = True
+    , cdKeywords = setFromList [Keyword.Customizable]
+    , cdCustomizations =
+        mapFromList
+          [ (NotchedSight, 1)
+          , (ExtendedStock, 2)
+          , (Counterbalance, 2)
+          , (LeatherGrip, 3)
+          , (ExtendedMagazine, 3)
+          , (QuicksilverBullets, 4)
+          ]
+    }
+
+bolas :: CardDef
+bolas =
+  (event "09025" "Bolas" 1 Guardian)
+    { cdSkills = [#combat, #agility]
+    , cdCardTraits = setFromList [Tactic]
+    , cdActions = [#evade]
+    }
+
+breachTheDoor :: CardDef
+breachTheDoor =
+  (event "09026" "Breach the Door" 2 Guardian)
+    { cdSkills = [#intellect, #combat]
+    , cdCardTraits = setFromList [Insight, Tactic, Police]
+    }
+
+grievousWound :: CardDef
+grievousWound =
+  (event "09027" "Grievous Wound" 1 Guardian)
+    { cdSkills = [#combat, #combat]
+    , cdCardTraits = setFromList [Tactic]
+    , cdFastWindow =
+        Just $ EnemyAttackedSuccessfully #after You (SourceIsAsset $ AssetWithTrait Melee) NonEliteEnemy
+    }
+
+motivationalSpeech :: CardDef
+motivationalSpeech =
+  (event "09028" "Motivational Speech" 0 Guardian)
+    { cdSkills = [#willpower, #intellect]
+    , cdCardTraits = setFromList [Spirit]
+    , cdActions = [#parley]
+    }
+
+oneInTheChamber :: CardDef
+oneInTheChamber =
+  (event "09029" "One in the Chamber" 1 Guardian)
+    { cdSkills = [#combat, #agility]
+    , cdCardTraits = setFromList [Fortune, Tactic]
+    , cdFastWindow =
+        Just
+          $ AttackOrEffectSpentLastUse
+            #after
+            AnySource
+            (AssetTargetMatches $ AssetWithTrait Firearm <> AssetControlledBy You)
+            Uses.Ammo
+    }
+
+preparedForTheWorst2 :: CardDef
+preparedForTheWorst2 =
+  (event "09036" "Prepared for the Worst" 0 Guardian)
+    { cdSkills = [#intellect, #combat, #agility]
+    , cdCardTraits = singleton Tactic
+    , cdCriteria = Just $ exists $ affectsOthers $ can.search.deck <> InvestigatorAt YourLocation
+    }
+
+everVigilant4 :: CardDef
+everVigilant4 =
+  (event "09039" "Ever Vigilant" 0 Guardian)
+    { cdSkills = [#willpower, #intellect, #intellect]
+    , cdCardTraits = singleton Tactic
+    , cdLevel = Just 4
+    , cdCriteria =
+        Just
+          $ Criteria.PlayableCardExistsWithCostReduction (Reduce 1)
+          $ #asset
+          <> InHandOf (affectsOthers $ InvestigatorAt YourLocation)
+    }
+
+theRavenQuill :: CardDef
+theRavenQuill =
+  (event "09042" "The Raven Quill" 3 Seeker)
+    { cdSkills = [#intellect, #intellect]
+    , cdCardTraits = setFromList [Item, Relic, Upgrade]
+    , cdUnique = True
+    , cdKeywords = setFromList [Keyword.Customizable]
+    , cdCriteria =
+        Just
+          $ oneOf
+            [ Criteria.ChosenCustomizationCardIsInPlay
+            , Criteria.HasCustomization SupernaturalRecord
+                <> oneOf
+                  [ can.search.deck You
+                  , exists
+                      $ PlayableCard (UnpaidCost NoAction)
+                      $ oneOf [InHandOf You, InDiscardOf You]
+                      <> ChosenViaCustomization IsThisCard
+                  ]
+            ]
+    , cdCustomizations =
+        mapFromList
+          [ (ChoicePlaceholder, 0)
+          , (LivingQuill, 1)
+          , (SpectralBinding, 1)
+          , (MysticVane, 2)
+          , (EndlessInkwell, 2)
+          , (EnergySap, 2)
+          , (InterwovenInk, 3)
+          , (SupernaturalRecord, 4)
+          ]
+    }
+
+bizarreDiagnosis :: CardDef
+bizarreDiagnosis =
+  (event "09046" "Bizarre Diagnosis" 0 Seeker)
+    { cdSkills = [#intellect, #intellect]
+    , cdCardTraits = setFromList [Insight, Science]
+    , cdCriteria = Just $ exists (You <> InvestigatorWithAnyClues <> InvestigatorAt Anywhere)
+    }
+
+captivatingDiscovery :: CardDef
+captivatingDiscovery =
+  (event "09047" "Captivating Discovery" 1 Seeker)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Insight]
+    , cdCriteria = Just $ can.search.deck You
+    }
+
+mapTheArea :: CardDef
+mapTheArea =
+  (event "09048" "Map the Area" 1 Seeker)
+    { cdSkills = [#willpower, #agility]
+    , cdCardTraits = setFromList [Insight, Tactic]
+    , cdActions = [#investigate]
+    }
+
+existentialRiddle1 :: CardDef
+existentialRiddle1 =
+  (event "09052" "Existential Riddle" 1 Seeker)
+    { cdSkills = [#willpower, #intellect]
+    , cdCardTraits = setFromList [Insight, Paradox]
+    , cdActions = [#parley]
+    , cdCriteria = Just $ exists (EnemyAt YourLocation <> NonEliteEnemy <> CanParleyEnemy You)
+    , cdLevel = Just 1
+    }
+
+guidance1 :: CardDef
+guidance1 =
+  (event "09053" "Guidance" 0 Seeker)
+    { cdSkills = [#willpower, #wild]
+    , cdCardTraits = setFromList [Insight]
+    , cdCriteria = Just $ exists (affectsOthers $ InvestigatorAt YourLocation <> NotYou <> YetToTakeTurn)
+    , cdAttackOfOpportunityModifiers = [DoesNotProvokeAttacksOfOpportunity]
+    , cdLevel = Just 1
+    }
+
+friendsInLowPlaces :: CardDef
+friendsInLowPlaces =
+  (event "09060" "Friends in Low Places" 0 Rogue)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Favor]
+    , cdCardInHandEffects = True
+    , cdCriteria = Just $ can.manipulate.deck You
+    , cdKeywords = setFromList [Keyword.Customizable]
+    , cdCustomizations =
+        mapFromList
+          [ (ChoicePlaceholder, 0)
+          , (Helpful, 1)
+          , (Versatile, 2)
+          , (Bolstering, 2)
+          , (Clever, 2)
+          , (Prompt, 2)
+          , (Experienced, 3)
+          , (Swift, 3)
+          ]
+    }
+
+honedInstinct :: CardDef
+honedInstinct =
+  (event "09061" "Honed Instinct" 1 Rogue)
+    { cdSkills = [#agility]
+    , cdCardTraits = setFromList [Gambit]
+    , cdCardInHandEffects = True
+    , cdKeywords = setFromList [Keyword.Customizable]
+    , cdLimits = [MaxPerRound 1]
+    , cdFastWindow =
+        Just
+          $ oneOf
+            [ AgendaAdvances #after AnyAgenda
+            , ActAdvances #after AnyAct
+            , SkillTestResult #after You AnySkillTest $ SuccessResult (atLeast 3)
+            , WindowWhen (Criteria.HasCustomization ReflexResponse) $ InvestigatorTakeDamage #after You AnySource
+            , WindowWhen (Criteria.HasCustomization ReflexResponse) $ InvestigatorTakeHorror #after You AnySource
+            , WindowWhen (Criteria.HasCustomization SituationalAwareness) $ LocationEntersPlay #after Anywhere
+            , WindowWhen (Criteria.HasCustomization SituationalAwareness) $ RevealLocation #after Anyone Anywhere
+            , WindowWhen (Criteria.HasCustomization KillerInstinct) $ EnemyEngaged #after You AnyEnemy
+            , WindowWhen (Criteria.HasCustomization GutReaction) $ EntersThreatArea #after You #treachery
+            , WindowWhen (Criteria.HasCustomization MuscleMemory) $ PlayCard #after You #asset
+            ]
+    , cdCustomizations =
+        mapFromList
+          [ (ReflexResponse, 1)
+          , (SituationalAwareness, 1)
+          , (KillerInstinct, 1)
+          , (GutReaction, 1)
+          , (MuscleMemory, 1)
+          , (SharpenedTalent, 2)
+          , (ImpulseControl, 3)
+          , (ForceOfHabit, 5)
+          ]
+    }
+
+hiddenPocket :: CardDef
+hiddenPocket =
+  (event "09065" "Hidden Pocket" 1 Rogue)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Upgrade, Illicit]
+    , cdFastWindow = Just $ DuringTurn You
+    , cdCriteria = Just $ exists $ AssetControlledBy You <> mapOneOf AssetWithTrait [Clothing, Armor]
+    }
+
+hitAndRun :: CardDef
+hitAndRun =
+  (event "09066" "Sleight of Hand" 1 Rogue)
+    { cdSkills = [#combat, #agility]
+    , cdCardTraits = setFromList [Tactic, Trick]
+    , cdFastWindow = Just $ DuringTurn You
+    , cdCriteria = Just $ Criteria.PlayableCardExists PaidCost $ InHandOf You <> #ally <> #asset
+    }
+
+illTakeThat :: CardDef
+illTakeThat =
+  (event "09067" "\"I'll take that!\"" 0 Rogue)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Trick, Upgrade, Illicit]
+    , cdFastWindow =
+        Just
+          $ oneOf
+            [ SkillTestResult #after You (WhileInvestigating Anywhere) #success
+            , SkillTestResult #after You (WhileEvadingAnEnemy $ EnemyWithTrait Humanoid) #success
+            ]
+    , cdCriteria =
+        Just
+          $ Criteria.PlayableCardExistsWithCostReduction ReduceBySuccessAmount
+          $ InHandOf You
+          <> #item
+          <> #asset
+    }
+
+kickingTheHornetsNest :: CardDef
+kickingTheHornetsNest =
+  (event "09068" "Kicking the Hornets Nest" 0 Rogue)
+    { cdSkills = [#intellect, #combat]
+    , cdCardTraits = setFromList [Gambit, Tactic]
+    , cdCriteria = can.target.encounterDeck
+    }
+
+quickGetaway :: CardDef
+quickGetaway =
+  (event "09069" "Quick Getaway" 2 Rogue)
+    { cdSkills = [#agility, #agility]
+    , cdCardTraits = setFromList [Trick]
+    , cdActions = [#evade]
+    , cdFastWindow =
+        Just $ EnemyAttacks #when You AnyEnemyAttack (EnemyWithEvade <> EnemyIsEngagedWith You)
+    }
+
 breakingAndEntering2 :: CardDef
 breakingAndEntering2 =
   (event "09074" "Breaking and Entering" 2 Rogue)
@@ -2946,6 +3462,430 @@ breakingAndEntering2 =
     , cdActions = [#investigate]
     , cdAttackOfOpportunityModifiers = [DoesNotProvokeAttacksOfOpportunity]
     , cdLevel = Just 2
+    }
+
+cleanSneak4 :: CardDef
+cleanSneak4 =
+  (event "09078" "Clean Sneak" 0 Rogue)
+    { cdSkills = [#agility, #agility]
+    , cdCardTraits = setFromList [Gambit, Trick]
+    , cdFastWindow = Just $ DuringTurn You
+    , cdCriteria =
+        Just
+          $ exists (EnemyAt YourLocation <> not_ IsSwarm <> ExhaustedEnemy)
+          <> oneOf
+            [ youExist (oneOf [can.gain.resources, can.draw.cards])
+            , exists
+                (EnemyAt YourLocation <> not_ IsSwarm <> ExhaustedEnemy <> EnemyCanBeDamagedBySource ThisCard)
+            , exists (LocationWithDiscoverableCluesBy You)
+            ]
+    , cdLevel = Just 4
+    }
+
+powerWord :: CardDef
+powerWord =
+  (event "09081" "Power Word" 3 Mystic)
+    { cdSkills = [#intellect]
+    , cdCardTraits = setFromList [Spell]
+    , cdFastWindow = Just $ DuringTurn You
+    , cdCriteria = Just $ exists $ EnemyAt YourLocation <> NonEliteEnemy
+    , cdKeywords = setFromList [Keyword.Customizable]
+    , cdCustomizations =
+        mapFromList
+          [ (Betray, 1)
+          , (Mercy, 1)
+          , (Confess, 1)
+          , (Distract, 1)
+          , (GreaterControl, 2)
+          , (Bonded, 3)
+          , (Tonguetwister, 3)
+          , (ThriceSpoken, 3)
+          ]
+    }
+
+eldritchInitiation :: CardDef
+eldritchInitiation =
+  (event "09086" "Eldritch Initiation" 1 Mystic)
+    { cdSkills = [#willpower, #intellect]
+    , cdCardTraits = setFromList [Ritual]
+    }
+
+explosiveWard :: CardDef
+explosiveWard =
+  (event "09087" "Explosive Ward" 0 Mystic)
+    { cdSkills = [#combat, #combat]
+    , cdCardTraits = setFromList [Spell]
+    , cdBeforeEffect = True
+    , cdCost = Just $ MaxDynamicCost $ EmptySlotsCalculation You #arcane
+    , cdAttackOfOpportunityModifiers = [DoesNotProvokeAttacksOfOpportunity]
+    , cdCriteria = Just $ exists $ EnemyIsEngagedWith You <> NonEliteEnemy
+    }
+
+stringOfCurses :: CardDef
+stringOfCurses =
+  (event "09088" "String of Curses" 1 Mystic)
+    { cdSkills = [#combat, #agility]
+    , cdCardTraits = setFromList [Spell]
+    , cdActions = [#parley]
+    , cdCriteria =
+        Just
+          $ exists
+          $ NonEliteEnemy
+          <> EnemyAt YourLocation
+          <> oneOf [EnemyCanBeEvadedBy ThisCard, EnemyWithAnyDoom <> EnemyCanBeDefeatedBy ThisCard]
+    }
+
+moonlightRitual2 :: CardDef
+moonlightRitual2 =
+  (event "09093" "Moonlight Ritual" 0 Mystic)
+    { cdSkills = [#intellect, #agility, #wild]
+    , cdCardTraits = setFromList [Spell, Insight]
+    , cdFastWindow = Just $ DuringTurn You
+    , cdCriteria =
+        Just (exists $ TargetWithDoom <> TargetAtLocation YourLocation <> not_ (TargetWithTrait Elite))
+    , cdLevel = Just 2
+    }
+
+uncageTheSoul3 :: CardDef
+uncageTheSoul3 =
+  (event "09095" "Uncage the Soul" 0 Mystic)
+    { cdSkills = [#willpower, #wild]
+    , cdCardTraits = singleton Spirit
+    , cdCriteria =
+        Just
+          $ Criteria.PlayableCardExistsWithCostReduction (Reduce 3)
+          $ oneOf
+            [ InHandOf You <> basic (oneOf [#spell, #ritual])
+            , InDiscardOf You <> basic (oneOf [#spell, #ritual])
+            , CardIsAsset $ AssetControlledBy You <> oneOf [#spell, #ritual]
+            ]
+    }
+
+makeshiftTrap :: CardDef
+makeshiftTrap =
+  (event "09100" "Makeshift Trap" 1 Survivor)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Improvised, Trap]
+    , cdUses = Uses.Uses Uses.Time (Fixed 2)
+    , cdCardInHandEffects = True
+    , cdKeywords = setFromList [Keyword.Customizable]
+    , cdCustomizations =
+        mapFromList
+          [ (ImprovedTimer, 1)
+          , (Tripwire, 1)
+          , (Simple, 2)
+          , (Poisonous, 2)
+          , (RemoteConfiguration, 2)
+          , (Net, 3)
+          , (ExplosiveDevice, 4)
+          ]
+    }
+
+endOfTheRoad :: CardDef
+endOfTheRoad =
+  (event "09104" "End of the Road" 0 Survivor)
+    { cdCardTraits = setFromList [Insight, Spirit]
+    , cdFastWindow = Just $ DuringTurn You
+    , cdCriteria = Just $ exists FinalAgenda
+    }
+
+exploitWeakness :: CardDef
+exploitWeakness =
+  (event "09105" "Exploit Weakness" 2 Survivor)
+    { cdSkills = [#combat, #agility]
+    , cdCardTraits = setFromList [Tactic, Trick]
+    , cdFastWindow = Just $ WouldRevealChaosToken #when You
+    , cdCriteria =
+        Just
+          $ Criteria.DuringSkillTest
+          $ oneOf [WhileAttackingAnEnemy AnyEnemy, WhileEvadingAnEnemy AnyEnemy]
+          <> SkillTestWithDifficulty (static 0)
+    }
+
+makingPreparations :: CardDef
+makingPreparations =
+  (event "09106" "Making Preparations" 0 Survivor)
+    { cdCardTraits = setFromList [Dilemma, Tactic]
+    , cdRevelation = IsRevelation
+    , cdCost = Nothing
+    , cdLimits = [MaxPerTraitPerRound Dilemma 2]
+    , cdCriteria = Just Criteria.Never
+    }
+
+predatorOrPrey :: CardDef
+predatorOrPrey =
+  (event "09107" "Predator or Prey" 0 Survivor)
+    { cdCardTraits = setFromList [Dilemma, Tactic]
+    , cdRevelation = IsRevelation
+    , cdCost = Nothing
+    , cdLimits = [MaxPerTraitPerRound Dilemma 2]
+    , cdCriteria = Just Criteria.Never
+    }
+
+shedALight :: CardDef
+shedALight =
+  (event "09108" "Shed a Light" 2 Survivor)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Insight, Trick]
+    , cdFastWindow = Just $ WouldRevealChaosToken #when You
+    , cdCriteria =
+        Just
+          $ Criteria.DuringSkillTest
+          $ WhileInvestigating Anywhere
+          <> SkillTestWithDifficulty (static 0)
+    }
+
+atACrossroads1 :: CardDef
+atACrossroads1 =
+  (event "09109" "At a Crossroads" 0 Survivor)
+    { cdCardTraits = setFromList [Dilemma, Insight]
+    , cdRevelation = IsRevelation
+    , cdCost = Nothing
+    , cdLimits = [MaxPerTraitPerRound Dilemma 2]
+    , cdCriteria = Just Criteria.Never
+    , cdLevel = Just 1
+    }
+
+lifeline1 :: CardDef
+lifeline1 =
+  (event "09110" "Lifeline" 1 Survivor)
+    { cdSkills = [#wild]
+    , cdCardTraits = setFromList [Fortune]
+    , cdLimits = [MaxPerTurn 1]
+    , cdFastWindow =
+        Just $ TurnWouldEnd #when (affectsOthers $ InvestigatorWithAnyFailedSkillTestsThisTurn)
+    , cdLevel = Just 1
+    }
+
+natureOfTheBeast1 :: CardDef
+natureOfTheBeast1 =
+  (event "09111" "Nature of the Beast" 0 Survivor)
+    { cdCardTraits = setFromList [Dilemma, Insight]
+    , cdRevelation = IsRevelation
+    , cdCost = Nothing
+    , cdLimits = [MaxPerTraitPerRound Dilemma 2]
+    , cdCriteria = Just Criteria.Never
+    , cdLevel = Just 1
+    }
+
+heedTheDream2 :: CardDef
+heedTheDream2 =
+  (event "09115" "Heed the Dream" 0 Survivor)
+    { cdCardTraits = setFromList [Augury, Dilemma]
+    , cdRevelation = IsRevelation
+    , cdCost = Nothing
+    , cdLimits = [MaxPerTraitPerRound Dilemma 2]
+    , cdCriteria = Just Criteria.Never
+    , cdLevel = Just 1
+    }
+
+salvage2 :: CardDef
+salvage2 =
+  (event "09116" "Salvage" 0 Survivor)
+    { cdSkills = [#intellect]
+    , cdCardTraits = setFromList [Insight]
+    , cdCriteria =
+        Just
+          $ exists
+          $ InDiscardOf You
+          <> basic #item
+          <> oneOf [basic CardWithNonZeroCost, PlayableCard (UnpaidCost NoAction) #any]
+    , cdLevel = Just 2
+    }
+
+fickleFortune3 :: CardDef
+fickleFortune3 =
+  (event "09118" "Fickle Fortune" 0 Survivor)
+    { cdCardTraits = setFromList [Dilemma, Fortune]
+    , cdRevelation = IsRevelation
+    , cdCost = Nothing
+    , cdLimits = [MaxPerTraitPerRound Dilemma 2]
+    , cdCriteria = Just Criteria.Never
+    , cdLevel = Just 1
+    }
+
+refine :: CardDef
+refine =
+  (event "09121" "Refine" 3 Neutral)
+    { cdSkills = [#willpower, #agility]
+    , cdCardTraits = setFromList [Supply, Double]
+    , cdCriteria = Just $ exists $ OwnedBy You <> basic CardWithAvailableCustomization
+    }
+
+quantumParadox :: CardDef
+quantumParadox =
+  (event "09125" "Quantum Paradox" 0 Neutral)
+    { cdCardTraits = setFromList [Paradox]
+    , cdCardSubType = Just BasicWeakness
+    , cdLevel = Nothing
+    , cdCardInHandEffects = True
+    , cdAdditionalCost = Just $ HandDiscardCost 4 #any
+    , cdDeckRestrictions = [OnlyClass Seeker]
+    }
+
+payYourDue :: CardDef
+payYourDue =
+  (event "09126" "Pay Your Due" 10 Neutral)
+    { cdCardTraits = setFromList [Paradox]
+    , cdCardSubType = Just BasicWeakness
+    , cdLevel = Nothing
+    , cdCardInHandEffects = True
+    , cdAdditionalCost = Just $ AdditionalActionsCostThatReducesResourceCostBy 5 mempty
+    , cdDeckRestrictions = [OnlyClass Seeker]
+    }
+
+underprepared :: CardDef
+underprepared =
+  (event "09128" "Underprepared" 1 Neutral)
+    { cdCardTraits = setFromList [Blunder]
+    , cdCardSubType = Just BasicWeakness
+    , cdLevel = Nothing
+    , cdCardInHandEffects = True
+    , cdDeckRestrictions = [OnlyClass Survivor]
+    , cdCriteria =
+        Just $ youExist (HandWith (LengthIs $ atMost 1) <> InvestigatorWithResources (atMost 1))
+    }
+
+adHoc :: CardDef
+adHoc =
+  signature "10001"
+    $ (event "10002" "Ad Hoc" 2 Neutral)
+      { cdSkills = [#wild, #wild]
+      , cdCardTraits = setFromList [Improvised, Upgrade]
+      , cdCriteria = Just $ exists $ AssetControlledBy You <> oneOf [#tool, #weapon]
+      }
+
+aethericCurrentYuggoth :: CardDef
+aethericCurrentYuggoth =
+  signature "10004"
+    $ (event "10006" ("Aetheric Current" <:> "Yuggoth") 0 Neutral)
+      { cdSkills = [#combat]
+      , cdKeywords = singleton (Keyword.Bonded 1 "06005")
+      , cdCardTraits = setFromList [Science]
+      , cdActions = [#fight]
+      , cdCriteria = Just $ exists $ AssetIs "10005b"
+      }
+
+aethericCurrentYoth :: CardDef
+aethericCurrentYoth =
+  signature "10004"
+    $ (event "10007" ("Aetheric Current" <:> "Yoth") 0 Neutral)
+      { cdSkills = [#agility]
+      , cdKeywords = singleton (Keyword.Bonded 1 "06005")
+      , cdCardTraits = setFromList [Science]
+      , cdActions = [#evade]
+      , cdCriteria = Just $ exists $ AssetIs "10005b"
+      }
+
+beguile :: CardDef
+beguile =
+  signature "10009"
+    $ (event "10010" "Beguile" 2 Neutral)
+      { cdSkills = [#wild]
+      , cdCardTraits = setFromList [Trick]
+      , cdFastWindow = Just $ DuringTurn You
+      , cdCriteria = Just $ exists $ NonEliteEnemy <> EnemyAt YourLocation
+      }
+
+tinker :: CardDef
+tinker =
+  (event "10028" "Tinker" 1 Guardian)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Insight, Upgrade]
+    , cdFastWindow = Just $ DuringTurn You
+    , cdCriteria =
+        Just (exists $ #tool <> AssetInPlayAreaOf You <> not_ (AssetWithAttachedEvent $ EventIs "10028"))
+    }
+
+fineTuning1 :: CardDef
+fineTuning1 =
+  (event "10054" "Fine Tuning" 2 Seeker)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Insight, Upgrade]
+    , cdCriteria =
+        Just
+          ( exists
+              $ oneOf [#tool, #science]
+              <> AssetControlledBy You
+              <> not_ (AssetWithAttachedEvent $ EventIs "10054")
+          )
+    , cdLevel = Just 1
+    }
+
+bankJob :: CardDef
+bankJob =
+  (event "10069" "Bank Job" 2 Rogue)
+    { cdSkills = [#intellect, #combat, #agility]
+    , cdCardTraits = setFromList [Gambit, Double, Illicit]
+    , cdCriteria = Just (exists $ affectsOthers $ InvestigatorAt YourLocation <> can.gain.resources)
+    , cdAdditionalCost = Just AdditionalActionCost
+    }
+
+falseSurrender :: CardDef
+falseSurrender =
+  (event "10070" "False Surrender" 1 Rogue)
+    { cdSkills = [#willpower, #intellect]
+    , cdCardTraits = setFromList [Tactic, Trick]
+    , cdActions = [#parley]
+    , cdCriteria =
+        Just
+          $ exists (EnemyAt YourLocation <> CanParleyEnemy You)
+          <> exists (PlayableCardWithCostReduction NoAction 1 $ InHandOf You <> basic (#asset <> #weapon))
+    }
+
+grift :: CardDef
+grift =
+  (event "10071" "Grift" 0 Rogue)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Trick, Illicit]
+    , cdActions = [#parley]
+    , cdCriteria = Just $ exists (EnemyAt YourLocation <> CanParleyEnemy You)
+    }
+
+vamp :: CardDef
+vamp =
+  (event "10074" "Vamp" 1 Rogue)
+    { cdSkills = [#wild]
+    , cdCardTraits = setFromList [Trick]
+    , cdActions = [#parley]
+    , cdCriteria = Just $ exists (EnemyAt YourLocation <> CanParleyEnemy You)
+    }
+
+snitch2 :: CardDef
+snitch2 =
+  (event "10078" "Snitch" 1 Rogue)
+    { cdSkills = [#intellect, #agility]
+    , cdCardTraits = setFromList [Favor, Trick]
+    , cdFastWindow = Just $ SkillTestResult #after You #parley #success
+    , cdCriteria =
+        Just
+          $ exists (LocationWithDiscoverableCluesBy You <> oneOf [YourLocation, ConnectedFrom YourLocation])
+    }
+
+vamp3 :: CardDef
+vamp3 =
+  (event "10081" "Vamp" 1 Rogue)
+    { cdSkills = [#wild, #wild]
+    , cdCardTraits = setFromList [Trick]
+    , cdActions = [#parley]
+    , cdCriteria = Just $ exists (EnemyAt YourLocation <> CanParleyEnemy You)
+    , cdLevel = Just 3
+    }
+
+pushedToTheLimit :: CardDef
+pushedToTheLimit =
+  (event "10113" "Pushed to the Limit" 2 Survivor)
+    { cdSkills = [#willpower, #combat]
+    , cdCardTraits = setFromList [Tactic, Improvised]
+    , cdCriteria =
+        Just
+          ( exists
+              $ oneOf [#tool, #weapon]
+              <> #asset
+              <> InDiscardOf You
+              <> CardWithPerformableAbility AbilityIsActionAbility [IgnoreAllCosts]
+          )
+    , cdAttackOfOpportunityModifiers = [DoesNotProvokeAttacksOfOpportunity]
     }
 
 keepFaith2 :: CardDef
@@ -3256,7 +4196,10 @@ manoAMano2 =
     { cdSkills = [#willpower, #combat]
     , cdCardTraits = setFromList [Spirit, Bold]
     , cdCriteria =
-        Just $ Criteria.FirstAction <> exists EnemyEngagedWithYou <> Criteria.CanDealDamage
+        Just
+          $ Criteria.FirstAction
+          <> exists (EnemyEngagedWithYou <> EnemyCanBeDamagedBySource ThisCard)
+          <> Criteria.CanDealDamage
     , cdAttackOfOpportunityModifiers = [DoesNotProvokeAttacksOfOpportunity]
     , cdLevel = Just 2
     }
@@ -3301,6 +4244,7 @@ crypticWritings =
     { cdSkills = [#intellect, #intellect]
     , cdCardTraits = singleton Insight
     , cdCardInHandEffects = True
+    , cdCriteria = Just $ can.gain.resources You
     }
 
 extensiveResearch :: CardDef
@@ -3317,7 +4261,7 @@ occultInvocation =
   (event "60217" "Occult Invocation" 2 Seeker)
     { cdSkills = [#combat, #intellect]
     , cdCardTraits = singleton Spell
-    , cdAdditionalCost = Just $ UpTo 2 $ HandDiscardCost 1 AnyCard
+    , cdAdditionalCost = Just $ UpTo (Fixed 2) $ HandDiscardCost 1 #any
     , cdActions = [#fight]
     }
 
@@ -3337,6 +4281,7 @@ crypticWritings2 =
     , cdCardTraits = singleton Insight
     , cdCardInHandEffects = True
     , cdLevel = Just 2
+    , cdCriteria = Just $ can.gain.resources You
     }
 
 iveGotAPlan2 :: CardDef

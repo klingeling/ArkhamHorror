@@ -1,12 +1,5 @@
-module Arkham.Skill.Cards.Copycat3 (
-  copycat3,
-  copycat3Effect,
-  Copycat3 (..),
-) where
+module Arkham.Skill.Cards.Copycat3 (copycat3, copycat3Effect, Copycat3 (..)) where
 
-import Arkham.Prelude
-
-import Arkham.Card
 import Arkham.Classes
 import Arkham.Deck qualified as Deck
 import Arkham.Effect.Runner ()
@@ -14,8 +7,8 @@ import Arkham.Effect.Types
 import Arkham.EffectMetadata
 import {-# SOURCE #-} Arkham.GameEnv
 import Arkham.Matcher
-import Arkham.Matcher qualified as Matcher
 import Arkham.Message
+import Arkham.Prelude
 import Arkham.Skill.Cards qualified as Cards
 import Arkham.Skill.Runner
 
@@ -29,17 +22,10 @@ copycat3 = skill Copycat3 Cards.copycat3
 instance RunMessage Copycat3 where
   runMessage msg (Copycat3 attrs) = case msg of
     InvestigatorCommittedSkill iid sid | sid == toId attrs -> do
-      iids <- select $ NotInvestigator $ InvestigatorWithId iid
-      iidsWithCommittableCards <- flip mapMaybeM iids $ \iid' -> do
-        committableCards <-
-          select
-            $ CommittableCard iid
-            $ InDiscardOf (InvestigatorWithId iid')
-            <> BasicCardMatch Matcher.SkillCard
-        pure
-          $ if null committableCards
-            then Nothing
-            else Just (iid', committableCards)
+      iids <- select $ not_ $ InvestigatorWithId iid
+      iidsWithCommittableCards <- forMaybeM iids $ \iid' -> do
+        committableCards <- select $ CommittableCard (InvestigatorWithId iid) $ inDiscardOf iid' <> #skill
+        pure $ guard (null committableCards) $> (iid', committableCards)
       player <- getPlayer iid
       unless (null iidsWithCommittableCards)
         $ pushAll
@@ -47,13 +33,9 @@ instance RunMessage Copycat3 where
           , chooseOne
               player
               [ targetLabel
-                (toCardId card)
+                card
                 [ CommitCard iid card
-                , createCardEffect
-                    Cards.copycat3
-                    (Just $ EffectMetaTarget (toTarget $ toCardId card))
-                    attrs
-                    iid'
+                , createCardEffect Cards.copycat3 (Just $ EffectMetaTarget (toTarget card)) attrs iid'
                 ]
               | (iid', cards) <- iidsWithCommittableCards
               , card <- cards
@@ -72,15 +54,14 @@ copycat3Effect = cardEffect Copycat3Effect Cards.copycat3
 
 instance RunMessage Copycat3Effect where
   runMessage msg e@(Copycat3Effect attrs@EffectAttrs {..}) = case msg of
-    SkillTestEnds _ _ -> do
+    SkillTestEnds _ _ _ -> do
       case (effectMetadata, effectTarget) of
-        (Just (EffectMetaTarget (CardIdTarget cardId)), InvestigatorTarget iid) ->
-          do
-            card <- getCard cardId
-            pushAll
-              [ DisableEffect effectId
-              , PutCardOnBottomOfDeck iid (Deck.InvestigatorDeck iid) card
-              ]
+        (Just (EffectMetaTarget (CardIdTarget cardId)), InvestigatorTarget iid) -> do
+          card <- getCard cardId
+          pushAll
+            [ DisableEffect effectId
+            , PutCardOnBottomOfDeck iid (Deck.InvestigatorDeck iid) card
+            ]
         _ -> error "invalid target or effectMetaTarget"
       pure e
     _ -> Copycat3Effect <$> runMessage msg attrs

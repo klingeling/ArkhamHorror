@@ -42,6 +42,7 @@ data EnemyMetadata = EnemyMetadata
   , emTreacheries :: [TreacheryId]
   , emAssets :: [AssetId]
   , emEvents :: [EventId]
+  , emSkills :: [SkillId]
   , emModifiers :: [Modifier]
   }
   deriving stock (Show, Eq, Generic)
@@ -73,3 +74,23 @@ data SkillTestMetadata = SkillTestMetadata
 instance ToJSON SkillTestMetadata where
   toJSON = genericToJSON $ aesonOptions $ Just "stm"
   toEncoding = genericToEncoding $ aesonOptions $ Just "stm"
+
+data ActMetadata = ActMetadata
+  { actmTreacheries :: [TreacheryId]
+  , actmModifiers :: [Modifier]
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON ActMetadata where
+  toJSON = genericToJSON $ aesonOptions $ Just "actm"
+  toEncoding = genericToEncoding $ aesonOptions $ Just "actm"
+
+data AgendaMetadata = AgendaMetadata
+  { agendamTreacheries :: [TreacheryId]
+  , agendamModifiers :: [Modifier]
+  }
+  deriving stock (Show, Eq, Generic)
+
+instance ToJSON AgendaMetadata where
+  toJSON = genericToJSON $ aesonOptions $ Just "agendam"
+  toEncoding = genericToEncoding $ aesonOptions $ Just "agendam"

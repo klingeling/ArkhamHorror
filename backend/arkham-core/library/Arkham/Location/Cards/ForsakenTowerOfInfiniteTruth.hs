@@ -41,7 +41,8 @@ instance RunMessage ForsakenTowerOfInfiniteTruth where
         ]
       pure l
     HandleTargetChoice iid (isAbilitySource attrs 1 -> True) (EnemyTarget nyarlathotep) -> do
-      push $ EvadeEnemy iid nyarlathotep (attrs.ability 1) (Just $ toTarget attrs) #willpower False
+      sid <- getRandom
+      push $ EvadeEnemy sid iid nyarlathotep (attrs.ability 1) (Just $ toTarget attrs) #willpower False
       pure l
     Successful (Action.Evade, EnemyTarget eid) _iid _ (isTarget attrs -> True) _ -> do
       discardWhisperingChaos attrs
@@ -54,4 +55,4 @@ instance RunMessage ForsakenTowerOfInfiniteTruth where
         , ShuffleBackIntoEncounterDeck (toTarget eid)
         ]
       pure l
-    _ -> ForsakenTowerOfInfiniteTruth <$> lift (runMessage msg attrs)
+    _ -> ForsakenTowerOfInfiniteTruth <$> liftRunMessage msg attrs

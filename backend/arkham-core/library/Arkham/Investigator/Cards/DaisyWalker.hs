@@ -14,6 +14,7 @@ import Arkham.Matcher
 newtype DaisyWalker = DaisyWalker InvestigatorAttrs
   deriving anyclass (IsInvestigator, HasAbilities)
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock (Data)
 
 daisyWalker :: InvestigatorCard DaisyWalker
 daisyWalker =
@@ -40,6 +41,6 @@ instance RunMessage DaisyWalker where
   runMessage msg i@(DaisyWalker attrs) = case msg of
     PassedSkillTestWithToken iid ElderSign | attrs `is` iid -> do
       tomeCount <- selectCount $ assetControlledBy attrs.id <> withTrait Tome
-      when (tomeCount > 0) $ pushM $ drawCards iid ElderSign tomeCount
+      pushWhen (tomeCount > 0) $ drawCards iid ElderSign tomeCount
       pure i
     _ -> DaisyWalker <$> runMessage msg attrs

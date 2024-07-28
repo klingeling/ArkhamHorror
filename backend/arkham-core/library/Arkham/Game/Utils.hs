@@ -22,6 +22,7 @@ import Arkham.Game.Helpers hiding (
   getSpendableClueCount,
   withModifiers,
  )
+import Arkham.Helpers.Calculation
 import Arkham.Helpers.Investigator (getActionCost)
 import Arkham.Id
 import Arkham.Investigator.Types (Field (..), Investigator, investigatorResources)
@@ -33,6 +34,7 @@ import Arkham.Prelude
 import Arkham.Projection
 import Arkham.Scenario.Types hiding (scenario)
 import Arkham.Skill.Types (Skill)
+import Arkham.Story.Types (Story)
 import Arkham.Target
 import Arkham.Treachery.Types (Treachery)
 import Arkham.Window (Window)
@@ -169,6 +171,9 @@ getPlacementLocation = \case
   Global -> pure Nothing
   OutOfPlay _ -> pure Nothing
   AsSwarm eid _ -> field EnemyLocation eid
+  HiddenInHand _ -> pure Nothing
+  OnTopOfDeck _ -> pure Nothing
+  NextToAgenda -> pure Nothing
 
 createActiveCostForAdditionalCardCosts
   :: (MonadRandom m, HasGame m)
@@ -188,7 +193,7 @@ createActiveCostForAdditionalCardCosts iid card = do
       flip mapMaybe (setToList $ cdKeywords $ toCardDef card) $ \case
         Keyword.Seal sealing -> case sealing of
           Sealing matcher -> Just $ Cost.SealCost matcher
-          SealUpTo n matcher -> Just $ Cost.UpTo n $ Cost.SealCost matcher
+          SealUpTo n matcher -> Just $ Cost.UpTo (Fixed n) $ Cost.SealCost matcher
           SealUpToX _ -> Nothing
         _ -> Nothing
     cost = mconcat $ additionalCosts <> sealChaosTokenCosts
@@ -222,6 +227,29 @@ maybeEnemy eid = do
     <|> getInEncounterDiscardEntity enemiesL eid g
     <|> getRemovedEntity enemiesL eid g
 
+getSkill :: (HasCallStack, HasGame m) => SkillId -> m Skill
+getSkill sid = fromJustNote missingSkill <$> maybeSkill sid
+ where
+  missingSkill = "Unknown skill: " <> show sid
+
+maybeSkill :: HasGame m => SkillId -> m (Maybe Skill)
+maybeSkill sid = do
+  g <- getGame
+  pure
+    $ preview (entitiesL . skillsL . ix sid) g
+    <|> getInDiscardEntity skillsL sid g
+    <|> getRemovedEntity skillsL sid g
+    <|> preview (inHandEntitiesL . each . skillsL . ix sid) g
+    <|> preview (inSearchEntitiesL . skillsL . ix sid) g
+
+getStory :: (HasCallStack, HasGame m) => StoryId -> m Story
+getStory sid = fromJustNote missingStory <$> maybeStory sid
+ where
+  missingStory = "Unknown story: " <> show sid
+
+maybeStory :: HasGame m => StoryId -> m (Maybe Story)
+maybeStory sid = preview (entitiesL . storiesL . ix sid) <$> getGame
+
 getActiveInvestigator :: HasGame m => m Investigator
 getActiveInvestigator = getGame >>= getInvestigator . gameActiveInvestigatorId
 
@@ -247,23 +275,26 @@ createActiveCostForCard iid card isPlayAction windows' = do
     actions = case cdActions (toCardDef card) of
       [] -> [Action.Play | isPlayAction == IsPlayAction]
       as -> as
-    resourceCost =
-      if resources == 0
-        then
-          if isDynamic card
-            then
-              Cost.UpTo
-                (investigatorResources $ toAttrs investigator')
-                (Cost.ResourceCost 1)
-            else Cost.Free
-        else Cost.ResourceCost resources
     sealChaosTokenCosts =
       flip mapMaybe (setToList $ cdKeywords $ toCardDef card) $ \case
         Keyword.Seal sealing -> case sealing of
           Sealing matcher -> Just $ Cost.SealCost matcher
-          SealUpTo n matcher -> Just $ Cost.UpTo n $ Cost.SealCost matcher
+          SealUpTo n matcher -> Just $ Cost.UpTo (Fixed n) $ Cost.SealCost matcher
           SealUpToX _ -> Nothing
         _ -> Nothing
+
+    resourceCost =
+      if resources == 0
+        then
+          if isDynamic card
+            then case maxDynamic card of
+              Nothing -> Cost.UpTo (Fixed $ investigatorResources $ toAttrs investigator') (Cost.ResourceCost 1)
+              Just c ->
+                Cost.UpTo
+                  (MaxCalculation c (Fixed $ investigatorResources $ toAttrs investigator'))
+                  (Cost.ResourceCost 1)
+            else Cost.Free
+        else Cost.ResourceCost resources
 
   additionalActionCosts <-
     sum <$> flip mapMaybeM allModifiers \case

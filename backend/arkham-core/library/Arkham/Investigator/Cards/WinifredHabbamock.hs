@@ -22,6 +22,7 @@ import Arkham.SkillTestResult
 newtype WinifredHabbamock = WinifredHabbamock InvestigatorAttrs
   deriving anyclass (IsInvestigator, HasModifiersFor)
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock Data
 
 winifredHabbamock :: InvestigatorCard WinifredHabbamock
 winifredHabbamock =
@@ -44,7 +45,7 @@ instance HasChaosTokenValue WinifredHabbamock where
 instance RunMessage WinifredHabbamock where
   runMessage msg i@(WinifredHabbamock attrs) = case msg of
     UseCardAbility iid (isSource attrs -> True) 1 _ _ -> do
-      pushM $ drawCards iid (toAbilitySource attrs 1) 1
+      push $ drawCards iid (toAbilitySource attrs 1) 1
       pure i
     ResolveChaosToken _ ElderSign iid | iid == toId attrs -> do
       push $ createCardEffect Cards.winifredHabbamock Nothing attrs attrs
@@ -54,13 +55,14 @@ instance RunMessage WinifredHabbamock where
 newtype WinifredHabbamockEffect = WinifredHabbamockEffect EffectAttrs
   deriving anyclass (HasAbilities, IsEffect, HasModifiersFor)
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock Data
 
 winifredHabbamockEffect :: EffectArgs -> WinifredHabbamockEffect
 winifredHabbamockEffect = cardEffect WinifredHabbamockEffect Cards.winifredHabbamock
 
 instance RunMessage WinifredHabbamockEffect where
   runMessage msg e@(WinifredHabbamockEffect attrs@EffectAttrs {..}) = case msg of
-    SkillTestEnds _ _ -> do
+    SkillTestEnds _ _ _ -> do
       push $ DisableEffect (toId e)
       mSkillTest <- getSkillTest
       case mSkillTest of

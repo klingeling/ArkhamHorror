@@ -6,6 +6,7 @@ import {
 } from '@/arkham/types/Card';
 import { ArkhamKey, arkhamKeyDecoder } from '@/arkham/types/Key';
 import { Tokens, tokensDecoder } from '@/arkham/types/Token';
+import { Customization, customizationsDecoder } from '@/arkham/types/Customization';
 
 export type Asset = {
   id: string;
@@ -15,7 +16,6 @@ export type Asset = {
   health: number | null;
   sanity: number | null;
   tokens: Tokens;
-  uses: Record<string, number>;
   exhausted: boolean;
   permanent: boolean;
   events: string[];
@@ -24,7 +24,8 @@ export type Asset = {
   cardsUnderneath: Card[];
   sealedChaosTokens: ChaosToken[];
   keys: ArkhamKey[];
-  customizations: [number, number][];
+  customizations: Customization[];
+  marketDeck?: Card[]
 }
 
 export const assetDecoder = JsonDecoder.object<Asset>({
@@ -35,7 +36,6 @@ export const assetDecoder = JsonDecoder.object<Asset>({
   health: JsonDecoder.nullable(JsonDecoder.number),
   tokens: tokensDecoder,
   sanity: JsonDecoder.nullable(JsonDecoder.number),
-  uses: JsonDecoder.array(JsonDecoder.tuple([JsonDecoder.string, JsonDecoder.number], 'Uses'), 'Uses[]').map((x) => x.reduce((acc, [k, v]) => (acc[k] = v, acc), {} as Record<string, number>)),
   exhausted: JsonDecoder.boolean,
   permanent: JsonDecoder.boolean,
   events: JsonDecoder.array<string>(JsonDecoder.string, 'EventId[]'),
@@ -44,5 +44,6 @@ export const assetDecoder = JsonDecoder.object<Asset>({
   cardsUnderneath: JsonDecoder.array<Card>(cardDecoder, 'CardUnderneath'),
   sealedChaosTokens: JsonDecoder.array<ChaosToken>(chaosTokenDecoder, 'ChaosToken[]'),
   keys: JsonDecoder.array<ArkhamKey>(arkhamKeyDecoder, 'Key[]'),
-  customizations: JsonDecoder.array<[number, number]>(JsonDecoder.tuple([JsonDecoder.number, JsonDecoder.number], 'Customization'), 'Customization[]'),
+  customizations: customizationsDecoder,
+  marketDeck: JsonDecoder.optional(JsonDecoder.array<Card>(cardDecoder, 'Card[]')),
 }, 'Asset');

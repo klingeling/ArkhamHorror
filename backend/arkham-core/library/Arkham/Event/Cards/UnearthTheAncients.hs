@@ -38,16 +38,17 @@ instance RunMessage UnearthTheAncients where
           ]
       pure e
     ResolveEvent iid eid (Just (CardTarget card)) _ | eid == toId attrs -> do
-      investigation <- mkInvestigate iid attrs <&> setTarget attrs
+      sid <- getRandom
+      investigation <- mkInvestigate sid iid attrs <&> setTarget attrs
       pushAll
-        [ skillTestModifier attrs SkillTestTarget (SetDifficulty $ getCost card)
+        [ skillTestModifier sid attrs sid (SetDifficulty $ getCost card)
         , toMessage investigation
         ]
       pure $ UnearthTheAncients $ attrs `with` Metadata (Just card)
     Successful (Action.Investigate, _) iid _ target _ | isTarget attrs target -> do
       case chosenCard metadata of
         Just card -> do
-          drawing <- drawCards iid attrs 1
+          let drawing = drawCards iid attrs 1
           pushAll $ putCardIntoPlay iid card : [drawing | Relic `member` toTraits card]
         Nothing -> error "this should not happen"
       pure e

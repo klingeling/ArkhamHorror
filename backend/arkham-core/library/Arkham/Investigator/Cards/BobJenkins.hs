@@ -20,8 +20,9 @@ import Data.Aeson.Types (Parser, parseMaybe)
 import Data.Map.Strict qualified as Map
 
 newtype BobJenkins = BobJenkins InvestigatorAttrs
-  deriving anyclass (IsInvestigator)
+  deriving anyclass IsInvestigator
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock Data
 
 bobJenkins :: InvestigatorCard BobJenkins
 bobJenkins =
@@ -121,4 +122,4 @@ instance RunMessage BobJenkins where
 
       revealedCards' <- foldM addCards revealedCards iids
 
-      BobJenkins <$> lift (runMessage msg $ attrs & setMeta (object ["revealedCards" .= revealedCards']))
+      BobJenkins <$> (liftRunMessage msg $ attrs & setMeta (object ["revealedCards" .= revealedCards']))

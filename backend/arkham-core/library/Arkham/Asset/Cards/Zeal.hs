@@ -23,7 +23,7 @@ instance HasAbilities Zeal where
     [ controlledAbility a 1 (exists $ oneOf [assetIs Cards.hope, assetIs Cards.augur])
         $ forced
         $ AssetEntersPlay #when (be a)
-    , controlledAbility a 2 (exists $ AssetWithId (toId a) <> AssetReady)
+    , controlledAbility a 2 (exists $ be a <> AssetReady)
         $ fightAction
         $ OrCost [exhaust a, discardCost a]
     ]
@@ -36,6 +36,7 @@ instance RunMessage Zeal where
       pure a
     UseThisAbility iid (isSource attrs -> True) 2 -> do
       let source = attrs.ability 2
+      sid <- getRandom
       discarded <- selectNone $ AssetWithId (toId attrs)
       catsInDiscard <-
         fieldMap
@@ -44,10 +45,10 @@ instance RunMessage Zeal where
           iid
       player <- getPlayer iid
       zealCard <- field AssetCard (toId attrs)
-      chooseFight <- toMessage <$> mkChooseFight iid source
+      chooseFight <- toMessage <$> mkChooseFight sid iid source
       pushAll
-        $ [skillTestModifier source iid (BaseSkillOf #combat 5)]
-        <> [skillTestModifier source iid SkillTestAutomaticallySucceeds | discarded]
+        $ [skillTestModifier sid source iid (BaseSkillOf #combat 5)]
+        <> [skillTestModifier sid source iid SkillTestAutomaticallySucceeds | discarded]
         <> [chooseFight]
         <> [ questionLabel "Put into play from discard" player
             $ ChooseOne

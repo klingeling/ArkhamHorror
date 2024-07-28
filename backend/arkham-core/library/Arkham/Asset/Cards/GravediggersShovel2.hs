@@ -6,6 +6,7 @@ import Arkham.Asset.Runner
 import Arkham.Discover
 import Arkham.Fight
 import Arkham.Matcher
+import Arkham.Message qualified as Msg
 import Arkham.Placement
 import Arkham.Prelude
 
@@ -27,8 +28,9 @@ instance RunMessage GravediggersShovel2 where
   runMessage msg a@(GravediggersShovel2 attrs) = case msg of
     UseThisAbility iid (isSource attrs -> True) 1 -> do
       let source = attrs.ability 1
-      chooseFight <- toMessage <$> mkChooseFight iid source
-      pushAll [skillTestModifier source iid (SkillModifier #combat 2), chooseFight]
+      sid <- getRandom
+      chooseFight <- toMessage <$> mkChooseFight sid iid source
+      pushAll [skillTestModifier sid source iid (SkillModifier #combat 2), chooseFight]
       pure a
     UseThisAbility iid (isSource attrs -> True) 2 -> do
       let
@@ -36,6 +38,6 @@ instance RunMessage GravediggersShovel2 where
           case attrs.placement of
             OutOfPlay RemovedZone -> 2
             _ -> 1
-      push $ discoverAtYourLocation iid (attrs.ability 2) n
+      push $ Msg.DiscoverClues iid $ discoverAtYourLocation (attrs.ability 2) n
       pure a
     _ -> GravediggersShovel2 <$> runMessage msg attrs

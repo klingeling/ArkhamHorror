@@ -29,16 +29,18 @@ unlightBrazier locationId = UpdateLocation locationId (LocationBrazier ?=. Unlit
 
 circleTest
   :: (Sourceable source, Targetable target, HasQueue Message m)
-  => InvestigatorId
+  => SkillTestId
+  -> InvestigatorId
   -> source
   -> target
   -> [SkillType]
   -> GameCalculation
   -> m ()
-circleTest iid source target skillTypes n =
+circleTest sid iid source target skillTypes n =
   push
     $ BeginSkillTest
     $ buildSkillTest
+      sid
       iid
       source
       target
@@ -57,6 +59,6 @@ passedCircleTest iid attrs = do
   push $ chooseOne player [brazierChoice, Label "Leave brazier alone" []]
 
 pattern DuringCircleAction :: Criterion
-pattern DuringCircleAction <- DuringSkillTest (SkillTestForAction (ActionIs Circle))
+pattern DuringCircleAction <- DuringSkillTest (SkillTestWithAction (ActionIs Circle))
   where
-    DuringCircleAction = DuringSkillTest (SkillTestForAction (ActionIs Circle))
+    DuringCircleAction = DuringSkillTest (SkillTestWithAction (ActionIs Circle))

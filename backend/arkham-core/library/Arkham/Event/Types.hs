@@ -6,15 +6,18 @@ import Arkham.Prelude
 
 import Arkham.Ability
 import Arkham.Asset.Uses
+import Arkham.Calculation
 import Arkham.Card
 import Arkham.ChaosToken (ChaosToken)
 import Arkham.Classes.Entity
 import Arkham.Classes.HasAbilities
 import Arkham.Classes.HasModifiersFor
 import Arkham.Classes.RunMessage.Internal
+import Arkham.Customization
 import Arkham.Event.Cards
 import Arkham.Id
 import Arkham.Json
+import Arkham.Matcher.Types (Be (..), EventMatcher (EventWithId))
 import Arkham.Message
 import Arkham.Name
 import Arkham.Placement
@@ -23,7 +26,10 @@ import Arkham.Source
 import Arkham.Target
 import Arkham.Trait
 import Arkham.Window (Window)
-import Data.Typeable
+import Data.Aeson.KeyMap qualified as KeyMap
+import Data.Aeson.TH
+import Data.Data
+import Data.Map.Strict qualified as Map
 import GHC.Records
 
 class
@@ -48,19 +54,19 @@ data instance Field Event :: Type -> Type where
   EventTraits :: Field Event (Set Trait)
   EventAbilities :: Field Event [Ability]
   EventOwner :: Field Event InvestigatorId
+  EventController :: Field Event InvestigatorId
   EventDoom :: Field Event Int
   EventCard :: Field Event Card
   EventCardId :: Field Event CardId
   EventSealedChaosTokens :: Field Event [ChaosToken]
   EventUses :: Field Event (Map UseType Int)
+  EventTokens :: Field Event (Map UseType Int)
   EventWindows :: Field Event [Window]
+  EventCustomizations :: Field Event Customizations
+  EventMeta :: Field Event Value
 
 data instance Field (InHandEntity Event) :: Type -> Type where
   InHandEventCardId :: Field (InHandEntity Event) CardId
-
--- These could be different, update in the future
-eventController :: EventAttrs -> InvestigatorId
-eventController = eventOwner
 
 eventAttachedTarget :: EventAttrs -> Maybe Target
 eventAttachedTarget = placementToAttached . eventPlacement
@@ -71,6 +77,7 @@ data EventAttrs = EventAttrs
   , eventOriginalCardCode :: CardCode
   , eventId :: EventId
   , eventOwner :: InvestigatorId
+  , eventController :: InvestigatorId
   , eventDoom :: Int
   , eventExhausted :: Bool
   , eventBeingPaidFor :: Bool
@@ -84,21 +91,51 @@ data EventAttrs = EventAttrs
   , eventWindows :: [Window]
   , eventTarget :: Maybe Target
   , eventMeta :: Value
-  , eventUses :: Map UseType Int
+  , eventTokens :: Map UseType Int
+  , eventCustomizations :: Customizations
+  , eventPrintedUses :: Uses GameCalculation
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Eq)
 
 allEventCards :: Map CardCode CardDef
 allEventCards = allPlayerEventCards
 
+instance Be EventAttrs EventMatcher where
+  be = EventWithId . eventId
+
+instance AsId EventAttrs where
+  type IdOf EventAttrs = EventId
+  asId = toId
+
 instance Is EventAttrs EventId where
   is = (==) . toId
+
+instance HasField "uses" EventAttrs (Map UseType Int) where
+  getField = Map.filterWithKey (\k _ -> tokenIsUse k) . coerce . eventTokens
+
+instance HasField "use" EventAttrs (UseType -> Int) where
+  getField a uType = findWithDefault 0 uType a.uses
+
+instance HasField "ready" EventAttrs Bool where
+  getField = not . eventExhausted
+
+instance HasField "customizations" EventAttrs Customizations where
+  getField = eventCustomizations
+
+instance HasField "windows" EventAttrs [Window] where
+  getField = eventWindows
+
+instance HasField "attachedTo" EventAttrs (Maybe Target) where
+  getField = eventAttachedTarget
 
 instance HasField "id" EventAttrs EventId where
   getField = eventId
 
 instance HasField "meta" EventAttrs Value where
   getField = eventMeta
+
+instance HasField "tokens" EventAttrs Tokens where
+  getField = eventTokens
 
 instance HasField "placement" EventAttrs Placement where
   getField = eventPlacement
@@ -110,10 +147,17 @@ instance HasField "owner" EventAttrs InvestigatorId where
   getField = eventOwner
 
 instance HasField "controller" EventAttrs InvestigatorId where
-  getField = eventOwner
+  getField = eventController
 
 instance HasField "ability" EventAttrs (Int -> Source) where
   getField this = toAbilitySource this
+
+instance HasField "doom" EventAttrs Int where
+  getField = countTokens Doom . eventTokens
+
+instance HasField "cardId" EventAttrs CardId where
+  getField = toCardId
+  {-# INLINE getField #-}
 
 instance HasCardCode EventAttrs where
   toCardCode = eventCardCode
@@ -123,38 +167,11 @@ instance HasCardDef EventAttrs where
     Just def -> def
     Nothing -> error $ "missing card def for asset " <> show (eventCardCode a)
 
-instance ToJSON EventAttrs where
-  toJSON = genericToJSON $ aesonOptions $ Just "event"
-  toEncoding = genericToEncoding $ aesonOptions $ Just "event"
-
-instance FromJSON EventAttrs where
-  parseJSON = withObject "EventAttrs" \o -> do
-    eventCardCode <- o .: "cardCode"
-    eventCardId <- o .: "cardId"
-    eventOriginalCardCode <- o .: "originalCardCode"
-    eventId <- o .: "id"
-    eventOwner <- o .: "owner"
-    eventDoom <- o .: "doom"
-    eventExhausted <- o .: "exhausted"
-    eventBeingPaidFor <- o .: "beingPaidFor"
-    eventPayment <- o .:? "payment" .!= NoPayment
-    eventPaymentMessages <- o .: "paymentMessages"
-    eventSealedChaosTokens <- o .: "sealedChaosTokens"
-    eventCardsUnderneath <- o .: "cardsUnderneath"
-    eventPlacement <- o .: "placement"
-    eventAfterPlay <- o .: "afterPlay"
-    eventPlayedFrom <- o .: "playedFrom"
-    eventWindows <- o .: "windows"
-    eventTarget <- o .: "target"
-    eventMeta <- o .:? "meta" .!= Null
-    eventUses <- o .:? "uses" .!= mempty
-
-    pure EventAttrs {..}
-
 instance IsCard EventAttrs where
   toCard = defaultToCard
   toCardId = eventCardId
   toCardOwner = Just . eventOwner
+  toCustomizations = eventCustomizations
 
 eventWith
   :: (EventAttrs -> a)
@@ -176,6 +193,7 @@ event f cardDef =
             , eventOriginalCardCode = toCardCode cardDef
             , eventId = eid
             , eventOwner = iid
+            , eventController = iid
             , eventDoom = 0
             , eventExhausted = False
             , -- currently only relevant to time warp
@@ -190,7 +208,9 @@ event f cardDef =
             , eventWindows = []
             , eventTarget = Nothing
             , eventMeta = Null
-            , eventUses = mempty
+            , eventTokens = mempty
+            , eventCustomizations = mempty
+            , eventPrintedUses = cdUses cardDef
             }
     }
 
@@ -206,9 +226,12 @@ instance Named EventAttrs where
 
 instance Targetable EventAttrs where
   toTarget = EventTarget . toId
-  isTarget EventAttrs {eventId} (EventTarget eid) = eventId == eid
-  isTarget attrs (SkillTestInitiatorTarget target) = isTarget attrs target
-  isTarget _ _ = False
+  isTarget attrs@EventAttrs {..} = \case
+    EventTarget eid -> eventId == eid
+    CardCodeTarget cardCode -> cdCardCode (toCardDef attrs) == cardCode
+    CardIdTarget cardId -> cardId == eventCardId
+    SkillTestInitiatorTarget target -> isTarget attrs target
+    _ -> False
 
 instance Sourceable EventAttrs where
   toSource = EventSource . toId
@@ -216,6 +239,11 @@ instance Sourceable EventAttrs where
   isSource _ _ = False
 
 data Event = forall a. IsEvent a => Event a
+
+instance Data Event where
+  gunfold _ _ _ = error "gunfold(Event)"
+  toConstr _ = error "toConstr(Event)"
+  dataTypeOf _ = error "dataTypeOf(Event)"
 
 instance HasField "placement" Event Placement where
   getField (Event a) = (toAttrs a).placement
@@ -264,14 +292,20 @@ instance Sourceable Event where
 
 instance IsCard Event where
   toCardId = toCardId . toAttrs
-  toCard e = lookupCard (eventOriginalCardCode . toAttrs $ e) (toCardId e)
+  toCard e = case lookupCard (eventOriginalCardCode . toAttrs $ e) (toCardId e) of
+    PlayerCard pc -> PlayerCard $ pc {pcCustomizations = toCustomizations e}
+    ec -> ec
   toCardOwner = toCardOwner . toAttrs
+  toCustomizations = toCustomizations . toAttrs
 
 getEventId :: Event -> EventId
 getEventId = eventId . toAttrs
 
 ownerOfEvent :: Event -> InvestigatorId
 ownerOfEvent = eventOwner . toAttrs
+
+instance HasField "owner" Event InvestigatorId where
+  getField = attr eventOwner
 
 data SomeEventCard = forall a. IsEvent a => SomeEventCard (EventCard a)
 
@@ -285,3 +319,37 @@ makeLensesWith suffixedFields ''EventAttrs
 
 setMeta :: ToJSON a => a -> EventAttrs -> EventAttrs
 setMeta a = metaL .~ toJSON a
+
+overMeta :: (FromJSON a, ToJSON a) => (a -> a) -> EventAttrs -> EventAttrs
+overMeta f = metaL %~ (\m -> toJSON (f $ toResult m))
+
+getEventMeta :: FromJSON a => EventAttrs -> Maybe a
+getEventMeta a = case fromJSON (eventMeta a) of
+  Error _ -> Nothing
+  Success a' -> Just a'
+
+setMetaKey :: (ToJSON a, HasCallStack) => Key -> a -> EventAttrs -> EventAttrs
+setMetaKey k v attrs = case attrs.meta of
+  Object o -> attrs {eventMeta = Object $ KeyMap.insert k (toJSON v) o}
+  Null -> attrs {eventMeta = object [k .= v]}
+  _ -> error $ "Could not insert meta key, meta is not Null or Object: " <> show attrs.meta
+
+getMetaKey :: Key -> EventAttrs -> Bool
+getMetaKey k attrs = case attrs.meta of
+  Object o -> case KeyMap.lookup k o of
+    Nothing -> False
+    Just v -> case fromJSON v of
+      Error _ -> False
+      Success v' -> v'
+  _ -> False
+
+getMetaKeyDefault :: FromJSON a => Key -> a -> EventAttrs -> a
+getMetaKeyDefault k def attrs = case attrs.meta of
+  Object o -> case KeyMap.lookup k o of
+    Nothing -> def
+    Just v -> case fromJSON v of
+      Error _ -> def
+      Success v' -> v'
+  _ -> def
+
+$(deriveJSON (aesonOptions $ Just "event") ''EventAttrs)

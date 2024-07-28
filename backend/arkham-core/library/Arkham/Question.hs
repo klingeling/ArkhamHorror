@@ -8,7 +8,7 @@ import Arkham.Prelude
 
 import Arkham.Ability.Types
 import Arkham.Campaigns.TheForgottenAge.Supply
-import Arkham.Card.CardCode
+import Arkham.Card
 import Arkham.ChaosBagStepState
 import Arkham.Id
 import Arkham.SkillType
@@ -23,10 +23,15 @@ data Component
   = InvestigatorComponent {investigatorId :: InvestigatorId, tokenType :: GameTokenType}
   | InvestigatorDeckComponent {investigatorId :: InvestigatorId}
   | AssetComponent {assetId :: AssetId, tokenType :: GameTokenType}
-  deriving stock (Show, Eq, Ord)
+  deriving stock (Show, Eq, Ord, Data)
 
 data GameTokenType = ResourceToken | ClueToken | DamageToken | HorrorToken | DoomToken
-  deriving stock (Show, Eq, Ord)
+  deriving stock (Show, Eq, Ord, Data)
+
+pattern ClueLabel :: InvestigatorId -> [msg] -> UI msg
+pattern ClueLabel iid msgs <- ComponentLabel (InvestigatorComponent iid ClueToken) msgs
+  where
+    ClueLabel iid msgs = ComponentLabel (InvestigatorComponent iid ClueToken) msgs
 
 pattern DamageLabel :: InvestigatorId -> [msg] -> UI msg
 pattern DamageLabel iid msgs <- ComponentLabel (InvestigatorComponent iid DamageToken) msgs
@@ -67,7 +72,12 @@ data UI msg
   | GridLabel {gridLabel :: Text, messages :: [msg]}
   | TarotLabel {tarotCard :: TarotCard, messages :: [msg]}
   | AbilityLabel
-      {investigatorId :: InvestigatorId, ability :: Ability, windows :: [Window], messages :: [msg]}
+      { investigatorId :: InvestigatorId
+      , ability :: Ability
+      , windows :: [Window]
+      , before :: [msg]
+      , messages :: [msg]
+      }
   | ComponentLabel {component :: Component, messages :: [msg]}
   | EndTurnButton {investigatorId :: InvestigatorId, messages :: [msg]}
   | StartSkillTestButton {investigatorId :: InvestigatorId}
@@ -76,7 +86,14 @@ data UI msg
   | EffectActionButton {tooltip :: Tooltip, effectId :: EffectId, messages :: [msg]}
   | Done {label :: Text}
   | SkipTriggersButton {investigatorId :: InvestigatorId}
-  deriving stock (Show, Eq)
+  | CardPile {pile :: [PileCard], messages :: [msg]}
+  deriving stock (Show, Eq, Data)
+
+data PileCard = PileCard
+  { cardId :: CardId
+  , cardOwner :: Maybe InvestigatorId
+  }
+  deriving stock (Show, Eq, Data)
 
 data PaymentAmountChoice msg = PaymentAmountChoice
   { investigatorId :: InvestigatorId
@@ -85,17 +102,17 @@ data PaymentAmountChoice msg = PaymentAmountChoice
   , title :: Text
   , message :: msg
   }
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Data)
 
 data AmountChoice = AmountChoice
   { label :: Text
   , minBound :: Int
   , maxBound :: Int
   }
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Data)
 
 data AmountTarget = MinAmountTarget Int | MaxAmountTarget Int | TotalAmountTarget Int | AmountOneOf [Int]
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Data)
 
 data Question msg
   = ChooseOne {choices :: [UI msg]}
@@ -129,10 +146,10 @@ data Question msg
   | DropDown {options :: [(Text, msg)]}
   | PickScenarioSettings
   | PickCampaignSettings
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Data)
 
 data ChoosePlayerChoice = SetLeadInvestigator | SetTurnPlayer
-  deriving stock (Show, Eq)
+  deriving stock (Show, Eq, Data)
 
 targetLabel
   :: (Targetable target, msg ~ Element (t msg), MonoFoldable (t msg))
@@ -164,5 +181,6 @@ $(deriveJSON defaultOptions ''PaymentAmountChoice)
 $(deriveJSON defaultOptions ''ChoosePlayerChoice)
 $(deriveJSON defaultOptions ''AmountChoice)
 $(deriveJSON defaultOptions ''AmountTarget)
+$(deriveJSON defaultOptions ''PileCard)
 $(deriveJSON defaultOptions ''UI)
 $(deriveJSON defaultOptions ''Question)

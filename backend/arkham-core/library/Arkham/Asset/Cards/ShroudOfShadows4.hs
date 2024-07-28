@@ -30,11 +30,16 @@ instance RunMessage ShroudOfShadows4 where
   runMessage msg a@(ShroudOfShadows4 attrs) = case msg of
     UseThisAbility iid (isSource attrs -> True) 1 -> do
       let source = toAbilitySource attrs 1
+      sid <- getRandom
       chooseEvade <-
-        aspect iid source (#willpower `InsteadOf` #agility) (setTarget attrs <$> mkChooseEvade iid source)
+        aspect
+          iid
+          source
+          (#willpower `InsteadOf` #agility)
+          (setTarget attrs <$> mkChooseEvade sid iid source)
       pushAll
-        $ [ skillTestModifier source iid (SkillModifier #willpower 2)
-          , createCardEffect Cards.shroudOfShadows4 Nothing source iid
+        $ [ skillTestModifier sid source iid (SkillModifier #willpower 2)
+          , createCardEffect Cards.shroudOfShadows4 Nothing source sid
           ]
         <> leftOr chooseEvade
       pure a
@@ -43,7 +48,7 @@ instance RunMessage ShroudOfShadows4 where
       pushAll $ EnemyEvaded iid eid : [WillMoveEnemy eid msg | nonElite]
       pure a
     WillMoveEnemy enemyId (Successful (Action.Evade, _) iid _ target _) | isTarget attrs target -> do
-      choices <- getAccessibleLocations iid attrs
+      choices <- select $ ConnectedFrom (locationWithInvestigator iid) <> LocationCanBeEnteredBy enemyId
       player <- getPlayer iid
       let
         enemyMoveChoices =
@@ -63,9 +68,9 @@ shroudOfShadows4Effect = cardEffect ShroudOfShadows4Effect Cards.shroudOfShadows
 
 instance RunMessage ShroudOfShadows4Effect where
   runMessage msg e@(ShroudOfShadows4Effect attrs) = case msg of
-    RevealChaosToken _ iid token | InvestigatorTarget iid == attrs.target -> do
-      case attrs.source of
-        AbilitySource (AssetSource assetId) 1 ->
+    RevealChaosToken (SkillTestSource sid) iid token | isTarget sid attrs.target -> do
+      let
+        handleIt assetId = do
           when (token.face == #curse) do
             targets <- getConnectedMoveLocations iid (toSource attrs)
             stillInPlay <- selectAny $ AssetWithId assetId
@@ -73,7 +78,7 @@ instance RunMessage ShroudOfShadows4Effect where
             pushAll
               $ [ chooseOrRunOne
                   player
-                  $ [Label "Place 1 Charge on Shroud of Shadows4" [AddUses assetId Charge 1] | stillInPlay]
+                  $ [Label "Place 1 Charge on Shroud of Shadows4" [AddUses attrs.source assetId Charge 1] | stillInPlay]
                   <> [ Label
                         "Move to a connecting location"
                         [ chooseOne
@@ -83,9 +88,12 @@ instance RunMessage ShroudOfShadows4Effect where
                      ]
                 | stillInPlay || notNull targets
                 ]
+      case attrs.source of
+        AbilitySource (AssetSource assetId) 1 -> handleIt assetId
+        AbilitySource (ProxySource (CardIdSource _) (AssetSource assetId)) 1 -> handleIt assetId
         _ -> error "wrong source"
       pure e
-    SkillTestEnds _ _ -> do
+    SkillTestEnds sid _ _ | isTarget sid attrs.target -> do
       push (disable attrs)
       pure e
     _ -> ShroudOfShadows4Effect <$> runMessage msg attrs

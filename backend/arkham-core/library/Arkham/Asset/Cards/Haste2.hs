@@ -63,14 +63,14 @@ instance RunMessage Haste2 where
         getCanAfford a' [#draw]
       let available = filter (any (`elem` as) . abilityActions) actions
       player <- getPlayer iid
-      drawing <- drawCards iid a' 1
+      let drawing = drawCards iid a' 1
 
       canDraw <- canDo iid #draw
       canTakeResource <- canDo iid #resource
       canPlay <- canDo iid #play
       push
         $ chooseOne player
-        $ map (\ab -> AbilityLabel iid ab (defaultWindows iid) []) available
+        $ map (\ab -> AbilityLabel iid ab (defaultWindows iid) [] []) available
         <> [ ComponentLabel (InvestigatorComponent iid ResourceToken) [TakeResources iid 1 (toSource a') False]
            | canAffordTakeResources
            , canTakeResource

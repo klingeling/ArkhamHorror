@@ -3,8 +3,8 @@ module Arkham.Asset.Cards.TheNecronomicon (TheNecronomicon (..), theNecronomicon
 import Arkham.Ability
 import Arkham.Asset.Cards qualified as Cards
 import Arkham.Asset.Runner
+import Arkham.Placement
 import Arkham.Prelude
-import Arkham.Token
 
 newtype TheNecronomicon = TheNecronomicon AssetAttrs
   deriving anyclass (IsAsset)
@@ -32,8 +32,11 @@ instance RunMessage TheNecronomicon where
     Revelation iid (isSource attrs -> True) -> do
       push $ putCardIntoPlay iid attrs
       pure a
+    CardEnteredPlay iid card | card.id == attrs.cardId -> do
+      push $ PlaceAsset attrs.id (InThreatArea iid)
+      pure $ a
     UseThisAbility iid (isSource attrs -> True) 1 -> do
-      pushWhen (attrs.horror <= 1) $ toDiscardBy iid (toAbilitySource attrs 1) attrs
-      push $ MovedHorror (toAbilitySource attrs 1) (toTarget iid) 1
+      pushWhen (attrs.horror <= 1) $ toDiscardBy iid (attrs.ability 1) attrs
+      push $ MovedHorror (attrs.ability 1) (toSource attrs) (toTarget iid) 1
       pure a
     _ -> TheNecronomicon <$> runMessage msg attrs

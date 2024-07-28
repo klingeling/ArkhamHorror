@@ -1,15 +1,11 @@
-module Arkham.Asset.Cards.LiquidCourage1 (
-  liquidCourage1,
-  LiquidCourage1 (..),
-) where
-
-import Arkham.Prelude
+module Arkham.Asset.Cards.LiquidCourage1 (liquidCourage1, LiquidCourage1 (..)) where
 
 import Arkham.Ability
 import Arkham.Asset.Cards qualified as Cards
 import Arkham.Asset.Runner
 import Arkham.Damage
 import Arkham.Matcher
+import Arkham.Prelude
 
 newtype LiquidCourage1 = LiquidCourage1 AssetAttrs
   deriving anyclass (IsAsset, HasModifiersFor)
@@ -33,17 +29,18 @@ instance RunMessage LiquidCourage1 where
     UseCardAbility iid (isSource attrs -> True) 1 _ _ -> do
       iids <- select $ HealableInvestigator (toAbilitySource attrs 1) HorrorType $ colocatedWith iid
       player <- getPlayer iid
+      sid <- getRandom
       pushWhen (notNull iids)
         $ chooseOrRunOne player
         $ [ targetLabel iid'
             $ [ HealHorrorWithAdditional (toTarget iid') (toSource attrs) 1
-              , beginSkillTest iid' (attrs.ability 1) iid' #willpower (Fixed 2)
+              , beginSkillTest sid iid' (attrs.ability 1) iid' #willpower (Fixed 2)
               ]
           | iid' <- iids
           ]
       pure a
     PassedThisSkillTest iid (isAbilitySource attrs 1 -> True) -> do
-      drawing <- drawCards iid (toAbilitySource attrs 1) 1
+      let drawing = drawCards iid (toAbilitySource attrs 1) 1
       pushAll [AdditionalHealHorror (toTarget iid) (toAbilitySource attrs 1) 0, drawing]
       pure a
     FailedThisSkillTest iid (isAbilitySource attrs 1 -> True) -> do

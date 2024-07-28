@@ -65,6 +65,15 @@ allInvestigatorCards =
       , montereyJack
       , lilyChen
       , bobJenkins
+      , carsonSinclair
+      , vincentLee
+      , kymaniJones
+      , aminaZidane
+      , darrellSimmons
+      , charlieKane
+      , wilsonRichards
+      , kateWinthrop
+      , alessandraZorzi
       , nathanielCho
       , harveyWalters
       , winifredHabbamock
@@ -389,7 +398,7 @@ danielaReyes =
     "08001"
     ("Daniela Reyes" <:> "The Mechanic")
     Guardian
-    [Miskatonic]
+    [Entrepreneur]
 
 normanWithers :: CardDef
 normanWithers =
@@ -423,6 +432,78 @@ bobJenkins =
     ("Bob Jenkins" <:> "The Salesman")
     Survivor
     [Entrepreneur]
+
+carsonSinclair :: CardDef
+carsonSinclair =
+  investigator
+    "09001"
+    ("Carson Sinclair" <:> "The Butler")
+    Guardian
+    [Assistant]
+
+vincentLee :: CardDef
+vincentLee =
+  investigator
+    "09004"
+    ("Vincent Lee" <:> "The Doctor")
+    Seeker
+    [Medic]
+
+kymaniJones :: CardDef
+kymaniJones =
+  investigator
+    "09008"
+    ("Kymani Jones" <:> "The Security Consultant")
+    Rogue
+    [Criminal]
+
+aminaZidane :: CardDef
+aminaZidane =
+  investigator
+    "09011"
+    ("Amina Zidane" <:> "The Operator")
+    Mystic
+    [Chosen, Cursed]
+
+darrellSimmons :: CardDef
+darrellSimmons =
+  investigator
+    "09015"
+    ("Darrell Simmons" <:> "The Photographer")
+    Survivor
+    [Reporter]
+
+charlieKane :: CardDef
+charlieKane =
+  investigator
+    "09018"
+    ("Charlie Kane" <:> "The Politician")
+    Neutral
+    [Civic, Socialite]
+
+wilsonRichards :: CardDef
+wilsonRichards =
+  investigator
+    "10001"
+    ("Wilson Richards" <:> "The Handyman")
+    Guardian
+    [Drifter]
+
+kateWinthrop :: CardDef
+kateWinthrop =
+  investigator
+    "10004"
+    ("Kate Winthrop" <:> "The Scientist")
+    Seeker
+    [Miskatonic, Scholar]
+
+alessandraZorzi :: CardDef
+alessandraZorzi =
+  investigator
+    "10009"
+    ("Alessandra Zorzi" <:> "The Countess")
+    Rogue
+    [Drifter, Socialite]
 
 nathanielCho :: CardDef
 nathanielCho =

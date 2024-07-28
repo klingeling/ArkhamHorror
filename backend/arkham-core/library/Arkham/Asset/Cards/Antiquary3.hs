@@ -4,12 +4,13 @@ import Arkham.Ability
 import Arkham.Asset.Cards qualified as Cards
 import Arkham.Asset.Import.Lifted
 import Arkham.Asset.Uses
+import Arkham.Helpers.SkillTest (withSkillTest)
 import Arkham.Matcher
 import Arkham.Modifier
 import Arkham.Trait (Trait (Favor, Relic, Ritual))
 
 newtype Antiquary3 = Antiquary3 AssetAttrs
-  deriving anyclass (IsAsset)
+  deriving anyclass IsAsset
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
 
 antiquary3 :: AssetCard Antiquary3
@@ -40,8 +41,9 @@ instance HasAbilities Antiquary3 where
 
 instance RunMessage Antiquary3 where
   runMessage msg a@(Antiquary3 attrs) = runQueueT $ case msg of
-    Do BeginRound -> pure . Antiquary3 $ attrs & usesL . ix Resource %~ max 2
+    Do BeginRound -> pure . Antiquary3 $ attrs & tokensL . ix Resource %~ max 2
     UseThisAbility iid (isSource attrs -> True) 1 -> do
-      skillTestModifier (attrs.ability 1) iid (AnySkillValue 1)
+      withSkillTest \sid ->
+        skillTestModifier sid (attrs.ability 1) iid (AnySkillValue 1)
       pure a
-    _ -> Antiquary3 <$> lift (runMessage msg attrs)
+    _ -> Antiquary3 <$> liftRunMessage msg attrs

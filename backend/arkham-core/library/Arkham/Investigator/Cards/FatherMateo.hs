@@ -17,6 +17,7 @@ import Arkham.Window qualified as Window
 newtype FatherMateo = FatherMateo InvestigatorAttrs
   deriving anyclass (IsInvestigator, HasModifiersFor)
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock Data
 
 fatherMateo :: InvestigatorCard FatherMateo
 fatherMateo =
@@ -41,28 +42,32 @@ instance RunMessage FatherMateo where
       pushAll [createCardEffect Cards.fatherMateo Nothing ElderSign iid, PassSkillTest]
       pure i
     UseCardAbility _ (isSource attrs -> True) 1 (Window.revealedChaosTokens -> [token]) _ -> do
-      push $ chaosTokenEffect (toAbilitySource attrs 1) token (ChaosTokenFaceModifier [ElderSign])
+      push $ chaosTokenEffect (attrs.ability 1) token (ChaosTokenFaceModifier [ElderSign])
       pure i
     _ -> FatherMateo <$> runMessage msg attrs
 
 newtype FatherMateoElderSignEffect = FatherMateoElderSignEffect EffectAttrs
   deriving anyclass (HasAbilities, IsEffect, HasModifiersFor)
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
+  deriving stock Data
 
 fatherMateoElderSignEffect :: EffectArgs -> FatherMateoElderSignEffect
 fatherMateoElderSignEffect = cardEffect FatherMateoElderSignEffect Cards.fatherMateo
 
 instance RunMessage FatherMateoElderSignEffect where
   runMessage msg e@(FatherMateoElderSignEffect attrs) = case msg of
-    SkillTestEnds _ _ -> do
+    SkillTestEnds _ _ _ -> do
       push $ DisableEffect $ toId attrs
       for_ (attrs.target ^? #investigator) $ \iid -> do
         isTurn <- iid <=~> TurnInvestigator
-        drawing <- drawCards iid ElderSign 1
         player <- getPlayer iid
         push
           $ chooseOrRunOne player
-          $ Label "Draw 1 card and gain 1 resource" [drawing, TakeResources iid 1 (toSource ElderSign) False]
+          $ Label
+            "Draw 1 card and gain 1 resource"
+            [ drawCards iid ElderSign 1
+            , TakeResources iid 1 (toSource ElderSign) False
+            ]
           : [Label "Take an additional action this turn" [GainActions iid (toSource attrs) 1] | isTurn]
       pure e
     _ -> FatherMateoElderSignEffect <$> runMessage msg attrs

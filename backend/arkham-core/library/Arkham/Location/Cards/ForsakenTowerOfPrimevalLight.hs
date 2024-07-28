@@ -36,7 +36,9 @@ instance RunMessage ForsakenTowerOfPrimevalLight where
         ]
       pure l
     HandleTargetChoice iid (isAbilitySource attrs 1 -> True) (EnemyTarget nyarlathotep) -> do
+      sid <- getRandom
       beginSkillTest
+        sid
         iid
         (attrs.ability 1)
         (toTarget nyarlathotep)
@@ -54,4 +56,4 @@ instance RunMessage ForsakenTowerOfPrimevalLight where
         , ShuffleBackIntoEncounterDeck (toTarget eid)
         ]
       pure l
-    _ -> ForsakenTowerOfPrimevalLight <$> lift (runMessage msg attrs)
+    _ -> ForsakenTowerOfPrimevalLight <$> liftRunMessage msg attrs

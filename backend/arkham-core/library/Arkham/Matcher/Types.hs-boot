@@ -95,3 +95,21 @@ instance FromJSON AspectMatcher
 instance Show AspectMatcher
 instance Eq AspectMatcher
 instance Ord AspectMatcher
+
+data WindowMatcher
+
+instance Data WindowMatcher
+instance ToJSON WindowMatcher
+instance FromJSON WindowMatcher
+instance Show WindowMatcher
+instance Eq WindowMatcher
+instance Ord WindowMatcher
+
+data ExtendedCardMatcher
+
+instance Data ExtendedCardMatcher
+instance ToJSON ExtendedCardMatcher
+instance FromJSON ExtendedCardMatcher
+instance Show ExtendedCardMatcher
+instance Eq ExtendedCardMatcher
+instance Ord ExtendedCardMatcher
