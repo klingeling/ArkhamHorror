@@ -10,9 +10,6 @@ import { AmountChoice, QuestionType } from '@/arkham/types/Question';
 import Card from '@/arkham/components/Card.vue';
 import Draggable from '@/components/Draggable.vue';
 import Question from '@/arkham/components/Question.vue';
-import { useI18n } from 'vue-i18n';
-
-const { t } = useI18n()
 export interface Props {
   game: Game
   playerId: string
