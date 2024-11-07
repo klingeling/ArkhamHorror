@@ -1,6 +1,9 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue'
+import Draggable from '@/components/Draggable.vue';
+import CardView from '@/arkham/components/Card.vue';
 import { useDebug } from '@/arkham/debug'
+import { PaperClipIcon } from '@heroicons/vue/20/solid'
 import type { Game } from '@/arkham/types/Game'
 import { imgsrc } from '@/arkham/helpers'
 import { TokenType } from '@/arkham/types/Token'
@@ -9,9 +12,11 @@ import * as Arkham from '@/arkham/types/Investigator'
 import type { AbilityLabel, AbilityMessage, Message } from '@/arkham/types/Message'
 import { MessageType } from '@/arkham/types/Message'
 import type { Modifier } from '@/arkham/types/Modifier'
+import Token from '@/arkham/components/Token.vue';
 import PoolItem from '@/arkham/components/PoolItem.vue'
 import Key from '@/arkham/components/Key.vue';
 import AbilityButton from '@/arkham/components/AbilityButton.vue'
+import { useMenu } from '@/composeable/menu';
 
 export interface Props {
   choices: Message[]
@@ -27,6 +32,20 @@ const emit = defineEmits(['showCards', 'choose'])
 const id = computed(() => props.investigator.id)
 const debug = useDebug()
 const debugging = ref(false)
+
+const { addEntry, removeEntry } = useMenu()
+const showBonded = ref(false)
+
+if (props.playerId == props.investigator.playerId) {
+  addEntry({
+    id: "viewBonded",
+    icon: PaperClipIcon,
+    content: "View Bonded",
+    shortcut: "b",
+    nested: 'view',
+    action: () => showBonded.value = !showBonded.value
+  })
+}
 
 function canActivateAbility(c: Message): boolean {
   if (c.tag  === MessageType.ABILITY_LABEL) {
@@ -159,6 +178,10 @@ const showDevoured = (e: Event) => emit('showCards', e, devoured, "Devoured", fa
 
 const modifiers = computed(() => props.investigator.modifiers)
 
+const captured = computed(() => {
+  return modifiers.value?.some((m) => m.type.tag === "ScenarioModifier" && m.type.contents === "captured") ?? false
+})
+
 const ethereal = computed(() => {
   return modifiers.value?.some((m) => m.type.tag === "OtherModifier" && m.type.contents === "Ethereal") ?? false
 })
@@ -259,7 +282,7 @@ function onDrop(event: DragEvent) {
     <img
       :src="portraitImage"
       class="portrait"
-      :class="{ 'investigator--can-interact--portrait': investigatorAction !== -1, ethereal, dragging }"
+      :class="{ 'investigator--can-interact--portrait': investigatorAction !== -1, ethereal, dragging, captured }"
       :draggable="debug.active"
       @click="$emit('choose', investigatorAction)"
       @dragstart="startDrag($event)"
@@ -287,6 +310,7 @@ function onDrop(event: DragEvent) {
             @dragover.prevent="dragover($event)"
             @dragenter.prevent
           />
+          <Token v-for="(sealedToken, index) in investigator.sealedChaosTokens" :key="index" :token="sealedToken" :playerId="playerId" :game="game" @choose="choose" class="sealed" />
         </div>
       </div>
 
@@ -395,6 +419,16 @@ function onDrop(event: DragEvent) {
         tooltip="Leyline"
       />
     </div>
+
+    <Draggable v-if="showBonded">
+      <template #handle><header><h2>Bonded</h2></header></template>
+      <div class="card-row-cards">
+        <div v-for="card in investigator.bondedCards" :key="card.id" class="card-row-card">
+          <CardView :game="game" :card="card" :playerId="playerId" @choose="$emit('choose', $event)" />
+        </div>
+      </div>
+      <button class="close button" @click="showBonded = false">Close</button>
+    </Draggable>
   </div>
 </template>
 
@@ -655,5 +689,38 @@ i.action {
 .investigator--can-interact ~ .card-overlay {
   top: 2px;
   left: 2px;
+}
+
+.card-row-cards {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  flex-wrap: wrap;
+  padding: 10px;
+}
+
+.close {
+  width: 100%;
+  background: var(--button-2);
+  display: inline;
+  border: 0;
+  color: white;
+  padding: 0.5em;
+  text-transform: uppercase;
+
+  &:hover {
+    background: var(--button-2-highlight);
+  }
+}
+
+.sealed {
+  position: absolute;
+  width: calc(var(--card-width) / 2);
+  left: 0;
+  top: calc(var(--card-width) / 2);
+}
+
+.captured {
+  rotate: 90deg;
 }
 </style>

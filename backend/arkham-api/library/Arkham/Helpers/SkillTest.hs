@@ -474,7 +474,7 @@ getIsCommittable a c = do
                       EnemyTarget eid -> andM [pure $ skillTestAction skillTest == Just #evade, eid <=~> matcher]
                       _ -> pure False
                     MaxOnePerTest -> pure $ toTitle card `notElem` committedCardTitles
-                    OnlyInvestigator matcher -> iid <=~> matcher
+                    OnlyInvestigator matcher -> iid <=~> replaceYouMatcher a matcher
                     OnlyCardCommittedToTest -> pure $ null committedCardTitles
                     OnlyYourTest -> pure $ iid == a
                     OnlyTestDuringYourTurn -> iid <=~> TurnInvestigator
@@ -562,3 +562,9 @@ getSkillTestDifficultyDifferenceFromBaseValue iid skillTest = do
 
 withSkillTest :: HasGame m => (SkillTestId -> m ()) -> m ()
 withSkillTest = whenJustM getSkillTestId
+
+getCanCancelSkillTestEffects :: HasGame m => m Bool
+getCanCancelSkillTestEffects = do
+  getSkillTestTarget >>= \case
+    Nothing -> pure False
+    Just target -> withoutModifier target EffectsCannotBeCanceled

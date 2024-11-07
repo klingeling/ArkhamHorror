@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiWayIf #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -Wno-orphans -Wno-deprecations #-}
 
 module Arkham.Location.Runner (
   module Arkham.Location.Runner,
@@ -369,7 +369,8 @@ instance RunMessage LocationAttrs where
             | CannotBeFullyFlooded `elem` mods -> PartiallyFlooded
             | otherwise -> FullyFlooded
         newFloodLevel = min maxFloodLevel level
-      when (level /= newFloodLevel) do
+        currentFloodLevel = fromMaybe Unflooded locationFloodLevel
+      when (currentFloodLevel /= newFloodLevel) do
         before <-
           checkWhen (Window.FloodLevelChanged lid (fromMaybe Unflooded locationFloodLevel) newFloodLevel)
         pushAll [before, Do msg]
@@ -387,7 +388,7 @@ instance RunMessage LocationAttrs where
         (Window.PlacedBreaches (toTarget a))
         (Window.PlacedBreach (toTarget a))
       pure a
-    DoBatch _ (PlaceBreaches (isTarget a -> True) n) -> do
+    Do (PlaceBreaches (isTarget a -> True) n) -> do
       pure $ a & breachesL %~ Breach.addBreaches n
     RemoveBreaches (isTarget a -> True) n -> do
       pure $ a & breachesL %~ Breach.removeBreaches n

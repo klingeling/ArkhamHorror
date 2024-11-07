@@ -1594,6 +1594,8 @@ runGameMessage msg g = case msg of
         pure $ g & entitiesL . treacheriesL %~ deleteMap aid
       LocationTarget aid -> pure $ g & entitiesL . locationsL %~ deleteMap aid
       _ -> error $ "Unhandled quiet removal of target: " <> show target
+  RemoveFromGame (StoryTarget sid) -> do
+    pure $ g & entitiesL . storiesL %~ deleteMap sid
   RemoveFromGame (AssetTarget aid) -> do
     card <- field AssetCard aid
     runMessage
@@ -1961,7 +1963,10 @@ runGameMessage msg g = case msg of
   AllDrawEncounterCard -> do
     investigators <- filterM (fmap not . isEliminated) =<< getInvestigatorsInOrder
     push $ SetActiveInvestigator $ g ^. activeInvestigatorIdL
-    for_ (reverse investigators) \iid -> do
+    for_ (reverse investigators) \iid -> push $ ForInvestigator iid AllDrawEncounterCard
+    pure g
+  ForInvestigator iid AllDrawEncounterCard -> do
+    whenM (not <$> isEliminated iid) do
       player <- getPlayer iid
       push $ chooseOne player [TargetLabel EncounterDeckTarget [drawEncounterCard iid GameSource]]
     pure g
@@ -2041,8 +2046,12 @@ runGameMessage msg g = case msg of
         <> [SetActiveInvestigator (g ^. activeInvestigatorIdL)]
       pure $ g & (skillTestL ?~ skillTest)
   BeforeSkillTest skillTest -> do
-    player <- getPlayer skillTest.investigator
-    pure $ g & activeInvestigatorIdL .~ skillTest.investigator & activePlayerIdL .~ player
+    mSkillTestId <- getSkillTestId
+    if maybe False (== skillTest.id) mSkillTestId
+      then do
+        player <- getPlayer skillTest.investigator
+        pure $ g & activeInvestigatorIdL .~ skillTest.investigator & activePlayerIdL .~ player
+      else pure g
   CreateStoryAssetAtLocationMatching cardCode locationMatcher -> do
     lid <- selectJust locationMatcher
     assetId <- getRandom
@@ -2139,6 +2148,7 @@ runGameMessage msg g = case msg of
         ActTarget aid -> AttachedToAct aid
         AgendaTarget aid -> AttachedToAgenda aid
         InvestigatorTarget iid -> InThreatArea iid
+        AgendaDeckTarget -> NextToAgenda
         _ -> error $ "unhandled attach target : " <> show target
     pure $ g & entitiesL . treacheriesL . at treacheryId ?~ treachery
   TakeControlOfSetAsideAsset iid card -> do
@@ -2636,6 +2646,10 @@ runGameMessage msg g = case msg of
           ]
     pure $ g & (if ignoreRevelation then activeCardL .~ Nothing else id)
   MoveWithSkillTest msg' -> do
+    -- No skill test showed up so just run this
+    push msg'
+    pure g
+  MovedWithSkillTest _ msg' -> do
     -- No skill test showed up so just run this
     push msg'
     pure g

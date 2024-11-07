@@ -759,6 +759,9 @@ allAssets =
       SomeAssetCard favorOfTheMoon1
     , SomeAssetCard favorOfTheSun1
     , SomeAssetCard purifyingCorruption4
+    , --- encounter [lod]
+      SomeAssetCard yhanthleiStatusMysteriousRelic
+    , SomeAssetCard yhanthleiStatusDynamicRelic
     , -- Into the Maelstrom
       --- guardian [itm]
       SomeAssetCard holySpear5
@@ -1222,6 +1225,8 @@ allAssets =
       SomeAssetCard zoeysCrossAdvanced
     , --- Relics of the Past
       SomeAssetCard trustyBullwhipAdvanced
+    , --- Aura of Faith
+      SomeAssetCard theCodexOfAgesAdvanced
     , --- Pistols and Pearls
       SomeAssetCard jennysTwin45sAdvanced
     , -- Promo

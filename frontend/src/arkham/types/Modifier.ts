@@ -76,17 +76,40 @@ export type ModifierType
   | CannotEnter
   | DamageDealt
   | DiscoveredClues
+  | SkillTestResultValueModifier
+  | CancelEffects
+  | CannotPerformSkillTest
   | GainVictory
   | OtherModifier
   | SkillModifier
   | UseEncounterDeck
   | CannotCommitCards
   | DoNotDrawConnection
+  | Difficulty
+  | ScenarioModifier
 
 export type BaseSkillOf = {
   tag: "BaseSkillOf"
   skillType: string
   value: number
+}
+
+export type Difficulty = {
+  tag: "Difficulty"
+  contents: number
+}
+
+export type ScenarioModifier = {
+  tag: "ScenarioModifier"
+  contents: string
+}
+
+export type CancelEffects = {
+  tag: "CancelEffects"
+}
+
+export type CannotPerformSkillTest = {
+  tag: "CannotPerformSkillTest"
 }
 
 export type BaseSkill = {
@@ -101,6 +124,11 @@ export type DoNotDrawConnection = {
 
 export type DiscoveredClues = {
   tag: "DiscoveredClues"
+  contents: number
+}
+
+export type SkillTestResultValueModifier = {
+  tag: "SkillTestResultValueModifier"
   contents: number
 }
 
@@ -181,11 +209,34 @@ const modifierTypeDecoder = JsonDecoder.oneOf<ModifierType>([
       tag: JsonDecoder.isExactly('BaseSkill'),
       contents: JsonDecoder.number
     }, 'BaseSkill'),
+  JsonDecoder.object<Difficulty>(
+    {
+      tag: JsonDecoder.isExactly('Difficulty'),
+      contents: JsonDecoder.number
+    }, 'Difficulty'),
+  JsonDecoder.object<ScenarioModifier>(
+    {
+      tag: JsonDecoder.isExactly('ScenarioModifier'),
+      contents: JsonDecoder.string
+    }, 'ScenarioModifier'),
   JsonDecoder.object<DiscoveredClues>(
     {
       tag: JsonDecoder.isExactly('DiscoveredClues'),
       contents: JsonDecoder.number
     }, 'DiscoveredClues'),
+  JsonDecoder.object<SkillTestResultValueModifier>(
+    {
+      tag: JsonDecoder.isExactly('SkillTestResultValueModifier'),
+      contents: JsonDecoder.number
+    }, 'SkillTestResultValueModifier'),
+  JsonDecoder.object<CancelEffects>(
+    {
+      tag: JsonDecoder.isExactly('CancelEffects')
+    }, 'CancelEffects'),
+  JsonDecoder.object<CannotPerformSkillTest>(
+    {
+      tag: JsonDecoder.isExactly('CannotPerformSkillTest')
+    }, 'CannotPerformSkillTest'),
   JsonDecoder.object<DamageDealt>(
     {
       tag: JsonDecoder.isExactly('DamageDealt'),

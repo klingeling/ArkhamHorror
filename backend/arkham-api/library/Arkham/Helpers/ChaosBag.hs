@@ -11,6 +11,7 @@ import Arkham.Classes.Query
 import Arkham.Enemy.Types (Field (..))
 import Arkham.Event.Types (Field (..))
 import Arkham.Helpers.Scenario
+import Arkham.Investigator.Types (Field (..))
 import Arkham.Matcher
 import Arkham.Scenario.Types (Field (..))
 
@@ -36,10 +37,11 @@ getSealedChaosTokens =
       [ selectAgg id AssetSealedChaosTokens AnyAsset
       , selectAgg id EnemySealedChaosTokens AnyEnemy
       , selectAgg id EventSealedChaosTokens AnyEvent
+      , selectAgg id InvestigatorSealedChaosTokens Anyone
       ]
 
 getAllChaosTokens :: HasGame m => m [ChaosToken]
-getAllChaosTokens = concat <$> sequence [getBagChaosTokens, getSealedChaosTokens]
+getAllChaosTokens = nub . concat <$> sequence [getBagChaosTokens, getSealedChaosTokens]
 
 getChaosBagChoice :: HasGame m => m (Maybe ChaosBagStepState)
 getChaosBagChoice = scenarioFieldMap ScenarioChaosBag chaosBagChoice

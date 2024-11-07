@@ -48,6 +48,7 @@ const shouldRender = (mod: Modifier) => {
   const { type } = mod
   if (!('tag' in type)) return false
   if (type.tag === 'DiscoveredClues') return true
+  if (type.tag === 'CancelEffects') return true
   if (type.tag === 'DamageDealt') return true
   if (type.tag === 'AnySkillValue') return true
   if (type.tag === 'SkillModifier') return true
@@ -74,7 +75,7 @@ const yourModifiers = computed(() => {
 
 const modifiers = computed(() =>
   [...(props.game.investigators[props.skillTest.investigator]?.modifiers ?? []).
-    filter(shouldRender), ...yourModifiers.value]) 
+    filter(shouldRender), ...yourModifiers.value, ...(props.skillTest.modifiers ?? [])]) 
 const committedCards = computed(() => props.skillTest.committedCards)
 const choices = computed(() => ArkhamGame.choices(props.game, props.playerId))
 const skipTriggersAction = computed(() => choices.value.findIndex((c) => c.tag === MessageType.SKIP_TRIGGERS_BUTTON))
@@ -295,9 +296,22 @@ const tokenEffects = computed(() => {
           <template v-if="modifier.type.tag === 'CannotCommitCards'">
             <span>{{cannotCommitCardsToWords(modifier.type)}}</span>
           </template>
+          <template v-if="modifier.type.tag === 'Difficulty'">
+            <span>+{{modifier.type.contents}}</span>
+            Difficulty
+          </template>
+          <template v-if="modifier.type.tag === 'CancelEffects'">
+            <span class="text">Cancel Effects</span>
+          </template>
+          <template v-if="modifier.type.tag === 'CannotPerformSkillTest'">
+            <span class="text">Cannot Perform Skill Test</span>
+          </template>
           <template v-if="modifier.type.tag === 'DiscoveredClues'">
             <span>+{{modifier.type.contents}}</span>
             <img :src="imgsrc(`clue.png`)" />
+          </template>
+          <template v-if="modifier.type.tag === 'SkillTestResultValueModifier'">
+            <span class="text">Result</span> <span>{{modifier.type.contents > 0 ? '+' : ''}}{{modifier.type.contents}}</span>
           </template>
           <template v-if="modifier.type.tag === 'DamageDealt'">
             <span>+{{modifier.type.contents}}</span>
@@ -358,7 +372,7 @@ const tokenEffects = computed(() => {
           Succeeded by {{(testResult ?? 0) + (skillTestResults.skillTestResultsResultModifiers || 0)}}
         </span>
         <span v-else-if="testResult !== null">
-          Failed by {{testResult - (skillTestResults.skillTestResultsResultModifiers || 0)}}
+          Failed by {{testResult + (skillTestResults.skillTestResultsResultModifiers || 0)}}
         </span>
       </div>
 

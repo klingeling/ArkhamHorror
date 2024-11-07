@@ -12,6 +12,7 @@ import Arkham.CampaignLog
 import Arkham.Campaigns.TheForgottenAge.Supply
 import Arkham.Card
 import Arkham.Card.Settings
+import Arkham.ChaosToken.Types
 import Arkham.ClassSymbol
 import Arkham.Classes.Entity
 import Arkham.Classes.GameLogger
@@ -87,6 +88,7 @@ class
 type InvestigatorCard a = CardBuilder PlayerId a
 
 data instance Field Investigator :: Type -> Type where
+  InvestigatorSealedChaosTokens :: Field Investigator [ChaosToken]
   InvestigatorTaboo :: Field Investigator (Maybe TabooList)
   InvestigatorName :: Field Investigator Name
   InvestigatorRemainingActions :: Field Investigator Int
@@ -167,6 +169,7 @@ instance FromJSON (SomeField Investigator) where
   parseJSON = withText "Field Investigator" $ \case
     "InvestigatorName" -> pure $ SomeField InvestigatorName
     "InvestigatorTaboo" -> pure $ SomeField InvestigatorTaboo
+    "InvestigatorSealedChaosTokens" -> pure $ SomeField InvestigatorSealedChaosTokens
     "InvestigatorRemainingActions" -> pure $ SomeField InvestigatorRemainingActions
     "InvestigatorAdditionalActions" -> pure $ SomeField InvestigatorAdditionalActions
     "InvestigatorHealth" -> pure $ SomeField InvestigatorHealth
@@ -272,6 +275,7 @@ data InvestigatorAttrs = InvestigatorAttrs
   , investigatorBondedCards :: [Card]
   , investigatorMeta :: Value
   , investigatorUnhealedHorrorThisRound :: Int
+  , investigatorSealedChaosTokens :: [ChaosToken]
   , -- handling liquid courage
     investigatorHorrorHealed :: Int
   , -- the forgotten age
@@ -609,6 +613,7 @@ instance FromJSON InvestigatorAttrs where
     investigatorBondedCards <- o .: "bondedCards"
     investigatorMeta <- o .: "meta"
     investigatorUnhealedHorrorThisRound <- o .: "unhealedHorrorThisRound"
+    investigatorSealedChaosTokens <- o .:? "sealedChaosTokens" .!= []
     investigatorHorrorHealed <- o .: "horrorHealed"
     investigatorSupplies <- o .: "supplies"
     investigatorDrawnCards <- o .: "drawnCards"

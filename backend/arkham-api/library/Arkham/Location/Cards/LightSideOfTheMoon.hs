@@ -42,4 +42,7 @@ instance RunMessage LightSideOfTheMoon where
           let x = n `div` 3
           reduceAlarmLevelBy x (attrs.ability 1) iid
           pure $ LightSideOfTheMoon $ attrs & setMeta (meta {hasUsedSuccess = iid : hasUsedSuccess meta})
+    EndRound -> do
+      let meta = toResult @Meta attrs.meta
+      pure $ LightSideOfTheMoon $ attrs & setMeta (meta {hasUsedSuccess = []})
     _ -> LightSideOfTheMoon <$> liftRunMessage msg attrs

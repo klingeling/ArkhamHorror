@@ -705,6 +705,7 @@ allPlayerAssetCards =
       , theChthonianStone
       , theChthonianStone3
       , theCodexOfAges
+      , theCodexOfAgesAdvanced
       , theCouncilsCoffer2
       , theCustodian
       , theDevilXv
@@ -826,6 +827,8 @@ allEncounterAssetCards =
       , thomasDawsonsCarStopped
       , elinaHarpersCarRunning
       , elinaHarpersCarStopped
+      , yhanthleiStatusMysteriousRelic
+      , yhanthleiStatusDynamicRelic
       ]
 
 allSpecialPlayerAssetCards :: Map CardCode CardDef

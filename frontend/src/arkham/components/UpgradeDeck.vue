@@ -44,7 +44,7 @@ const isArkhamDBDeck = computed(() => {
 
 function viewDeck() {
   if (currentDeckUrl.value) {
-    const arkhamDbApiRegex = /https:\/\/arkhamdb\.com\/api\/public\/deck\/([^/]+)/
+    const arkhamDbApiRegex = /https:\/\/(?:[a-zA-Z0-9-]+\.)?arkhamdb\.com\/api\/public\/deck\/([^/]+)/
     const matches = currentDeckUrl.value.match(arkhamDbApiRegex)
     if (matches) {
       window.open(`https://arkhamdb.com/deck/view/${matches[1]}`)
@@ -56,7 +56,7 @@ async function syncUpgrade() {
   if (!investigator.value?.deckUrl) return;
   let nextUrl: string | null = investigator.value.deckUrl;
   if (nextUrl) {
-    const arkhamDbApiRegex = /https:\/\/arkhamdb\.com\/api\/public\/deck\/([^/]+)/;
+    const arkhamDbApiRegex = /https:\/\/(?:[a-zA-Z0-9-]+\.)?arkhamdb\.com\/api\/public\/deck\/([^/]+)/;
     const matches = nextUrl.match(arkhamDbApiRegex);
 
     if (matches) {
@@ -93,7 +93,7 @@ function loadDeck() {
   if (!deck.value) return
   model.value = null
 
-  const arkhamDbRegex = /https:\/\/arkhamdb\.com\/(deck(list)?)(\/view)?\/([^/]+)/
+  const arkhamDbRegex = /https:\/\/(?:[a-zA-Z0-9-]+\.)?arkhamdb\.com\/(deck(list)?)(\/view)?\/([^/]+)/
   const arkhamBuildRegex = /https:\/\/arkham\.build\/(?:deck\/view|share)\/([^/]+)/
   
   let matches
@@ -157,6 +157,7 @@ const tabooList = function (investigator: Investigator) {
       case "TabooList20": return "2.0 (Aug 26, 2022)"
       case "TabooList21": return "2.1 (Aug 30, 2023)"
       case "TabooList22": return "2.2 (Feb 20, 2024)"
+      case "TabooList23": return "2.3 (Oct 24, 2024)"
       default: return "Unknown Taboo List"
     }
   }

@@ -16,7 +16,9 @@ import Arkham.Key
 import Arkham.Location.FloodLevel
 import Arkham.Location.Types (Field (LocationFloodLevel))
 import Arkham.Matcher
-import Arkham.Message (Message (CreateEffect, IncreaseFloodLevel, SetFloodLevel))
+import Arkham.Message (
+  Message (CreateEffect, DecreaseFloodLevel, IncreaseFloodLevel, SetFloodLevel),
+ )
 import Arkham.Message.Lifted
 import Arkham.Prelude
 import Arkham.Projection
@@ -63,12 +65,25 @@ increaseThisFloodLevel
   :: (ReverseQueue m, AsId location, IdOf location ~ LocationId) => location -> m ()
 increaseThisFloodLevel location = push $ IncreaseFloodLevel (asId location)
 
+decreaseThisFloodLevel
+  :: (ReverseQueue m, AsId location, IdOf location ~ LocationId) => location -> m ()
+decreaseThisFloodLevel location = push $ DecreaseFloodLevel (asId location)
+
+increaseThisFloodLevelTo
+  :: (ReverseQueue m, AsId location, IdOf location ~ LocationId) => location -> FloodLevel -> m ()
+increaseThisFloodLevelTo location newFloodLevel = do
+  floodLevel <- fieldWithDefault Unflooded LocationFloodLevel location
+  when (floodLevel < newFloodLevel) do
+    push $ IncreaseFloodLevel (asId location)
+
 setThisFloodLevel
   :: (ReverseQueue m, AsId location, IdOf location ~ LocationId) => location -> FloodLevel -> m ()
 setThisFloodLevel location level = push $ SetFloodLevel (asId location) level
 
-struggleForAir :: (Sourceable a, HasQueue Message m) => a -> InvestigatorId -> m ()
-struggleForAir a iid = push $ CreateEffect $ makeEffectBuilder "noair" Nothing a iid
+struggleForAir :: (Sourceable a, HasGame m, HasQueue Message m) => a -> InvestigatorId -> m ()
+struggleForAir a iid = do
+  builder <- makeEffectBuilder "noair" Nothing a iid
+  push $ CreateEffect builder
 
 whenRecoveredMemory :: HasGame m => Memory -> m () -> m ()
 whenRecoveredMemory memory action = whenM (hasMemory memory) action

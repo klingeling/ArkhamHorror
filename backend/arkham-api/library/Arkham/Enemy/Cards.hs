@@ -74,6 +74,7 @@ allPlayerEnemyCards =
       , vengefulShade
       , sacrificialBeast
       , vengefulHound
+      , serpentsOfYigAdvanced
       ]
 
 allEncounterEnemyCards :: Map CardCode CardDef
@@ -91,6 +92,7 @@ allEncounterEnemyCards =
       , anetteMasonReincarnatedEvil
       , angryMob
       , apexStrangleweed
+      , apostleOfDagon
       , arkhamOfficer
       , ashleighClarke
       , asylumGorger
@@ -116,6 +118,7 @@ allEncounterEnemyCards =
       , catsFromSaturn
       , catsOfUlthar
       , cellKeeper
+      , cerenerianDeepOne
       , cloverClubPitBoss
       , cnidathqua
       , conglomerationOfSpheres
@@ -130,6 +133,8 @@ allEncounterEnemyCards =
       , crazedShoggoth
       , creatureOutOfDemhe
       , cultistOfTheEnclave
+      , dagonAwakenedAndEnraged
+      , dagonDeepInSlumber
       , danielChesterfield
       , darkYoungHost
       , deepOneBull
@@ -1772,7 +1777,7 @@ beingsOfIb =
   (enemy "06148" "Beings of Ib" TheSearchForKadath 1)
     { cdCardTraits = setFromList [Monster, Elite]
     , cdVictoryPoints = Just 1
-    , cdKeywords = setFromList [Keyword.Aloof, Keyword.Hunter, Keyword.Swarming (Static 1)]
+    , cdKeywords = setFromList [Keyword.Aloof, Keyword.Hunter, Keyword.Swarming (PerPlayer 1)]
     }
 
 priestOfAThousandMasks :: CardDef
@@ -2228,6 +2233,40 @@ deepOneHatchling =
     , cdKeywords = setFromList [Keyword.Surge]
     }
 
+dagonDeepInSlumber :: CardDef
+dagonDeepInSlumber =
+  (enemy "07292" ("Dagon" <:> "Deep in Slumber") TheLairOfDagon 1)
+    { cdCardTraits = setFromList [AncientOne, Elite]
+    , cdUnique = True
+    , cdDoubleSided = True
+    , cdOtherSide = Just "07292b"
+    }
+
+dagonAwakenedAndEnraged :: CardDef
+dagonAwakenedAndEnraged =
+  (enemy "07292b" ("Dagon" <:> "Awakened and Enraged") TheLairOfDagon 1)
+    { cdCardTraits = setFromList [AncientOne, Elite]
+    , cdKeywords = setFromList [Keyword.Massive]
+    , cdUnique = True
+    , cdVictoryPoints = Just 1
+    , cdDoubleSided = True
+    , cdOtherSide = Just "07292"
+    }
+
+apostleOfDagon :: CardDef
+apostleOfDagon =
+  (enemy "07293" "Apostle of Dagon" TheLairOfDagon 1)
+    { cdCardTraits = setFromList [Humanoid, Hybrid, Cultist]
+    , cdVictoryPoints = Just 1
+    }
+
+cerenerianDeepOne :: CardDef
+cerenerianDeepOne =
+  (enemy "07294" "Cerenerian Deep One" TheLairOfDagon 2)
+    { cdCardTraits = setFromList [Humanoid, Monster, DeepOne]
+    , cdKeywords = setFromList [Keyword.Hunter]
+    }
+
 mobGoons :: CardDef
 mobGoons =
   (weakness "08003" "Mob Goons")
@@ -2605,6 +2644,14 @@ vengefulHound =
   (weakness "98009" "Vengeful Hound")
     { cdCardTraits = setFromList [Monster, Extradimensional, Tindalos]
     , cdKeywords = singleton Keyword.Replacement
+    }
+
+serpentsOfYigAdvanced :: CardDef
+serpentsOfYigAdvanced =
+  (weakness "90083" "Serpents of Yig")
+    { cdCardTraits = setFromList [Humanoid, Monster, Serpent]
+    , cdKeywords = setFromList [Keyword.Hunter, Keyword.Advanced]
+    , cdRevelation = IsRevelation
     }
 
 flyingPolyp :: CardDef

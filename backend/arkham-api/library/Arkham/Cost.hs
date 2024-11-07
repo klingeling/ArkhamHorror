@@ -38,11 +38,6 @@ totalActionCost (ActionCost n) = n
 totalActionCost (Costs xs) = sum $ map totalActionCost xs
 totalActionCost _ = 0
 
-totalResourceCost :: Cost -> Int
-totalResourceCost (ResourceCost n) = n
-totalResourceCost (Costs xs) = sum $ map totalResourceCost xs
-totalResourceCost _ = 0
-
 totalResourcePayment :: Payment -> Int
 totalResourcePayment = sumOf (cosmos . _ResourcePayment)
 
@@ -302,6 +297,14 @@ data Cost
 
 instance Plated Cost
 
+_ResourceCost :: Prism' Cost Int
+_ResourceCost = prism' ResourceCost $ \case
+  ResourceCost x -> Just x
+  _ -> Nothing
+
+totalResourceCost :: Cost -> Int
+totalResourceCost = sumOf (cosmos . _ResourceCost)
+
 assetUseCost :: (Entity a, EntityId a ~ AssetId) => a -> UseType -> Int -> Cost
 assetUseCost a uType n = UseCost (AssetWithId $ toId a) uType n
 
@@ -542,7 +545,7 @@ displayCostType = \case
     Leyline -> tshow n <> "-" <> tshow m <> " Leylines"
   UpTo (Fixed n) c -> displayCostType c <> " up to " <> pluralize n "time"
   UpTo _ c -> displayCostType c <> " up to X times"
-  SealCost _ -> "Seal token"
+  SealCost chaosTokenMatcher -> "Seal " <> toDisplay chaosTokenMatcher
   SealMultiCost n _ -> "Seal " <> tshow n <> " matching tokens"
   SealChaosTokenCost _ -> "Seal token"
   ReleaseChaosTokenCost _ -> "Release a chaos token sealed here"

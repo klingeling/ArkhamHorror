@@ -198,8 +198,10 @@ instance RunMessage EnemyAttrs where
       pure $ updateEnemy [upd] a
     SetOriginalCardCode cardCode -> pure $ a & originalCardCodeL .~ cardCode
     EndPhase -> pure $ a & movedFromHunterKeywordL .~ False
-    SealedChaosToken token card | card.id == a.cardId -> do
+    SealedChaosToken token (isTarget a -> True) -> do
       pure $ a & sealedChaosTokensL %~ (token :)
+    SealedChaosToken token _ -> do
+      pure $ a & sealedChaosTokensL %~ filter (/= token)
     UnsealChaosToken token -> pure $ a & sealedChaosTokensL %~ filter (/= token)
     RemoveAllChaosTokens face -> pure $ a & sealedChaosTokensL %~ filter ((/= face) . chaosTokenFace)
     EnemySpawnEngagedWithPrey eid | eid == enemyId -> do
@@ -226,7 +228,8 @@ instance RunMessage EnemyAttrs where
       pure a
     EnemySpawn miid lid eid | eid == enemyId -> do
       locations' <- select $ IncludeEmptySpace Anywhere
-      if lid `notElem` locations'
+      canEnter <- eid <=~> EnemyCanEnter (LocationWithId lid)
+      if lid `notElem` locations' || not canEnter
         then push (toDiscard GameSource eid)
         else do
           keywords <- getModifiedKeywords a
@@ -566,8 +569,8 @@ instance RunMessage EnemyAttrs where
           pathIds' <- withModifiers loc (toModifiers a additionalConnections) do
             concatForM destinationLocationIds
               $ select
-              . (LocationCanBeEnteredBy enemyId <>)
               . locationMatcherModifier
+              . (LocationCanBeEnteredBy enemyId <>)
               . ClosestPathLocation loc
 
           pathIds <- withModifiers loc (toModifiers a additionalConnections) do
@@ -576,8 +579,8 @@ instance RunMessage EnemyAttrs where
                 barricadedPathIds <-
                   concatForM destinationLocationIds
                     $ select
-                    . (LocationCanBeEnteredBy enemyId <>)
                     . locationMatcherModifier
+                    . (LocationCanBeEnteredBy enemyId <>)
                     . ClosestUnbarricadedPathLocation loc
                 pure $ if null barricadedPathIds then pathIds' else barricadedPathIds
               else pure pathIds'
@@ -613,7 +616,7 @@ instance RunMessage EnemyAttrs where
           let locationMatcherModifier = if CanEnterEmptySpace `elem` mods then IncludeEmptySpace else id
 
           destinationLocationIds <-
-            select $ NearestLocationToLocation loc (locationMatcherModifier lMatcher)
+            select $ locationMatcherModifier $ NearestLocationToLocation loc lMatcher
 
           lead <- getLeadPlayer
           pathIds <-
@@ -804,7 +807,7 @@ instance RunMessage EnemyAttrs where
       for_ alternateSuccess $ \target' ->
         push $ Successful (Action.Evade, toTarget a) iid source target' n
       pure a
-    FailedSkillTest iid (Just Action.Evade) source (Initiator target) _ n | isTarget a target -> do
+    FailedSkillTest iid (Just Action.Evade) source (Initiator target) _ n | isActionTarget a target -> do
       whenWindow <- checkWindows [mkWhen $ Window.FailEvadeEnemy iid enemyId n]
       afterWindow <- checkWindows [mkAfter $ Window.FailEvadeEnemy iid enemyId n]
       pushAll
@@ -884,7 +887,7 @@ instance RunMessage EnemyAttrs where
     PerformEnemyAttack eid | eid == enemyId && not enemyDefeated -> do
       let details = fromJustNote "missing attack details" enemyAttacking
       modifiers <- getModifiers (attackTarget details)
-      sourceModifiers <- getModifiers (sourceToTarget $ attackSource details)
+      sourceModifiers <- maybe (pure []) getModifiers (sourceToMaybeTarget details.source)
 
       let
         applyModifiers cards (CancelAttacksByEnemies c n) = do

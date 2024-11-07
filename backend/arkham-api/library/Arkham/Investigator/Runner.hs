@@ -306,6 +306,14 @@ runWindow attrs windows actions playableCards = do
 
 runInvestigatorMessage :: Runner InvestigatorAttrs
 runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
+  SealedChaosToken token (isTarget a -> True) -> do
+    pure $ a & sealedChaosTokensL %~ (token :)
+  SealedChaosToken token _ -> do
+    pure $ a & sealedChaosTokensL %~ filter (/= token)
+  UnsealChaosToken token -> pure $ a & sealedChaosTokensL %~ filter (/= token)
+  ReturnChaosTokensToPool tokens -> pure $ a & sealedChaosTokensL %~ filter (`notElem` tokens)
+  RemoveAllChaosTokens face -> do
+    pure $ a & sealedChaosTokensL %~ filter ((/= face) . chaosTokenFace)
   UpdateGlobalSetting iid s | iid == a.id -> do
     pure $ a & settingsL %~ updateGlobalSetting s
   UpdateCardSetting iid cCode s | iid == a.id -> do
@@ -749,6 +757,8 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
     pure
       $ a
       & (deckL %~ Deck . filter (/= pc) . unDeck)
+      & (handL %~ filter (/= toCard pc))
+      & (cardsUnderneathL %~ filter (/= toCard pc))
       & discardF
       & (foundCardsL . each %~ filter (/= PlayerCard pc))
   DiscardFromHand handDiscard | handDiscard.investigator == investigatorId -> do
@@ -1922,6 +1932,7 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
       & (deckL %~ Deck . filter ((/= card) . toCard) . unDeck)
       & (cardsUnderneathL %~ filter ((/= card) . toCard))
       & (foundCardsL . each %~ filter (/= card))
+      & (bondedCardsL %~ filter ((/= card) . toCard))
   PutCampaignCardIntoPlay iid cardDef | iid == investigatorId -> do
     let mcard = find ((== cardDef) . toCardDef) (unDeck investigatorDeck)
     case mcard of
@@ -2962,10 +2973,11 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
   RemoveTokens _ (isTarget a -> True) token n -> do
     pure $ a & tokensL %~ subtractTokens token n
   DoBatch _ (EmptyDeck iid mDrawing) | iid == investigatorId -> do
+    player <- getPlayer iid
     pushAll
       $ [EmptyDeck iid mDrawing]
       <> maybeToList mDrawing
-      <> [assignHorror iid EmptyDeckSource 1]
+      <> [chooseOne player [Label "Your deck is empty, take 1 horror" [assignHorror iid EmptyDeckSource 1]]]
     pure a
   EmptyDeck iid _ | iid == investigatorId -> do
     modifiers' <- getModifiers (toTarget a)
@@ -3046,11 +3058,13 @@ runInvestigatorMessage msg a@InvestigatorAttrs {..} = runQueueT $ case msg of
     pushAll [whenWindow, whenWindow2, afterWindow2, afterWindow]
     pure a
   BeforeSkillTest skillTest | skillTestInvestigator skillTest == toId a -> do
-    skillTestModifiers' <- getModifiers (SkillTestTarget skillTest.id)
-    push
-      $ if RevealChaosTokensBeforeCommittingCards `elem` skillTestModifiers'
-        then StartSkillTest investigatorId
-        else CommitToSkillTest skillTest $ StartSkillTestButton investigatorId
+    mSkillTestId <- getSkillTestId
+    when (maybe False (== skillTest.id) mSkillTestId) do
+      skillTestModifiers' <- getModifiers (SkillTestTarget skillTest.id)
+      push
+        $ if RevealChaosTokensBeforeCommittingCards `elem` skillTestModifiers'
+          then StartSkillTest investigatorId
+          else CommitToSkillTest skillTest $ StartSkillTestButton investigatorId
     pure a
   CommitToSkillTest skillTest _ | skillTestInvestigator skillTest == toId a -> do
     investigators <- getInvestigators

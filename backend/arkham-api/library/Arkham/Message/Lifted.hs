@@ -1,6 +1,7 @@
 module Arkham.Message.Lifted (module X, module Arkham.Message.Lifted) where
 
 import Arkham.Ability
+import Arkham.Act.Sequence qualified as Act
 import Arkham.Act.Types (ActAttrs (actDeckId))
 import Arkham.Action (Action)
 import Arkham.Agenda.Types (AgendaAttrs (agendaDeckId))
@@ -13,6 +14,7 @@ import Arkham.Calculation
 import Arkham.CampaignLogKey
 import Arkham.CampaignStep
 import Arkham.Card
+import Arkham.ChaosBagStepState
 import Arkham.ChaosToken
 import Arkham.Classes.GameLogger
 import Arkham.Classes.HasGame
@@ -53,6 +55,7 @@ import Arkham.Investigate qualified as Investigate
 import Arkham.Investigator.Types (Field (..))
 import Arkham.Key
 import Arkham.Location.Grid
+import Arkham.Location.Types (Field (..))
 import Arkham.Matcher
 import Arkham.Message hiding (story)
 import Arkham.Message.Lifted.Queue as X
@@ -497,6 +500,13 @@ createEnemy_
   -> m ()
 createEnemy_ card creation = void $ createEnemyWith card creation id
 
+createEnemy
+  :: (ReverseQueue m, IsCard card, IsEnemyCreationMethod creation)
+  => card
+  -> creation
+  -> m EnemyId
+createEnemy card creation = createEnemyWith card creation id
+
 spawnEnemy :: (ReverseQueue m, IsCard card) => card -> m EnemyId
 spawnEnemy card = createEnemyWith card () id
 
@@ -511,6 +521,9 @@ setCardAside = push . Msg.SetAsideCards . (: [])
 
 addChaosToken :: ReverseQueue m => ChaosTokenFace -> m ()
 addChaosToken = push . AddChaosToken
+
+removeChaosToken :: ReverseQueue m => ChaosTokenFace -> m ()
+removeChaosToken = push . RemoveChaosToken
 
 removeAllChaosTokens :: ReverseQueue m => ChaosTokenFace -> m ()
 removeAllChaosTokens = push . RemoveAllChaosTokens
@@ -619,6 +632,9 @@ advanceAgendaDeck attrs = push $ AdvanceAgendaDeck (agendaDeckId attrs) (toSourc
 advanceActDeck :: ReverseQueue m => ActAttrs -> m ()
 advanceActDeck attrs = push $ AdvanceActDeck (actDeckId attrs) (toSource attrs)
 
+advanceToAct :: ReverseQueue m => ActAttrs -> CardDef -> Act.ActSide -> m ()
+advanceToAct attrs nextAct actSide = push $ AdvanceToAct (actDeckId attrs) nextAct actSide (toSource attrs)
+
 shuffleEncounterDiscardBackIn :: ReverseQueue m => m ()
 shuffleEncounterDiscardBackIn = push ShuffleEncounterDiscardBackIn
 
@@ -676,6 +692,11 @@ chooseSome :: ReverseQueue m => InvestigatorId -> Text -> [UI Message] -> m ()
 chooseSome iid done msgs = do
   player <- getPlayer iid
   push $ Msg.chooseSome player done msgs
+
+chooseSome1 :: ReverseQueue m => InvestigatorId -> Text -> [UI Message] -> m ()
+chooseSome1 iid done msgs = do
+  player <- getPlayer iid
+  push $ Msg.chooseSome1 player done msgs
 
 selectOneToHandle
   :: (HasCallStack, ReverseQueue m, Targetable (QueryElement matcher), Query matcher, Sourceable source)
@@ -860,7 +881,7 @@ createCardEffect
   -> source
   -> target
   -> m ()
-createCardEffect def mMeta source target = push $ Msg.createCardEffect def mMeta source target
+createCardEffect def mMeta source target = push =<< Msg.createCardEffect def mMeta source target
 
 phaseModifier
   :: (ReverseQueue m, Sourceable source, Targetable target) => source -> target -> ModifierType -> m ()
@@ -1205,10 +1226,10 @@ focusChaosTokens tokens f = do
   push $ FocusChaosTokens tokens
   f UnfocusChaosTokens
 
-focusCards :: ReverseQueue m => [Card] -> (Message -> m ()) -> m ()
+focusCards :: (ReverseQueue m, IsCard a) => [a] -> (Message -> m ()) -> m ()
 focusCards [] _ = pure ()
 focusCards cards f = do
-  push $ FocusCards cards
+  push $ FocusCards $ toCard <$> cards
   f UnfocusCards
 
 checkWindows :: ReverseQueue m => [Window] -> m ()
@@ -1474,6 +1495,11 @@ placeUnderneath (toTarget -> target) cards = push $ Msg.PlaceUnderneath target c
 
 gainActions :: (ReverseQueue m, Sourceable source) => InvestigatorId -> source -> Int -> m ()
 gainActions iid (toSource -> source) n = push $ Msg.GainActions iid source n
+
+takeActionAsIfTurn :: (ReverseQueue m, Sourceable source) => InvestigatorId -> source -> m ()
+takeActionAsIfTurn iid (toSource -> source) = do
+  gainActions iid source 1
+  push $ PlayerWindow iid [] True
 
 nonAttackEnemyDamage :: (ReverseQueue m, Sourceable a) => a -> Int -> EnemyId -> m ()
 nonAttackEnemyDamage source damage enemy = do
@@ -1765,7 +1791,7 @@ updateMax def n ew = do
   mEffect <-
     selectOne $ EffectWithCardCode "maxef" <> EffectWithTarget (CardCodeTarget $ toCardCode def)
   case mEffect of
-    Nothing -> push $ Msg.createMaxEffect def n ew
+    Nothing -> push =<< Msg.createMaxEffect def n ew
     Just effect -> do
       meta <- field EffectMeta effect
       case meta of
@@ -1892,9 +1918,6 @@ shuffleSetAsideIntoScenarioDeck key matcher = do
 setScenarioDeck :: ReverseQueue m => ScenarioDeckKey -> [Card] -> m ()
 setScenarioDeck key cards = push $ Msg.SetScenarioDeck key cards
 
-removeChaosToken :: ReverseQueue m => ChaosTokenFace -> m ()
-removeChaosToken token = push $ Msg.RemoveChaosToken token
-
 moveTowardsMatching
   :: (Targetable target, Sourceable source, ReverseQueue m)
   => source
@@ -1935,10 +1958,19 @@ temporaryModifier
   -> ModifierType
   -> QueueT Message m ()
   -> m ()
-temporaryModifier target source modType body = do
+temporaryModifier target source modType = temporaryModifiers target source [modType]
+
+temporaryModifiers
+  :: (Targetable target, Sourceable source, HasQueue Message m, MonadRandom m, HasGame m)
+  => target
+  -> source
+  -> [ModifierType]
+  -> QueueT Message m ()
+  -> m ()
+temporaryModifiers target source modTypes body = do
   effectId <- getRandom
-  ems <- Msg.effectModifiers source [modType]
-  let builder = Msg.makeEffectBuilder "wmode" (Just ems) source target
+  ems <- Msg.effectModifiers source modTypes
+  builder <- Msg.makeEffectBuilder "wmode" (Just ems) source target
   msgs <- evalQueueT body
   pushAll $ CreateEffect builder {effectBuilderEffectId = Just effectId}
     : msgs <> [DisableEffect effectId]
@@ -1949,3 +1981,24 @@ discardAllClues
   -> investigator
   -> m ()
 discardAllClues source investigator = push $ InvestigatorDiscardAllClues (toSource source) (asId investigator)
+
+cancelSkillTestEffects :: (Sourceable source, ReverseQueue m) => source -> m ()
+cancelSkillTestEffects source = do
+  Msg.withSkillTest \sid -> do
+    canCancelSkillTestEffects <- Msg.getCanCancelSkillTestEffects
+    when canCancelSkillTestEffects do
+      skillTestModifier sid source sid CancelEffects
+      cancelledOrIgnoredCardOrGameEffect source
+
+resolveChaosTokens
+  :: (ReverseQueue m, Sourceable source) => InvestigatorId -> source -> [ChaosToken] -> m ()
+resolveChaosTokens iid source tokens = do
+  pushAll
+    $ map UnsealChaosToken tokens
+    <> map ObtainChaosToken tokens
+    <> [ ReplaceCurrentDraw (toSource source) iid
+          $ Choose (toSource source) 1 ResolveChoice [Resolved tokens] [] Nothing
+       ]
+
+removeLocation :: (ReverseQueue m, AsId location, IdOf location ~ LocationId) => location -> m ()
+removeLocation (asId -> lid) = maybe (push $ RemoveLocation lid) (\_ -> addToVictory lid) =<< field LocationVictory lid

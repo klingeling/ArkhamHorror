@@ -1,10 +1,5 @@
-module Arkham.Skill.Cards.Unrelenting1 (
-  unrelenting1,
-  Unrelenting1 (..),
-)
-where
+module Arkham.Skill.Cards.Unrelenting1 (unrelenting1, Unrelenting1 (..)) where
 
-import Arkham.Card
 import Arkham.ChaosToken
 import Arkham.Classes
 import Arkham.Helpers.ChaosBag
@@ -17,8 +12,7 @@ newtype Unrelenting1 = Unrelenting1 SkillAttrs
   deriving newtype (Show, Eq, ToJSON, FromJSON, Entity)
 
 unrelenting1 :: SkillCard Unrelenting1
-unrelenting1 =
-  skill Unrelenting1 Cards.unrelenting1
+unrelenting1 = skill Unrelenting1 Cards.unrelenting1
 
 instance RunMessage Unrelenting1 where
   runMessage msg s@(Unrelenting1 attrs) = case msg of
@@ -34,7 +28,7 @@ instance RunMessage Unrelenting1 where
             [ TargetLabel
               (ChaosTokenFaceTarget $ token.face)
               [ SealChaosToken token
-              , SealedChaosToken token (toCard attrs)
+              , SealedChaosToken token (toTarget attrs)
               ]
             | token <- filter ((/= #autofail) . (.face)) chaosTokensInBag
             ]

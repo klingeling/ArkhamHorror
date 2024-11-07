@@ -12,6 +12,7 @@ import Arkham.Field
 import Arkham.Id
 import Arkham.Label
 import Arkham.Location.Brazier
+import Arkham.Location.Grid
 import Arkham.LocationSymbol
 import {-# SOURCE #-} Arkham.Matcher.Asset
 import Arkham.Matcher.Base
@@ -135,6 +136,7 @@ data LocationMatcher
   | MostBreaches LocationMatcher
   | IncludeEmptySpace LocationMatcher
   | LocationInRow Int
+  | LocationInPosition Pos
   | LocationWhenCriteria Criterion
   | -- | Must be replaced
     ThatLocation
@@ -180,6 +182,9 @@ instance Semigroup LocationMatcher where
   x <> Anywhere = x
   Nowhere <> _ = Nowhere
   _ <> Nowhere = Nowhere
+  IncludeEmptySpace inner1 <> IncludeEmptySpace inner2 = IncludeEmptySpace $ inner1 <> inner2
+  IncludeEmptySpace inner <> rest = IncludeEmptySpace $ inner <> rest
+  rest <> IncludeEmptySpace inner = IncludeEmptySpace $ rest <> inner
   LocationMatchAll xs <> LocationMatchAll ys = LocationMatchAll $ xs <> ys
   LocationMatchAll xs <> x = LocationMatchAll (x : xs)
   x <> LocationMatchAll xs = LocationMatchAll (x : xs)

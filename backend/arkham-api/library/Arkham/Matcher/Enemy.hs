@@ -23,7 +23,7 @@ import {-# SOURCE #-} Arkham.Placement
 import Arkham.Prelude
 import {-# SOURCE #-} Arkham.Source
 import Arkham.Token
-import Arkham.Trait (Trait)
+import Arkham.Trait (Trait (Ghoul))
 import Arkham.Zone
 import Control.Lens.Plated (Plated)
 import Data.Aeson.TH
@@ -54,6 +54,7 @@ data EnemyMatcher
   | EnemyWithSealedChaosTokens Int ChaosTokenMatcher
   | EnemyWithoutTrait Trait
   | EnemyWithKeyword Keyword
+  | EnemyWithAnyKey
   | EnemyWithClues ValueMatcher
   | EnemyWithEqualFields (Field Enemy Int) (Field Enemy Int)
   | EnemyWithNonZeroField (Field Enemy Int)
@@ -106,6 +107,7 @@ data EnemyMatcher
   | IsIchtacasPrey
   | EnemyCanBeDamagedBySource Source
   | OutOfPlayEnemy OutOfPlayZone EnemyMatcher
+  | InPlayEnemy EnemyMatcher
   | IncludeOmnipotent EnemyMatcher
   | IncludeOutOfPlayEnemy EnemyMatcher
   | EnemyWithPlacement Placement
@@ -131,6 +133,9 @@ enemy_ = id
 
 instance Plated EnemyMatcher
 
+instance IsLabel "swarming" EnemyMatcher where
+  fromLabel = SwarmingEnemy
+
 instance IsLabel "exhausted" EnemyMatcher where
   fromLabel = ExhaustedEnemy
 
@@ -139,6 +144,9 @@ instance IsLabel "ready" EnemyMatcher where
 
 instance IsLabel "unengaged" EnemyMatcher where
   fromLabel = UnengagedEnemy
+
+instance IsLabel "ghoul" EnemyMatcher where
+  fromLabel = EnemyWithTrait Ghoul
 
 instance Semigroup EnemyMatcher where
   AnyEnemy <> x = x

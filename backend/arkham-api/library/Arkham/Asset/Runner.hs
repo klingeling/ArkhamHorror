@@ -160,12 +160,16 @@ instance RunMessage AssetAttrs where
     Msg.AssignAssetDamageWithCheck aid source damage horror doCheck | aid == assetId -> do
       mods <- getModifiers a
       let n = sum [x | DamageTaken x <- mods]
-      let damage' = maybe 0 (min (damage + n) . subtract (assetDamage a)) assetHealth
-      let horror' = maybe 0 (min horror . subtract (assetHorror a)) assetSanity
-      pushAll
-        $ [PlaceDamage source (toTarget a) damage' | damage' > 0]
-        <> [PlaceHorror source (toTarget a) horror' | horror' > 0]
-        <> [checkDefeated source aid | doCheck]
+          extraHealth = sum [x | HealthModifier x <- mods]
+          extraSanity = sum [x | SanityModifier x <- mods]
+      let damage' = maybe 0 (min (damage + n) . subtract (assetDamage a) . (+ extraHealth)) assetHealth
+      let horror' = maybe 0 (min horror . subtract (assetHorror a) . (+ extraSanity)) assetSanity
+      if doCheck
+        then push $ Msg.DealAssetDirectDamage aid source damage' horror'
+        else
+          pushAll
+            $ [PlaceDamage source (toTarget a) damage' | damage' > 0]
+            <> [PlaceHorror source (toTarget a) horror' | horror' > 0]
       pure a
     IncreaseCustomization iid cardCode customization choices | toCardCode a == cardCode && a `ownedBy` iid -> do
       case customizationIndex a customization of
@@ -174,8 +178,10 @@ instance RunMessage AssetAttrs where
           pure
             $ a {assetCustomizations = IntMap.adjust (second (const choices) . first (+ 1)) i assetCustomizations}
     SetOriginalCardCode cardCode -> pure $ a & originalCardCodeL .~ cardCode
-    SealedChaosToken token card | toCardId card == toCardId a -> do
+    SealedChaosToken token (isTarget a -> True) -> do
       pure $ a & sealedChaosTokensL %~ (token :)
+    SealedChaosToken token _ -> do
+      pure $ a & sealedChaosTokensL %~ filter (/= token)
     UnsealChaosToken token -> pure $ a & sealedChaosTokensL %~ filter (/= token)
     ReturnChaosTokensToPool tokens -> pure $ a & sealedChaosTokensL %~ filter (`notElem` tokens)
     RemoveAllChaosTokens face -> do
@@ -416,16 +422,19 @@ instance RunMessage AssetAttrs where
           AbilitySource s i -> insertAfterMatching [MoveWithSkillTest afterLast] \case
             ResolvedAbility ab -> ab.source == s && ab.index == i
             MoveWithSkillTest (ResolvedAbility ab) -> ab.source == s && ab.index == i
+            MovedWithSkillTest _ (ResolvedAbility ab) -> ab.source == s && ab.index == i
             _ -> False
           CardIdSource cid -> insertAfterMatching [MoveWithSkillTest afterLast] \case
             ResolvedPlayCard _ c' -> cid == c'.id
             ResolvedAbility _ -> True
             MoveWithSkillTest (ResolvedAbility _) -> True
+            MovedWithSkillTest _ (ResolvedAbility _) -> True
             _ -> False
           EventSource e -> do
             mAbility <- findFromQueue \case
               ResolvedAbility _ -> True
               MoveWithSkillTest (ResolvedAbility _) -> True
+              MovedWithSkillTest _ (ResolvedAbility _) -> True
               _ -> False
             case mAbility of
               Nothing -> insertAfterMatching [MoveWithSkillTest afterLast] \case

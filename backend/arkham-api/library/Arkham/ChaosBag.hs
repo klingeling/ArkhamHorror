@@ -296,7 +296,8 @@ resolveFirstUnresolved source iid strategy = \case
                       then matcher
                       else matcher <> foldMap ChaosTokenFaceIsNot tokensThatCannotBeIgnored
                in anyM (\t -> lift $ matchChaosToken iid t matcher') allChaosTokens
-          choices' <- map snd <$> filterM (\(m, (_, s)) -> isValidMatcher (toStrategy s) m) choices
+          choices' <-
+            map snd <$> filterM (\(m, (_, s)) -> isValidMatcher (toStrategy s) m) choices
           let
             fixStep = \case
               Draw -> Draw
@@ -305,21 +306,20 @@ resolveFirstUnresolved source iid strategy = \case
               ChooseMatchChoice _ _ matchers -> ChooseMatchChoice steps [] matchers
 
           player <- lift $ getPlayer iid
+
           pure
-            $ ( Decided $ ChooseMatchChoice steps tokens' choices
-              ,
-                [ chooseOrRunOne
-                    player
-                    [Label label [SetChaosBagChoice source iid (fixStep step')] | (label, step') <- choices']
-                ]
-              )
+            $ if null choices'
+              then (Resolved $ concatMap toChaosTokens steps <> concat tokens', [])
+              else
+                ( Decided $ ChooseMatchChoice steps tokens' choices
+                ,
+                  [ chooseOrRunOne
+                      player
+                      [Label label [SetChaosBagChoice source iid (fixStep step')] | (label, step') <- choices']
+                  ]
+                )
         else do
-          (steps', msgs) <-
-            resolveFirstChooseUnresolved
-              source
-              iid
-              strategy
-              steps
+          (steps', msgs) <- resolveFirstChooseUnresolved source iid strategy steps
           pure (Decided $ ChooseMatchChoice steps' tokens' choices, msgs)
 
 resolveFirstChooseUnresolved
@@ -816,7 +816,14 @@ instance RunMessage ChaosBag where
     SetChaosTokenAside token -> do
       pure $ c & setAsideChaosTokensL %~ (<> [token])
     UnsealChaosToken token -> do
-      pure $ c & chaosTokensL %~ (token :)
+      pure
+        $ c
+        & chaosTokensL
+        %~ (token :)
+        & setAsideChaosTokensL
+        %~ filter (/= token)
+        & revealedChaosTokensL
+        %~ filter (/= token)
     RemoveAllChaosTokens face ->
       pure
         $ c

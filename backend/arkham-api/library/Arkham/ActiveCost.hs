@@ -1071,17 +1071,20 @@ instance RunMessage ActiveCost where
           pure c
         ForCard isPlayAction card -> do
           modifiers' <- (<>) <$> getModifiers iid <*> getModifiers card
+          let cardDef = toCardDef card
+          enabled <-
+            createCardEffect
+              cardDef
+              (Just $ EffectCost acId)
+              (BothSource (InvestigatorSource iid) (CardIdSource card.id))
+              (toCardId card)
+
           let
-            cardDef = toCardDef card
             modifiersPreventAttackOfOpportunity = ActionDoesNotCauseAttacksOfOpportunity #play `elem` modifiers'
             actions = [Action.Play | isPlayAction == IsPlayAction] <> cardDef.actions
             mEffect =
               guard cardDef.beforeEffect
-                *> [ createCardEffect
-                      cardDef
-                      (Just $ EffectCost acId)
-                      (BothSource (InvestigatorSource iid) (CardIdSource card.id))
-                      (toCardId card)
+                *> [ enabled
                    , CheckAdditionalCosts acId
                    ]
           batchId <- getRandom
@@ -1201,7 +1204,7 @@ instance RunMessage ActiveCost where
           card <- sourceToCard ability.source
           pushAll
             $ [whenActivateAbilityWindow | not isForced]
-            <> [SealedChaosToken token card | token <- c.sealedChaosTokens]
+            <> [SealedChaosToken token (toTarget card) | token <- c.sealedChaosTokens]
             <> [UseCardAbility iid ability.source ability.index c.windows c.payments]
             <> afterMsgs
             <> [afterActivateAbilityWindow | not isForced]
@@ -1214,11 +1217,11 @@ instance RunMessage ActiveCost where
           pushAll
             $ [whenActivateAbilityWindow | isPlayAction == IsPlayAction]
             <> [PlayCard iid card Nothing c.payments c.windows False]
-            <> [SealedChaosToken token card | token <- c.sealedChaosTokens]
+            <> [SealedChaosToken token (toTarget card) | token <- c.sealedChaosTokens]
             <> [FinishAction | notNull actions]
             <> [TakenActions iid actions | notNull actions]
             <> [afterActivateAbilityWindow | isPlayAction == IsPlayAction]
-        ForCost card -> pushAll [SealedChaosToken token card | token <- c.sealedChaosTokens]
+        ForCost card -> pushAll [SealedChaosToken token (toTarget card) | token <- c.sealedChaosTokens]
         ForAdditionalCost _ -> pure ()
       push PaidAllCosts
       pure c

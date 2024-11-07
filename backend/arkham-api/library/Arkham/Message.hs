@@ -344,6 +344,7 @@ data Message
   | Devour InvestigatorId
   | Devoured InvestigatorId Card
   | MoveWithSkillTest Message
+  | MovedWithSkillTest SkillTestId Message
   | NextSkillTest SkillTestId
   | AddSubscriber Target
   | WithSource Source Message
@@ -906,6 +907,7 @@ data Message
   | RunDrawFromBag Source (Maybe InvestigatorId) RequestedChaosTokenStrategy
   | RunSkillTest InvestigatorId
   | RecalculateSkillTestResults
+  | RecalculateSkillTestResultsCanChangeAutomatic Bool
   | RemoveFromBearersDeckOrDiscard PlayerCard
   | SearchCollectionForRandom InvestigatorId Source CardMatcher
   | FinishedSearch
@@ -997,7 +999,7 @@ data Message
   | ClearFound Zone
   | UnfocusChaosTokens
   | SealChaosToken ChaosToken
-  | SealedChaosToken ChaosToken Card
+  | SealedChaosToken ChaosToken Target
   | SetChaosTokenAside ChaosToken -- see: Favor of the Moon (1)
   | UnsealChaosToken ChaosToken
   | ChaosTokenIgnored InvestigatorId Source ChaosToken
@@ -1088,6 +1090,11 @@ instance FromJSON Message where
   parseJSON = withObject "Message" \o -> do
     t :: Text <- o .: "tag"
     case t of
+      "SealedChaosToken" -> do
+        contents <- (Left <$> o .: "contents") <|> (Right <$> o .: "contents")
+        case contents of
+          Left (token, card :: Card) -> pure $ SealedChaosToken token (toTarget card)
+          Right (token, target) -> pure $ SealedChaosToken token target
       "ExcessHealHorror" -> do
         contents <- (Left <$> o .: "contents") <|> (Right <$> o .: "contents")
         case contents of
